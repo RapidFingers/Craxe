@@ -9,13 +9,29 @@ class CrystalBuilder {
 	public final classes:Array<OClass>;
 
 	/**
+	 * Substitute some statics
+	 * @param className 
+	 * @param fieldName 
+	 * @return String
+	 */
+	private static function substStaticFieldName(className:String, fieldName:String):String {
+		if (className == "Std") {
+			switch (fieldName) {
+				case "string":
+					return "Std_is";
+			}
+		}
+		return className + "::" + fieldName;
+	}
+
+	/**
 	 * Build class vars
 	 * @param cls
 	 * @param sb
 	 */
 	private function buildClassVars(sb:StringBuf, cls:OClass) {
 		for (classVar in cls.classVars) {
-            sb.add("@");
+			sb.add("@");
 			sb.add(classVar.name);
 			sb.add(":");
 			sb.add(classVar.type.safeName);
@@ -64,7 +80,7 @@ class CrystalBuilder {
 	 * @param sb
 	 */
 	private function buildExpression(sb:StringBuf, expression:OExpression) {
-		//trace(expression);
+		trace(expression);
 		if ((expression is OBlock)) {
 			var oblock = cast(expression, OBlock);
 			for (expr in oblock.expressions) {
@@ -73,29 +89,61 @@ class CrystalBuilder {
 		} else if ((expression is OReturn)) {
 			sb.add("return ");
 			buildExpression(sb, expression.nextExpression);
-            sb.add("\n");
+			sb.add("\n");
 		} else if ((expression is OBinOp)) {
-			var obinop = cast(expression, OBinOp);            
-            buildExpression(sb, obinop.expression);
-            sb.add(" ");
-            sb.add(obinop.op);
-            sb.add(" ");
-            buildExpression(sb, obinop.nextExpression);
+			var obinop = cast(expression, OBinOp);
+			buildExpression(sb, obinop.expression);
+			sb.add(" ");
+			sb.add(obinop.op);
+			sb.add(" ");
+			if (obinop.nextExpression != null)
+				buildExpression(sb, obinop.nextExpression);
 		} else if ((expression is OVar)) {
 			var ovar = cast(expression, OVar);
-            sb.add(ovar.name);
+			sb.add(ovar.name);
 
-            if (ovar.nextExpression != null) {
-                
-            }
+			if (ovar.nextExpression != null) {
+				sb.add(" = ");
+				buildExpression(sb, ovar.nextExpression);
+			}
+			sb.add("\n");
 		} else if ((expression is OConstant)) {
-			buildConstant(sb, cast expression);
-			buildExpression(sb, expression.nextExpression);
-		} else if ((expression is OFieldInstance)) {			
+			buildConstant(sb, cast(expression, OConstant));
+			if (expression.nextExpression != null)
+				buildExpression(sb, expression.nextExpression);
+		} else if ((expression is OFieldInstance)) {
 			var ofield = cast(expression, OFieldInstance);
-            sb.add("@");
-            sb.add(ofield.field);            
-            sb.add("\n");
+			sb.add("@");
+			sb.add(ofield.field);
+		} else if (Std.is(expression, OFieldStatic)) {
+			var ofield = cast(expression, OFieldStatic);
+			buildExpression(sb, ofield.nextExpression);
+			
+			// var fieldName = substFieldName(ofield.cls.safeName, ofield.field);
+			//var substName = substStaticFieldName(ofield.cls.safeName, fieldName);
+			if (ofield.cls.isExtern == true) {
+				if (ofield.cls.externName != null) {
+					sb.add(ofield.cls.externName);
+					sb.add(".");
+				}
+				sb.add(ofield.field);
+				if (ofield.cls.externIncludes != null) {
+					//addRefs(ofield.cls.externIncludes);
+				}
+			} else {
+				//sb.add(substName);
+			}
+		} else if ((expression is OCall)) {
+			var ocall = cast(expression, OCall);
+			buildExpression(sb, ocall.nextExpression);
+			sb.add("(");
+			for (i in 0...ocall.expressions.length) {
+				buildExpression(sb, ocall.expressions[i]);
+				if (i < ocall.expressions.length - 1) {
+					sb.add(", ");
+				}
+			}
+			sb.add(")\n");
 		}
 	}
 
