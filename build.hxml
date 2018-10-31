@@ -1,0 +1,4 @@
+-cp src
+--macro ast2obj.Generator.generate()
+--no-output
+-main Main
