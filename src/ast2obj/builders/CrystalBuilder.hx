@@ -1,5 +1,6 @@
 package ast2obj.builders;
 
+import sys.io.File;
 import haxe.io.Path;
 
 class CrystalBuilder {
@@ -9,19 +10,33 @@ class CrystalBuilder {
 	public final classes:Array<OClass>;
 
 	/**
+	 * Add helper data
+	 * @param sb 
+	 */
+	private function addHelpers(sb:StringBuf) {
+		sb.add('
+			class HaxeStd
+				def self.string(v)
+					v.to_s
+				end
+			end
+		');
+	}
+
+	/**
 	 * Substitute some statics
-	 * @param className 
-	 * @param fieldName 
+	 * @param className
+	 * @param fieldName
 	 * @return String
 	 */
-	private static function substStaticFieldName(className:String, fieldName:String):String {
+	private function substStaticFieldName(className:String, fieldName:String):String {
 		if (className == "Std") {
 			switch (fieldName) {
 				case "string":
-					return "Std_is";
+					return "HaxeStd.string";
 			}
 		}
-		return className + "::" + fieldName;
+		return null;
 	}
 
 	/**
@@ -33,7 +48,7 @@ class CrystalBuilder {
 		for (classVar in cls.classVars) {
 			sb.add("@");
 			sb.add(classVar.name);
-			sb.add(":");
+			sb.add(" : ");
 			sb.add(classVar.type.safeName);
 			sb.add("\n");
 		}
@@ -111,6 +126,11 @@ class CrystalBuilder {
 			buildConstant(sb, cast(expression, OConstant));
 			if (expression.nextExpression != null)
 				buildExpression(sb, expression.nextExpression);
+		} else if ((expression is OLocal)) {
+			var olocal = cast(expression, OLocal);
+			sb.add(olocal.name);
+			if (olocal.nextExpression != null)
+				buildExpression(sb, olocal.nextExpression);
 		} else if ((expression is OFieldInstance)) {
 			var ofield = cast(expression, OFieldInstance);
 			sb.add("@");
@@ -118,21 +138,12 @@ class CrystalBuilder {
 		} else if (Std.is(expression, OFieldStatic)) {
 			var ofield = cast(expression, OFieldStatic);
 			buildExpression(sb, ofield.nextExpression);
-			
-			// var fieldName = substFieldName(ofield.cls.safeName, ofield.field);
-			//var substName = substStaticFieldName(ofield.cls.safeName, fieldName);
-			if (ofield.cls.isExtern == true) {
-				if (ofield.cls.externName != null) {
-					sb.add(ofield.cls.externName);
-					sb.add(".");
-				}
-				sb.add(ofield.field);
-				if (ofield.cls.externIncludes != null) {
-					//addRefs(ofield.cls.externIncludes);
-				}
+			var substName = substStaticFieldName(ofield.cls.safeName, ofield.field);
+			if (substName != null) {
+				sb.add(substName);
 			} else {
-				//sb.add(substName);
-			}
+				sb.add(ofield.field);
+			}			
 		} else if ((expression is OCall)) {
 			var ocall = cast(expression, OCall);
 			buildExpression(sb, ocall.nextExpression);
@@ -151,9 +162,7 @@ class CrystalBuilder {
 	 * Build class
 	 * @param cls
 	 */
-	private function buildClass(cls:OClass) {
-		var sb = new StringBuf();
-		var filename = Path.normalize(cls.safeName + ".cr");
+	private function buildClass(sb:StringBuf, cls:OClass) {
 		sb.add("class ");
 		sb.add(cls.safeName);
 		sb.add("\n");
@@ -166,8 +175,6 @@ class CrystalBuilder {
 
 		sb.add("\n");
 		sb.add("end\n");
-
-		trace(sb.toString());
 	}
 
 	/**
@@ -182,10 +189,17 @@ class CrystalBuilder {
 	 * Build sources
 	 */
 	public function build() {
+		var filename = Path.normalize("main.cr");
+
+		var sb = new StringBuf();
+		addHelpers(sb);
+
 		for (c in classes) {
 			if (c.isExtern == false) {
-				buildClass(c);
+				buildClass(sb, c);
 			}
 		}
+
+		File.saveContent(filename, sb.toString());
 	}
 }
