@@ -1,18 +1,18 @@
-class Main {
+class Printer {
     public var name:String;
 
-    public function new() {
-    }
+    public function new() {}    
 
-    public function test() {
-        var d = 33;
+    public function print(v1:Int, v2:Int) {
+        var d = v1 + v2;
         name = Std.string(d);
-        return name;
     }
+}
 
+class Main {
     public static function main() {
-        var m = new Main();
-        m.name = "GOOD";
-        trace(m.test());
+        var printer = new Printer();
+        printer.print(44, 22);
+        trace(printer.name);
     }
 }

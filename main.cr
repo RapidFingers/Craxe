@@ -4,17 +4,19 @@
 					v.to_s
 				end
 			end
-		class Main
-setter name : String = ""
-def test
-d = 33
+		class Printer
+property name : String = ""
+def print(v1 : Int, v2 : Int)
+d = v1 + v2
 @name = HaxeStd.string(d)
-return @name
 end
+
+end
+class Main
 def self.main
-m = Main.new()
-m.name = "GOOD"
-pp(m.test())
+printer = Printer.new()
+printer.print(44, 22)
+pp(printer.name)
 end
 
 end

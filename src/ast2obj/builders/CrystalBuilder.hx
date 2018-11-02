@@ -21,7 +21,7 @@ class CrystalBuilder {
 
 	/**
 	 * Add helper data
-	 * @param sb 
+	 * @param sb
 	 */
 	private function addHelpers(sb:StringBuf) {
 		sb.add('
@@ -68,7 +68,7 @@ class CrystalBuilder {
 	 */
 	private function buildClassVars(sb:StringBuf, cls:OClass) {
 		for (classVar in cls.classVars) {
-			sb.add("setter ");
+			sb.add("property ");
 			sb.add(classVar.name);
 			sb.add(" : ");
 			sb.add(classVar.type.safeName);
@@ -99,10 +99,26 @@ class CrystalBuilder {
 			}
 
 			sb.add(method.name);
+
+			if (method.args.length > 0) {
+				sb.add("(");
+				for (i in 0...method.args.length) {
+					var arg = method.args[i];					
+					var varTypeName = arg.type.safeName;
+					sb.add(arg.name);
+					sb.add(" : ");
+					sb.add(varTypeName);
+
+					if (i < method.args.length - 1)
+						sb.add(", ");
+				}
+				sb.add(")");
+			}
+
 			sb.add("\n");
 
 			buildExpression(sb, method.expression);
-			
+
 			sb.add("end");
 			sb.add("\n");
 		}
@@ -117,7 +133,7 @@ class CrystalBuilder {
 			case "Int":
 				sb.add(const.value);
 			case "String":
-				sb.add('"' + const.value +'"');
+				sb.add('"' + const.value + '"');
 			case "this":
 				sb.add("self");
 			case "null":
@@ -169,23 +185,23 @@ class CrystalBuilder {
 				buildExpression(sb, olocal.nextExpression);
 		} else if ((expression is OFieldInstance)) {
 			var ofield = cast(expression, OFieldInstance);
-			var nsb = new StringBuf();			
+			var nsb = new StringBuf();
 			if (ofield.nextExpression != null)
 				buildExpression(nsb, ofield.nextExpression);
 
 			var name = nsb.toString();
-			if (name == "self") {				
+			if (name == "self") {
 				sb.add("@");
 				sb.add(ofield.field);
 			} else {
 				sb.add(name);
 				sb.add(".");
 				sb.add(ofield.field);
-			}			
+			}
 		} else if ((expression is OFieldStatic)) {
 			var ofield = cast(expression, OFieldStatic);
 			buildExpression(sb, ofield.nextExpression);
-			var substName = substStaticFieldName(ofield.cls.safeName, ofield.field);			
+			var substName = substStaticFieldName(ofield.cls.safeName, ofield.field);
 			if (substName != null) {
 				sb.add(substName);
 			} else {
@@ -194,13 +210,16 @@ class CrystalBuilder {
 		} else if ((expression is OCall)) {
 			var ocall = cast(expression, OCall);
 			buildExpression(sb, ocall.nextExpression);
-			sb.add("(");
-			for (i in 0...ocall.expressions.length) {
-				buildExpression(sb, ocall.expressions[i]);
-				/*if (i < ocall.expressions.length - 1) {
-					sb.add(", ");
-				}*/
+			sb.add("(");			
+			var data = [];
+			for (i in 0...ocall.expressions.length) {	
+				var nsb = new StringBuf();				
+				buildExpression(nsb, ocall.expressions[i]);
+				var content = nsb.toString();
+				if (content != "")
+					data.push(content);				
 			}
+			sb.add(data.join(", "));
 			sb.add(")");
 		} else if ((expression is ONew)) {
 			var onew = cast(expression, ONew);
@@ -228,7 +247,7 @@ class CrystalBuilder {
 
 		sb.add("\n");
 		sb.add("end\n");
-	}	
+	}
 
 	/**
 	 * Constructor
