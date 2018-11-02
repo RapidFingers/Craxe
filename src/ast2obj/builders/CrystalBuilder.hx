@@ -5,6 +5,16 @@ import haxe.io.Path;
 
 class CrystalBuilder {
 	/**
+	 * Name of entry point
+	 */
+	public static inline final MAIN_METHOD = "main";
+
+	/**
+	 * Entry point
+	 */
+	private var mainMethod:OMethod;
+
+	/**
 	 * Classes to build source
 	 */
 	public final classes:Array<OClass>;
@@ -16,11 +26,19 @@ class CrystalBuilder {
 	private function addHelpers(sb:StringBuf) {
 		sb.add('
 			class HaxeStd
-				def self.string(v)
+				def self.string(v) : String
 					v.to_s
 				end
 			end
 		');
+	}
+
+	/**
+	 * Build entry point
+	 */
+	private function buildMain(sb:StringBuf) {
+		sb.add("\n");
+		sb.add('${mainMethod.cls.safeName}.${mainMethod.name}()\n');
 	}
 
 	/**
@@ -30,11 +48,15 @@ class CrystalBuilder {
 	 * @return String
 	 */
 	private function substStaticFieldName(className:String, fieldName:String):String {
+		trace(className);
+		trace(fieldName);
 		if (className == "Std") {
 			switch (fieldName) {
 				case "string":
 					return "HaxeStd.string";
 			}
+		} else if (className == "haxe_Log" && fieldName == "trace") {
+			return "pp";
 		}
 		return null;
 	}
@@ -46,10 +68,15 @@ class CrystalBuilder {
 	 */
 	private function buildClassVars(sb:StringBuf, cls:OClass) {
 		for (classVar in cls.classVars) {
-			sb.add("@");
+			sb.add("setter ");
 			sb.add(classVar.name);
 			sb.add(" : ");
 			sb.add(classVar.type.safeName);
+			switch (classVar.type.safeName) {
+				case "String":
+					sb.add(' = ""');
+			}
+
 			sb.add("\n");
 		}
 	}
@@ -61,13 +88,23 @@ class CrystalBuilder {
 	 */
 	private function buildMethods(sb:StringBuf, cls:OClass) {
 		for (method in cls.methods) {
-			sb.add("def ");
+			if (method.isStatic && method.name == MAIN_METHOD) {
+				mainMethod = method;
+			}
+
+			if (method.isStatic) {
+				sb.add("def self.");
+			} else {
+				sb.add("def ");
+			}
+
 			sb.add(method.name);
 			sb.add("\n");
 
 			buildExpression(sb, method.expression);
-
-			sb.add("end\n");
+			
+			sb.add("end");
+			sb.add("\n");
 		}
 	}
 
@@ -80,7 +117,7 @@ class CrystalBuilder {
 			case "Int":
 				sb.add(const.value);
 			case "String":
-				sb.add("String(\"" + const.value + "\")");
+				sb.add('"' + const.value +'"');
 			case "this":
 				sb.add("self");
 			case "null":
@@ -100,11 +137,11 @@ class CrystalBuilder {
 			var oblock = cast(expression, OBlock);
 			for (expr in oblock.expressions) {
 				buildExpression(sb, expr);
+				sb.add("\n");
 			}
 		} else if ((expression is OReturn)) {
 			sb.add("return ");
 			buildExpression(sb, expression.nextExpression);
-			sb.add("\n");
 		} else if ((expression is OBinOp)) {
 			var obinop = cast(expression, OBinOp);
 			buildExpression(sb, obinop.expression);
@@ -121,7 +158,6 @@ class CrystalBuilder {
 				sb.add(" = ");
 				buildExpression(sb, ovar.nextExpression);
 			}
-			sb.add("\n");
 		} else if ((expression is OConstant)) {
 			buildConstant(sb, cast(expression, OConstant));
 			if (expression.nextExpression != null)
@@ -133,28 +169,45 @@ class CrystalBuilder {
 				buildExpression(sb, olocal.nextExpression);
 		} else if ((expression is OFieldInstance)) {
 			var ofield = cast(expression, OFieldInstance);
-			sb.add("@");
-			sb.add(ofield.field);
-		} else if (Std.is(expression, OFieldStatic)) {
+			var nsb = new StringBuf();			
+			if (ofield.nextExpression != null)
+				buildExpression(nsb, ofield.nextExpression);
+
+			var name = nsb.toString();
+			if (name == "self") {				
+				sb.add("@");
+				sb.add(ofield.field);
+			} else {
+				sb.add(name);
+				sb.add(".");
+				sb.add(ofield.field);
+			}			
+		} else if ((expression is OFieldStatic)) {
 			var ofield = cast(expression, OFieldStatic);
 			buildExpression(sb, ofield.nextExpression);
-			var substName = substStaticFieldName(ofield.cls.safeName, ofield.field);
+			var substName = substStaticFieldName(ofield.cls.safeName, ofield.field);			
 			if (substName != null) {
 				sb.add(substName);
 			} else {
 				sb.add(ofield.field);
-			}			
+			}
 		} else if ((expression is OCall)) {
 			var ocall = cast(expression, OCall);
 			buildExpression(sb, ocall.nextExpression);
 			sb.add("(");
 			for (i in 0...ocall.expressions.length) {
 				buildExpression(sb, ocall.expressions[i]);
-				if (i < ocall.expressions.length - 1) {
+				/*if (i < ocall.expressions.length - 1) {
 					sb.add(", ");
-				}
+				}*/
 			}
-			sb.add(")\n");
+			sb.add(")");
+		} else if ((expression is ONew)) {
+			var onew = cast(expression, ONew);
+			var varTypeName = onew.cls.safeName;
+			sb.add(varTypeName);
+			// TODO: arguments
+			sb.add(".new()");
 		}
 	}
 
@@ -175,7 +228,7 @@ class CrystalBuilder {
 
 		sb.add("\n");
 		sb.add("end\n");
-	}
+	}	
 
 	/**
 	 * Constructor
@@ -200,6 +253,7 @@ class CrystalBuilder {
 			}
 		}
 
+		buildMain(sb);
 		File.saveContent(filename, sb.toString());
 	}
 }

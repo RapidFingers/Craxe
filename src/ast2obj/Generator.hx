@@ -1,7 +1,8 @@
 package ast2obj;
 
+import haxe.macro.Compiler;
 import ast2obj.builders.CrystalBuilder;
-//import ast2obj.builders.Compiler;
+// import ast2obj.builders.Compiler;
 import haxe.macro.Expr.Binop;
 import haxe.macro.Expr.Unop;
 import haxe.macro.ExprTools;
@@ -29,7 +30,7 @@ class Generator {
 					// trace(t);
 			}
 		}
-
+				
 		var builder = new CrystalBuilder(classes);
 		builder.build();
 
@@ -39,20 +40,14 @@ class Generator {
 
 	private static function buildClass(c:Ref<ClassType>, params:Array<Type>):OClass {
 		var typeName = c.toString();
-		if (typeName == "Array" || 
-			typeName == "Std" || 
-			typeName == "EReg" ||
-			typeName == "ArrayAccess" || 
-			typeName == "String" || 
-			typeName == "IntIterator" || 
-			typeName == "StringBuf" ||
-			typeName == "StringTools" || 
-			typeName == "Type" || 
-			StringTools.startsWith(c.toString(), "haxe.")) {
-				//trace("Skipping: " + c.toString());
+		// TODO: filter
+		if (
+			typeName == "Array" || typeName == "Std" || typeName == "EReg" || typeName == "ArrayAccess" || typeName == "String" || typeName == "IntIterator" || typeName == "StringBuf" || typeName == "StringTools" || typeName == "Type" || StringTools
+				.startsWith(c.toString(), "haxe.")) {
+			// trace("Skipping: " + c.toString());
 			return null;
 		} else {
-			//trace("Generating: " + c.toString());
+			// trace("Generating: " + c.toString());
 		}
 
 		var oclass = new OClass();
@@ -69,10 +64,9 @@ class Generator {
 		oclass.stackOnly = hasMeta(c.get().meta, ":stackOnly");
 
 		var classType:ClassType = c.get();
-		var fields:Array<ClassField> = classType.fields.get();
-		for (f in fields) {
+		for (f in classType.fields.get()) {
 			switch (f.kind) {
-				case FMethod(k):
+				case FMethod(k):					
 					var omethod = buildMethod(oclass, f.expr());
 					if (omethod != null) {
 						omethod.cls = oclass;
@@ -92,6 +86,21 @@ class Generator {
 			}
 		}
 
+		for (f in classType.statics.get()) {
+			switch (f.kind) {
+				case FMethod(k):
+					var omethod = buildMethod(oclass, f.expr(), true);
+					if (omethod != null) {
+						omethod.cls = oclass;
+						omethod.name = f.name;
+						oclass.methods.push(omethod);
+					}
+				case FVar(read, write):
+					trace(read);
+				case _:
+					trace("buildClass not impl: " + f.kind);
+			}
+		}
 		return oclass;
 	}
 
@@ -101,7 +110,7 @@ class Generator {
 		return oclassvar;
 	}
 
-	private static function buildMethod(oclass:OClass, e:TypedExpr):OMethod {
+	private static function buildMethod(oclass:OClass, e:TypedExpr, isStatic:Bool = false):OMethod {
 		var omethod:OMethod = null;
 
 		if (e != null) {
@@ -109,8 +118,9 @@ class Generator {
 				case TFunction(tfunc):
 					omethod = new OMethod();
 					omethod.type = buildType(tfunc.t);
-					for (arg in tfunc.args) {
-						var omethodarg = new OMethodArg();
+					omethod.isStatic = isStatic;
+					for (arg in tfunc.args) {						
+						var omethodarg = new OMethodArg();						
 						omethodarg.name = arg.v.name;
 						omethodarg.type = buildType(arg.v.t);
 						omethodarg.value = buildConstant(arg.value);

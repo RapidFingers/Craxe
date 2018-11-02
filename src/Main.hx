@@ -13,6 +13,6 @@ class Main {
     public static function main() {
         var m = new Main();
         m.name = "GOOD";
-        m.test();
+        trace(m.test());
     }
 }
