@@ -3,21 +3,11 @@ package ast2obj.builders;
 import sys.io.File;
 import haxe.io.Path;
 
-class CrystalBuilder {
-	/**
-	 * Name of entry point
-	 */
-	public static inline final MAIN_METHOD = "main";
-
+class CrystalBuilder extends BaseBuilder {
 	/**
 	 * Entry point
 	 */
 	private var mainMethod:OMethod;
-
-	/**
-	 * Classes to build source
-	 */
-	public final classes:Array<OClass>;
 
 	/**
 	 * Add helper data
@@ -88,7 +78,7 @@ class CrystalBuilder {
 	 */
 	private function buildMethods(sb:StringBuf, cls:OClass) {
 		for (method in cls.methods) {
-			if (method.isStatic && method.name == MAIN_METHOD) {
+			if (method.isStatic && method.name == BaseBuilder.MAIN_METHOD) {
 				mainMethod = method;
 			}
 
@@ -250,17 +240,9 @@ class CrystalBuilder {
 	}
 
 	/**
-	 * Constructor
-	 * @param classes
-	 */
-	public function new(classes:Array<OClass>) {
-		this.classes = classes;
-	}
-
-	/**
 	 * Build sources
 	 */
-	public function build() {
+	public override function build() {
 		var filename = Path.normalize("main.cr");
 
 		var sb = new StringBuf();

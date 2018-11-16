@@ -1,12 +1,12 @@
 package ast2obj;
 
+import ast2obj.builders.BaseBuilder;
 import haxe.macro.Compiler;
 import ast2obj.builders.CrystalBuilder;
-// import ast2obj.builders.Compiler;
+import ast2obj.builders.NimBuilder;
 import haxe.macro.Expr.Binop;
 import haxe.macro.Expr.Unop;
 import haxe.macro.ExprTools;
-import haxe.macro.Context;
 import haxe.macro.Type;
 
 class Generator {
@@ -30,8 +30,18 @@ class Generator {
 					// trace(t);
 			}
 		}
-				
-		var builder = new CrystalBuilder(classes);
+		
+		var builder : BaseBuilder = null;
+		#if crystal
+			builder = new CrystalBuilder(classes);
+		#end
+		#if nim
+			builder = new NimBuilder(classes);
+		#end
+
+		if (builder == null)
+			throw "Not supported builder type";
+			
 		builder.build();
 
 		// var libraries:Array<String> = ArduinoCPPBuilder.libraries;
