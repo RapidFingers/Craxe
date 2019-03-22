@@ -130,7 +130,7 @@ class Generator {
 					omethod.type = buildType(tfunc.t);
 					omethod.isStatic = isStatic;
 					for (arg in tfunc.args) {						
-						var omethodarg = new OMethodArg();						
+						var omethodarg = new OMethodArg();
 						omethodarg.name = arg.v.name;
 						omethodarg.type = buildType(arg.v.t);
 						omethodarg.value = buildConstant(arg.value);
@@ -205,7 +205,7 @@ class Generator {
 			case TIf(econd, eif, null):
 				oexpr = new OIf();
 				cast(oexpr, OIf).conditionExpression = buildExpression(econd, oexpr);
-				cast(oexpr, OIf).ifExpression = buildExpression(eif, oexpr);
+				cast(oexpr, OIf).ifExpression = buildExpression(eif, oexpr);				
 			case TParenthesis(e):
 				oexpr = new OParenthesis();
 				oexpr.nextExpression = buildExpression(e, oexpr);
@@ -297,10 +297,10 @@ class Generator {
 		return oconstant;
 	}
 
-	private static function buildType(t:Type):OType {
+	private static function buildType(tp:Type):OType {
 		var otype = new OType();
 
-		switch (t) {
+		switch (tp) {
 			case TAbstract(t, params):
 				otype.name = t.toString();
 			case TInst(t, params):
@@ -308,8 +308,10 @@ class Generator {
 				for (p in params) {
 					otype.typeParameters.push(buildType(p));
 				}
+			case TFun(args, ret):
+				otype.name = tp.getName();
 			case _:
-				trace("buildType not impl: " + t);
+				trace("buildType not impl: " + tp);
 		}
 
 		return otype;

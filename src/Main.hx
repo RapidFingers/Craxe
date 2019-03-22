@@ -1,23 +1,13 @@
-class Printer {
-    public var name:String;
-
-    public function new() {}    
-
-    public function print(v1:Int, v2:Int) {
-        var d = v1 + v2;
-        name = Std.string(d);
-    }
-
-    public static function test() {
-        trace("GOOD");
-    }
-}
-
 class Main {
-    public static function main() {
-        var printer = new Printer();
-        printer.print(101, 44);
-        trace(printer.name);
-        Printer.test();
-    }
+	static function fib(n:Int) {
+		if (n <= 2) {
+			return 1;
+		}
+
+		return fib(n - 1) + fib(n - 2);
+	}
+
+	public static function main() {
+		trace(fib(50));
+	}
 }

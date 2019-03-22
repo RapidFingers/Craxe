@@ -9,6 +9,6 @@ class OType {
     
     public var safeName(get, null):String;
     private function get_safeName():String {
-        return StringTools.replace(name, ".", "_");
+        return StringTools.replace(name, ".", "SAFE");
     }
 }

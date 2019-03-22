@@ -18,14 +18,20 @@ class IndentStringBuilder {
 	private var buffer:StringBuf;
 
 	/**
-	 * Current indent
-	 */
-	private var indent:Int;
-
-	/**
 	 * Indent string
 	 */
 	private var indentStr:String;
+
+	/**
+	 * Current indent
+	 */
+	public var indent(default, set_indent):Int;
+
+	public function set_indent(value:Int):Int {
+		indent = value;
+		calcIndent();
+		return indent;
+	}
 
 	/**
 	 * Calculate indent string
@@ -94,8 +100,11 @@ class IndentStringBuilder {
 	 * Add break line
 	 * @param value
 	 */
-	public inline function addBreakLine() {
+	public inline function addBreakLine(addIndent = false) {
 		buffer.add("\n");
+		if (addIndent) {
+			addWithIndent("");
+		}
 	}
 
 	/**
@@ -113,13 +122,20 @@ class NimBuilder extends BaseBuilder {
 	/**
 	 * Entry point
 	 */
-	private var mainMethod:OMethod;
+	var mainMethod:OMethod;
+
+	/**
+	 * Fix _ in name
+	 */
+	inline function fixVarName(name:String):String {
+		return StringTools.replace(name, "_", "VAR");
+	}
 
 	/**
 	 * Return resolved type name
 	 * @param name
 	 */
-	private function resolveTypeName(name:String):String {
+	function resolveTypeName(name:String):String {
 		switch (name) {
 			case "Void":
 				return "void";
@@ -129,6 +145,8 @@ class NimBuilder extends BaseBuilder {
 				return "int";
 			case "Float":
 				return "float";
+			case "TFun":
+				return "fun";
 			default:
 				throw 'Unknown type ${name}';
 		}
@@ -138,7 +156,7 @@ class NimBuilder extends BaseBuilder {
 	 * Build constant
 	 * @param c
 	 */
-	private static function buildConstant(sb:IndentStringBuilder, const:OConstant) {
+	static function buildConstant(sb:IndentStringBuilder, const:OConstant) {
 		switch (const.type) {
 			case "Int":
 				sb.add(const.value);
@@ -159,7 +177,7 @@ class NimBuilder extends BaseBuilder {
 	 * @param fieldName
 	 * @return String
 	 */
-	private function substStaticFieldName(className:String, fieldName:String):String {
+	function substStaticFieldName(className:String, fieldName:String):String {
 		trace(className);
 		trace(fieldName);
 		if (className == "Std") {
@@ -176,7 +194,7 @@ class NimBuilder extends BaseBuilder {
 	/**
 	 * Build entry point
 	 */
-	private function buildMain(sb:IndentStringBuilder) {
+	function buildMain(sb:IndentStringBuilder) {
 		sb.addBreakLine();
 		sb.addLine('${mainMethod.cls.safeName}StaticInst.${mainMethod.name}()');
 	}
@@ -185,7 +203,7 @@ class NimBuilder extends BaseBuilder {
 	 * Build class fields
 	 * @param cls
 	 */
-	private function buildClassInfo(sb:IndentStringBuilder, cls:OClass) {
+	function buildClassInfo(sb:IndentStringBuilder, cls:OClass) {
 		var line = '${cls.safeName} = ref object of RootObj';
 		sb.addLine(line);
 
@@ -219,10 +237,8 @@ class NimBuilder extends BaseBuilder {
 
 	/**
 	 * Build fields
-	 * @param cls
-	 * @param sb
 	 */
-	private function buildFields(sb:IndentStringBuilder, vars:Array<OClassVar>) {
+	function buildFields(sb:IndentStringBuilder, vars:Array<OClassVar>) {
 		for (classVar in vars) {
 			sb.addWithIndent(classVar.name);
 			sb.add(" : ");
@@ -236,19 +252,19 @@ class NimBuilder extends BaseBuilder {
 	 * @param sb
 	 * @param cls
 	 */
-	private function buildInitStaticClass(sb:IndentStringBuilder, cls:OClass) {
+	function buildInitStaticClass(sb:IndentStringBuilder, cls:OClass) {
 		if (cls.methods.filter((x) -> x.isStatic).length > 0) {
 			sb.addWithIndent('let ${cls.safeName}StaticInst = ${cls.safeName}Static()');
 			sb.addBreakLine();
 		}
-	}	
+	}
 
 	/**
 	 * Build class methods
 	 * @param sb
 	 * @param cls
 	 */
-	private function buildClassMethods(sb:IndentStringBuilder, cls:OClass) {
+	function buildClassMethods(sb:IndentStringBuilder, cls:OClass) {
 		for (method in cls.methods) {
 			if (method.isStatic && method.name == BaseBuilder.MAIN_METHOD) {
 				mainMethod = method;
@@ -273,13 +289,12 @@ class NimBuilder extends BaseBuilder {
 			sb.add(") : ");
 			sb.add(resolveTypeName(method.type.safeName));
 			sb.add(" =");
-			sb.addBreakLine();
 			sb.inc();
-			sb.addWithIndent("");
+			sb.addBreakLine(true);
 
 			buildExpression(sb, method.expression);
 			sb.addBreakLine();
-			sb.dec();
+			sb.indent = 0;
 		}
 	}
 
@@ -287,7 +302,7 @@ class NimBuilder extends BaseBuilder {
 	 * Build expression
 	 * @param sb
 	 */
-	private function buildExpression(sb:IndentStringBuilder, expression:OExpression) {
+	function buildExpression(sb:IndentStringBuilder, expression:OExpression) {
 		trace(expression);
 		if ((expression is OBlock)) {
 			buildExpressionOblock(sb, cast(expression, OBlock));
@@ -309,36 +324,50 @@ class NimBuilder extends BaseBuilder {
 			buildExpressionOFieldStatic(sb, cast(expression, OFieldStatic));
 		} else if ((expression is ONew)) {
 			buildExpressionONew(sb, cast(expression, ONew));
+		} else if ((expression is OWhile)) {
+			buildExpressionOWhile(sb, cast(expression, OWhile));
+		} else if ((expression is OParenthesis)) {
+			buildExpressionOParenthesis(sb, cast(expression, OParenthesis));
+		} else if ((expression is OUnOp)) {
+			buildExpressionOUnOp(sb, cast(expression, OUnOp));
+		} else if ((expression is OIf)) {
+			buildExpressionOIf(sb, cast(expression, OIf));
+		} else if ((expression is OReturn)) {
+			buildExpressionOReturn(sb, cast(expression, OReturn));
 		}
 	}
 
 	/**
 	 * Build expression OBlock
 	 */
-	private function buildExpressionOblock(sb:IndentStringBuilder, expression:OBlock) {
+	function buildExpressionOblock(sb:IndentStringBuilder, expression:OBlock) {
 		for (expr in expression.expressions) {
 			buildExpression(sb, expr);
-			sb.addBreakLine();
+			//sb.addBreakLine();
 		}
 	}
 
 	/**
 	 * Build expression OVar
 	 */
-	private function buildExpressionOVar(sb:IndentStringBuilder, expression:OVar) {
+	function buildExpressionOVar(sb:IndentStringBuilder, expression:OVar) {
 		sb.add("var ");
-		sb.add(expression.name);
+
+		var name = fixVarName(expression.name);
+		sb.add(name);
 
 		if (expression.nextExpression != null) {
 			sb.add(" = ");
 			buildExpression(sb, expression.nextExpression);
 		}
+
+		sb.addBreakLine(true);
 	}
 
 	/**
 	 * Build expression OBinOp
 	 */
-	private function buildExpressionOBinOp(sb:IndentStringBuilder, expression:OBinOp) {
+	function buildExpressionOBinOp(sb:IndentStringBuilder, expression:OBinOp) {
 		buildExpression(sb, expression.expression);
 		sb.add(" ");
 		sb.add(expression.op);
@@ -350,26 +379,27 @@ class NimBuilder extends BaseBuilder {
 	/**
 	 * Build expression OLocal
 	 */
-	private function buildExpressionOLocal(sb:IndentStringBuilder, expression:OLocal) {
-		sb.add(expression.name);
+	function buildExpressionOLocal(sb:IndentStringBuilder, expression:OLocal) {
+		var name = fixVarName(expression.name);
+		sb.add(name);
 		if (expression.nextExpression != null)
-			buildExpression(sb, expression.nextExpression);
+			buildExpression(sb, expression.nextExpression);			
 	}
 
 	/**
 	 * Build expression OFieldInstance
 	 */
-	private function buildExpressionOFieldInstance(sb:IndentStringBuilder, expression:OFieldInstance) {
+	function buildExpressionOFieldInstance(sb:IndentStringBuilder, expression:OFieldInstance) {
 		var nsb = new IndentStringBuilder();
 		if (expression.nextExpression != null)
 			buildExpression(nsb, expression.nextExpression);
 
 		var name = nsb.toString();
 		if (name == "self") {
-			sb.addWithIndent("this.");
+			sb.add("this.");
 			sb.add(expression.field);
 		} else {
-			sb.addWithIndent(name);
+			sb.add(name);
 			sb.add(".");
 			sb.add(expression.field);
 		}
@@ -378,7 +408,7 @@ class NimBuilder extends BaseBuilder {
 	/**
 	 * Build expression OCall
 	 */
-	private function buildExpressionOCall(sb:IndentStringBuilder, expression:OCall) {
+	function buildExpressionOCall(sb:IndentStringBuilder, expression:OCall) {
 		buildExpression(sb, expression.nextExpression);
 		sb.add("(");
 		var data = [];
@@ -396,28 +426,107 @@ class NimBuilder extends BaseBuilder {
 	/**
 	 * Build expression OFieldStatic
 	 */
-	private function buildExpressionOFieldStatic(sb:IndentStringBuilder, expression:OFieldStatic) {
+	function buildExpressionOFieldStatic(sb:IndentStringBuilder, expression:OFieldStatic) {
 		buildExpression(sb, expression.nextExpression);
 		var substName = substStaticFieldName(expression.cls.safeName, expression.field);
 		if (substName != null) {
 			if (substName == "echo") {
-				sb.addWithIndent(substName);
+				sb.add(substName);
 			} else {
 				sb.add(substName);
 			}
 		} else {
-			sb.addWithIndent('${expression.cls.safeName}StaticInst.${expression.field}');
+			sb.add('${expression.cls.safeName}StaticInst.${expression.field}');
 		}
 	}
 
 	/**
 	 * Build expression ONew
 	 */
-	private function buildExpressionONew(sb:IndentStringBuilder, expression:ONew) {
+	function buildExpressionONew(sb:IndentStringBuilder, expression:ONew) {
 		var varTypeName = expression.cls.safeName;
 		sb.add(varTypeName);
 		// TODO: arguments
 		sb.add("()");
+	}
+
+	/**
+	 * Build expression OWhile
+	 */
+	function buildExpressionOWhile(sb:IndentStringBuilder, expression:OWhile) {
+		sb.add("while ");
+		buildExpression(sb, expression.conditionExpression);
+		sb.add(":");
+		sb.addBreakLine();
+		sb.inc();
+		sb.addWithIndent("");
+		buildExpression(sb, expression.nextExpression);
+		sb.dec();
+	}
+
+	/**
+	 * Build expression OParenthesis
+	 */
+	function buildExpressionOParenthesis(sb:IndentStringBuilder, expression:OParenthesis) {
+		buildExpression(sb, expression.nextExpression);
+	}
+
+	/**
+	 * Build expression OUnOp
+	 */
+	function buildExpressionOUnOp(sb:IndentStringBuilder, expression:OUnOp) {
+		if (expression.post == true) {
+			switch(expression.op) {
+				case "++":
+					sb.add("incRet(");
+					buildExpression(sb, expression.nextExpression);
+					sb.add(")");
+				default:
+					buildExpression(sb, expression.nextExpression);
+					sb.add(expression.op);
+			}			
+		} else {
+			sb.add(expression.op);
+			buildExpression(sb, expression.nextExpression);
+		}
+	}
+
+	/**
+	 * Build expression OIf
+	 */
+	function buildExpressionOIf(sb:IndentStringBuilder, expression:OIf) {
+		sb.add("if ");
+		buildExpression(sb, expression.conditionExpression);
+		sb.add(":");
+		sb.inc();
+		sb.addBreakLine(true);
+
+		buildExpression(sb, expression.ifExpression);
+		if (expression.elseExpression != null) {
+			sb.addLine("else:");
+			buildExpression(sb, expression.elseExpression);
+		}
+		sb.dec();
+	}
+
+	/**
+	 * Build expression OReturn
+	 */
+	function buildExpressionOReturn(sb:IndentStringBuilder, expression:OReturn) {
+		sb.add("return ");		
+		buildExpression(sb, expression.nextExpression);
+		sb.dec();
+		sb.addBreakLine(true);
+	}
+
+	/**
+	 * Build system functions and types
+	 */
+	function buildSystem(sb:IndentStringBuilder) {
+		sb.add("template incRet(val:var untyped):untyped =\n    inc(val)\n    val");
+
+		sb.addBreakLine();
+		sb.addBreakLine();
 	}
 
 	/**
@@ -426,6 +535,8 @@ class NimBuilder extends BaseBuilder {
 	public override function build() {
 		var filename = Path.normalize("main.nim");
 		var sb = new IndentStringBuilder();
+
+		buildSystem(sb);
 
 		if (classes.length > 0) {
 			sb.addLine("type ");

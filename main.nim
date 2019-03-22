@@ -1,25 +1,19 @@
+template incRet(val:var untyped):untyped =
+    inc(val)
+    val
+
 type 
-    Printer = ref object of RootObj
-        name : string
-    PrinterStatic = ref object of RootObj
     Main = ref object of RootObj
     MainStatic = ref object of RootObj
 
-let PrinterStaticInst = PrinterStatic()
 let MainStaticInst = MainStatic()
 
-proc print(this : Printer, v1 : int, v2 : int) : void =
-    var d = v1 + v2
-    this.name = $(d)
-
-proc test(this : PrinterStatic) : void =
-        echo("GOOD")
+proc fib(this : MainStatic, n : int) : int =
+    if n <= 2:
+        return 1
+    return MainStaticInst.fib(n - 1) + MainStaticInst.fib(n - 2)
 
 proc main(this : MainStatic) : void =
-    var printer = Printer()
-    printer.print(101, 44)
-    echo(printer.name)
-    PrinterStaticInst.test()
-
+    echo(MainStaticInst.fib(50))
 
 MainStaticInst.main()
