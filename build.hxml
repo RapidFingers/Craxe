@@ -1,6 +1,0 @@
--cp src
---macro ast2obj.Generator.generate()
---no-output
--D nim
--D eval-stack
--main Main

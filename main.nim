@@ -3,17 +3,17 @@ template incRet(val:var untyped):untyped =
     val
 
 type 
-    Main = ref object of RootObj
-    MainStatic = ref object of RootObj
+    Fibonacci = ref object of RootObj
+    FibonacciStatic = ref object of RootObj
 
-let MainStaticInst = MainStatic()
+let FibonacciStaticInst = FibonacciStatic()
 
-proc fib(this : MainStatic, n : int) : int =
+proc fib(this : FibonacciStatic, n : int) : int =
     if n <= 2:
         return 1
-    return MainStaticInst.fib(n - 1) + MainStaticInst.fib(n - 2)
+    return FibonacciStaticInst.fib(n - 1) + FibonacciStaticInst.fib(n - 2)
 
-proc main(this : MainStatic) : void =
-    echo(MainStaticInst.fib(50))
+proc main(this : FibonacciStatic) : void =
+    echo(FibonacciStaticInst.fib(50))
 
-MainStaticInst.main()
+FibonacciStaticInst.main()
