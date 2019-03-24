@@ -2,8 +2,8 @@ package craxe.ast2obj;
 
 import haxe.macro.Compiler;
 import craxe.builders.BaseBuilder;
-import craxe.builders.CrystalBuilder;
-import craxe.builders.NimBuilder;
+import craxe.builders.crystal.CrystalBuilder;
+import craxe.builders.nim.NimBuilder;
 import haxe.macro.Expr.Binop;
 import haxe.macro.Expr.Unop;
 import haxe.macro.ExprTools;
@@ -30,6 +30,9 @@ class Generator {
 					// trace(t);
 			}
 		}
+
+		if (classes.length < 1)
+			throw "No classes";
 
 		var builder:BaseBuilder = null;
 		#if crystal

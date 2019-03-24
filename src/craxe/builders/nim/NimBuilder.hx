@@ -1,9 +1,9 @@
-package craxe.builders;
+package craxe.builders.nim;
 
 import sys.io.File;
 import haxe.io.Path;
 import craxe.ast2obj.*;
-import craxe.util.IndentStringBuilder;
+import craxe.builders.nim.IndentStringBuilder;
 
 /**
  * Builder for nim code
@@ -232,7 +232,6 @@ class NimBuilder extends BaseBuilder {
 	function buildExpressionOblock(sb:IndentStringBuilder, expression:OBlock) {
 		for (expr in expression.expressions) {
 			buildExpression(sb, expr);
-			//sb.addBreakLine();
 		}
 	}
 

@@ -1,4 +1,4 @@
-package craxe.util;
+package craxe.builders.nim;
 
 /**
  * For string builder with indent
@@ -7,17 +7,22 @@ class IndentStringBuilder {
 	/**
 	 * Count of spaces to indent
 	 */
-	private static inline final INDENT_SPACE_COUNT = 4;
+	static inline final INDENT_SPACE_COUNT = 4;
+
+	/**
+	 * Size of indent
+	 */
+	final indentSize : Int;
 
 	/**
 	 * String builder
 	 */
-	private var buffer:StringBuf;
+	var buffer:StringBuf;	
 
 	/**
 	 * Indent string
 	 */
-	private var indentStr:String;
+	var indentStr:String;
 
 	/**
 	 * Current indent
@@ -35,14 +40,15 @@ class IndentStringBuilder {
 	 */
 	private function calcIndent() {
 		indentStr = "";
-		for (i in 0...indent * INDENT_SPACE_COUNT)
+		for (i in 0...indent * indentSize)
 			indentStr += " ";
 	}
 
 	/**
 	 * Constructor
 	 */
-	public function new() {
+	public function new(indentSize = INDENT_SPACE_COUNT) {
+		this.indentSize = indentSize;
 		buffer = new StringBuf();
 		indent = 0;
 		indentStr = "";
