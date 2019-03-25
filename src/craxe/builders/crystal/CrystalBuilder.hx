@@ -61,7 +61,7 @@ class CrystalBuilder extends BaseBuilder {
 		sb.add("end");
 		sb.addNewLine(Same);
 		if (br)
-			sb.addNewLine(Same);
+			sb.addNewLine(Same, true);
 	}
 
 	/**
@@ -168,6 +168,7 @@ class CrystalBuilder extends BaseBuilder {
 	function buildExpressionOblock(sb:IndentStringBuilder, expression:OBlock) {
 		for (expr in expression.expressions) {
 			buildExpression(sb, expr);
+			sb.addNewLine(Same);
 		}
 	}
 
@@ -257,7 +258,6 @@ class CrystalBuilder extends BaseBuilder {
 		}
 		sb.add(data.join(", "));
 		sb.add(")");
-		sb.addNewLine(Same);
 	}
 
 	/**
@@ -332,7 +332,7 @@ class CrystalBuilder extends BaseBuilder {
 		buildExpression(sb, expression.conditionExpression);
 		sb.addNewLine(Inc);
 		buildExpression(sb, expression.nextExpression);
-		addEnd(sb);
+		addEnd(sb, false);
 	}
 
 	/**
