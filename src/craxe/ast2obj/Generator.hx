@@ -54,8 +54,7 @@ class Generator {
 	private static function buildClass(c:Ref<ClassType>, params:Array<Type>):OClass {
 		var typeName = c.toString();
 		// TODO: filter
-		if (typeName == "Array"
-			|| typeName == "Std"
+		if (typeName == "Std"
 			|| typeName == "EReg"
 			|| typeName == "ArrayAccess"
 			|| typeName == "String"
@@ -121,7 +120,7 @@ class Generator {
 				case _:
 					trace("buildClass not impl: " + f.kind);
 			}
-		}
+		}		
 		return oclass;
 	}
 
