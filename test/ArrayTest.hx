@@ -1,9 +1,13 @@
+class MyType {
+    public function new() {}
+}
+
 class ArrayTest {	
 	public static function main() {
-		var arr = new Array<Int>();
-        arr.push(33);
-        arr.push(44);
-        arr.push(55);
+		var arr = new Array<MyType>();
+        arr.push(new MyType());
+        arr.push(new MyType());
+        arr.push(new MyType());
         trace(arr);
 	}
 }

@@ -410,6 +410,8 @@ class CrystalBuilder extends BaseBuilder {
 		for (c in classes) {
 			if (c.isExtern == false) {
 				buildClass(sb, c);
+			} else {
+				trace(c.fullName);
 			}
 		}
 

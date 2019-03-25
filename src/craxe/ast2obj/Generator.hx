@@ -55,6 +55,9 @@ class Generator {
 		var typeName = c.toString();
 		// TODO: filter
 		if (typeName == "Std"
+			|| typeName == "Math"
+			|| typeName == "Reflect"
+			|| typeName == "Sys"
 			|| typeName == "EReg"
 			|| typeName == "ArrayAccess"
 			|| typeName == "String"
@@ -260,11 +263,14 @@ class Generator {
 				cast(oexpr, OUnOp).post = postFix;
 				oexpr.nextExpression = buildExpression(e, oexpr);
 			case TNew(c, params, el):
-				oexpr = new ONew();
-				cast(oexpr, ONew).cls = new OClass();
-				cast(oexpr, ONew).cls.fullName += c.toString();
+				trace(c);
+				trace(params);
+				var newExpr = new ONew();
+				oexpr = newExpr;
+				newExpr.cls = new OClass();
+				newExpr.cls.fullName += c.toString();
 				for (e in el) {
-					cast(oexpr, ONew).expressions.push(buildExpression(e, oexpr));
+					newExpr.expressions.push(buildExpression(e, oexpr));
 				}
 			case TCall(e, el):
 				oexpr = new OCall();

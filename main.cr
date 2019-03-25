@@ -4,18 +4,17 @@ class HaxeStd
   end
 end
 
-class HundredDoors
-  def self.main
-    findOpenLockers(100)
+class MyType
   end
 
-  def self.findOpenLockers(n : Int)
-    i = 1
-    while i * i <= n
-      pp(i * i)
-      i += 1
+  class ArrayTest
+    def self.main
+      arr = Array.new()
+      arr.push(MyType.new())
+      arr.push(MyType.new())
+      arr.push(MyType.new())
+      pp(arr)
     end
   end
-end
 
-HundredDoors.main
+  ArrayTest.main
