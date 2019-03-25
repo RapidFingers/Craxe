@@ -1,19 +1,22 @@
-template incRet(val:var untyped):untyped =
+{.experimental: "codeReordering".}
+
+proc incRet[T](val:var T):T {.discardable, inline.} =
     inc(val)
     val
 
 type 
-    Fibonacci = ref object of RootObj
-    FibonacciStatic = ref object of RootObj
+    HundredDoors = ref object of RootObj
+    HundredDoorsStatic = ref object of RootObj
 
-let FibonacciStaticInst = FibonacciStatic()
+let HundredDoorsStaticInst = HundredDoorsStatic()
 
-proc fib(this : FibonacciStatic, n : int) : int =
-    if n <= 2:
-        return 1
-    return FibonacciStaticInst.fib(n - 1) + FibonacciStaticInst.fib(n - 2)
+proc main(this : HundredDoorsStatic) : void =
+    HundredDoorsStaticInst.findOpenLockers(100)
 
-proc main(this : FibonacciStatic) : void =
-    echo(FibonacciStaticInst.fib(50))
+proc findOpenLockers(this : HundredDoorsStatic, n : int) : void =
+    var i = 1
+    while i * i <= n:
+        echo(i * i)
+        incRet(i)
 
-FibonacciStaticInst.main()
+HundredDoorsStaticInst.main()

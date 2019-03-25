@@ -3,7 +3,7 @@ package craxe.builders.nim;
 import sys.io.File;
 import haxe.io.Path;
 import craxe.ast2obj.*;
-import craxe.builders.nim.IndentStringBuilder;
+import craxe.util.IndentStringBuilder;
 
 /**
  * Builder for nim code
@@ -84,8 +84,8 @@ class NimBuilder extends BaseBuilder {
 	 * Build entry point
 	 */
 	function buildMain(sb:IndentStringBuilder) {
-		sb.addBreakLine();
-		sb.addLine('${mainMethod.cls.safeName}StaticInst.${mainMethod.name}()');
+		sb.addNewLine(None);
+		sb.add('${mainMethod.cls.safeName}StaticInst.${mainMethod.name}()');
 	}
 
 	/**
@@ -94,7 +94,8 @@ class NimBuilder extends BaseBuilder {
 	 */
 	function buildClassInfo(sb:IndentStringBuilder, cls:OClass) {
 		var line = '${cls.safeName} = ref object of RootObj';
-		sb.addLine(line);
+		sb.add(line);
+		sb.addNewLine(Same);
 
 		var instanceVars = cls.classVars.filter((x) -> !x.isStatic);
 		if (instanceVars.length > 0) {
@@ -120,7 +121,8 @@ class NimBuilder extends BaseBuilder {
 
 		if (hasStatic) {
 			var line = '${cls.safeName}Static = ref object of RootObj';
-			sb.addLine(line);
+			sb.add(line);
+			sb.addNewLine();
 		}
 	}
 
@@ -129,10 +131,10 @@ class NimBuilder extends BaseBuilder {
 	 */
 	function buildFields(sb:IndentStringBuilder, vars:Array<OClassVar>) {
 		for (classVar in vars) {
-			sb.addWithIndent(classVar.name);
+			sb.add(classVar.name);
 			sb.add(" : ");
 			sb.add(resolveTypeName(classVar.type.safeName));
-			sb.add("\n");
+			sb.addNewLine();
 		}
 	}
 
@@ -143,8 +145,8 @@ class NimBuilder extends BaseBuilder {
 	 */
 	function buildInitStaticClass(sb:IndentStringBuilder, cls:OClass) {
 		if (cls.methods.filter((x) -> x.isStatic).length > 0) {
-			sb.addWithIndent('let ${cls.safeName}StaticInst = ${cls.safeName}Static()');
-			sb.addBreakLine();
+			sb.add('let ${cls.safeName}StaticInst = ${cls.safeName}Static()');
+			sb.addNewLine();
 		}
 	}
 
@@ -161,7 +163,7 @@ class NimBuilder extends BaseBuilder {
 
 			var clsName = !method.isStatic ? cls.safeName : '${cls.safeName}Static';
 
-			sb.addWithIndent('proc ${method.name}(this : ${clsName}');
+			sb.add('proc ${method.name}(this : ${clsName}');
 			if (method.args.length > 0) {
 				sb.add(", ");
 				for (i in 0...method.args.length) {
@@ -177,13 +179,11 @@ class NimBuilder extends BaseBuilder {
 			}
 			sb.add(") : ");
 			sb.add(resolveTypeName(method.type.safeName));
-			sb.add(" =");
-			sb.inc();
-			sb.addBreakLine(true);
+			sb.add(" =");			
+			sb.addNewLine(Inc);
 
 			buildExpression(sb, method.expression);
-			sb.addBreakLine();
-			sb.indent = 0;
+			sb.addNewLine(None, true);
 		}
 	}
 
@@ -230,8 +230,9 @@ class NimBuilder extends BaseBuilder {
 	 * Build expression OBlock
 	 */
 	function buildExpressionOblock(sb:IndentStringBuilder, expression:OBlock) {
-		for (expr in expression.expressions) {
-			buildExpression(sb, expr);
+		for (expr in expression.expressions) {			
+			buildExpression(sb, expr);		
+			sb.addNewLine(Same);	
 		}
 	}
 
@@ -248,8 +249,6 @@ class NimBuilder extends BaseBuilder {
 			sb.add(" = ");
 			buildExpression(sb, expression.nextExpression);
 		}
-
-		sb.addBreakLine(true);
 	}
 
 	/**
@@ -345,11 +344,9 @@ class NimBuilder extends BaseBuilder {
 		sb.add("while ");
 		buildExpression(sb, expression.conditionExpression);
 		sb.add(":");
-		sb.addBreakLine();
-		sb.inc();
-		sb.addWithIndent("");
+		sb.addNewLine(Inc);
 		buildExpression(sb, expression.nextExpression);
-		sb.dec();
+		sb.addNewLine(Dec);
 	}
 
 	/**
@@ -386,15 +383,14 @@ class NimBuilder extends BaseBuilder {
 		sb.add("if ");
 		buildExpression(sb, expression.conditionExpression);
 		sb.add(":");
-		sb.inc();
-		sb.addBreakLine(true);
+		sb.addNewLine(Inc);
 
 		buildExpression(sb, expression.ifExpression);
 		if (expression.elseExpression != null) {
-			sb.addLine("else:");
+			sb.add("else:");
 			buildExpression(sb, expression.elseExpression);
 		}
-		sb.dec();
+		sb.addNewLine(Dec);
 	}
 
 	/**
@@ -403,18 +399,20 @@ class NimBuilder extends BaseBuilder {
 	function buildExpressionOReturn(sb:IndentStringBuilder, expression:OReturn) {
 		sb.add("return ");		
 		buildExpression(sb, expression.nextExpression);
-		sb.dec();
-		sb.addBreakLine(true);
 	}
 
 	/**
 	 * Build system functions and types
 	 */
-	function buildSystem(sb:IndentStringBuilder) {
-		sb.add("template incRet(val:var untyped):untyped =\n    inc(val)\n    val");
+	function addHelpers(sb:IndentStringBuilder) {
+		sb.add('{.experimental: "codeReordering".}');
+		sb.addNewLine(None, true);
+		sb.addNewLine(None, true);
 
-		sb.addBreakLine();
-		sb.addBreakLine();
+		final content = File.getContent("./src/craxe/builders/nim/NimBoot.nim");
+		sb.add(content);
+		sb.addNewLine(None, true);
+		sb.addNewLine(None, true);
 	}
 
 	/**
@@ -424,10 +422,11 @@ class NimBuilder extends BaseBuilder {
 		var filename = Path.normalize("main.nim");
 		var sb = new IndentStringBuilder();
 
-		buildSystem(sb);
+		addHelpers(sb);
 
 		if (classes.length > 0) {
-			sb.addLine("type ");
+			sb.add("type ");
+			sb.addNewLine();
 		}
 
 		sb.inc();
@@ -437,8 +436,7 @@ class NimBuilder extends BaseBuilder {
 			}
 		}
 
-		sb.addBreakLine();
-		sb.dec();
+		sb.addNewLine(None, true);
 
 		// Init static classes
 		for (c in classes) {
@@ -447,7 +445,7 @@ class NimBuilder extends BaseBuilder {
 			}
 		}
 
-		sb.addBreakLine();
+		sb.addNewLine(None, true);
 		for (c in classes) {
 			if (c.isExtern == false) {
 				buildClassMethods(sb, c);

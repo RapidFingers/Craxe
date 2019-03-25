@@ -4,19 +4,21 @@ class HaxeStd
   end
 end
 
-class HundredDoors
-  def self.main
-    findOpenLockers(100)
-  end
-
-  def self.findOpenLockers(n : Int)
-    i = 1
-    while i * i <= n
-      pp(i * i)
-      i += 1
+class Fibonacci
+  def self.fib(n : Int)
+    if n <= 2
+      return 1
     end
 
+    return fib(n - 1)
+     + fib(n - 2)
+
+  end
+
+  def self.main
+    pp(fib(50)
+)
   end
 end
 
-HundredDoors.main
+Fibonacci.main

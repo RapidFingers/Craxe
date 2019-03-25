@@ -3,7 +3,7 @@ package craxe.builders.crystal;
 import sys.io.File;
 import haxe.io.Path;
 import craxe.ast2obj.*;
-import craxe.builders.crystal.IndentStringBuilder;
+import craxe.util.IndentStringBuilder;
 
 /**
  * Builder of crystal code
@@ -26,7 +26,7 @@ class CrystalBuilder extends BaseBuilder {
 	private function addHelpers(sb:IndentStringBuilder) {
 		final content = File.getContent("./src/craxe/builders/crystal/CrystalBoot.cr");
 		sb.add(content);
-		sb.addNewLine(Indent(Remove));
+		sb.addNewLine();
 	}
 
 	/**
@@ -34,29 +34,34 @@ class CrystalBuilder extends BaseBuilder {
 	 */
 	function buildMain(sb:IndentStringBuilder) {
 		sb.add('${mainMethod.cls.safeName}.${mainMethod.name}');
-		sb.addNewLine(Indent(Remove));
+		sb.addNewLine();
 	}
 
 	/**
 	 * Add end
 	 */
 	function addEnd(sb:IndentStringBuilder, br:Bool = true) {
-		switch sb.newLine {
-			case None:
-				sb.addNewLine(Indent(Dec));
+		function processIndend(ind) {
+			switch ind {
+				case Same:
+					sb.dec();
+				default:
+			}
+		}
+
+		switch sb.currentItem {
+			case Line(v):
+				processIndend(v);
 			case Indent(v):
-				switch v {
-					case Same:
-						sb.dec();
-					default:
-				}
+				processIndend(v);
 			default:
+				sb.addNewLine(Dec);
 		}
 
 		sb.add("end");
-		sb.addNewLine(Indent(Same));
+		sb.addNewLine(Same);
 		if (br)
-			sb.addNewLine(Indent(Same));
+			sb.addNewLine(Same);
 	}
 
 	/**
@@ -189,7 +194,7 @@ class CrystalBuilder extends BaseBuilder {
 			buildExpression(sb, expression.nextExpression);
 		}
 
-		sb.addNewLine(Indent(Same));
+		sb.addNewLine(Same);
 	}
 
 	/**
@@ -252,7 +257,7 @@ class CrystalBuilder extends BaseBuilder {
 		}
 		sb.add(data.join(", "));
 		sb.add(")");
-		sb.addNewLine(Indent(Same));
+		sb.addNewLine(Same);
 	}
 
 	/**
@@ -273,7 +278,7 @@ class CrystalBuilder extends BaseBuilder {
 		sb.add("if ");
 		buildExpression(sb, expression.conditionExpression);
 
-		sb.addNewLine(Indent(Inc));
+		sb.addNewLine(Inc);
 
 		buildExpression(sb, expression.ifExpression);
 		if (expression.elseExpression != null) {
@@ -296,14 +301,14 @@ class CrystalBuilder extends BaseBuilder {
 	 */
 	function buildExpressionOUnOp(sb:IndentStringBuilder, expression:OUnOp) {
 		if (expression.post == true) {
-			switch(expression.op) {
-				case "++":					
+			switch (expression.op) {
+				case "++":
 					buildExpression(sb, expression.nextExpression);
 					sb.add(" += 1");
 				default:
 					buildExpression(sb, expression.nextExpression);
 					sb.add(expression.op);
-			}	
+			}
 		} else {
 			sb.add(expression.op);
 			buildExpression(sb, expression.nextExpression);
@@ -316,7 +321,7 @@ class CrystalBuilder extends BaseBuilder {
 	function buildExpressionOReturn(sb:IndentStringBuilder, expression:OReturn) {
 		sb.add("return ");
 		buildExpression(sb, expression.nextExpression);
-		sb.addNewLine(Indent(Same));
+		sb.addNewLine(Same);
 	}
 
 	/**
@@ -325,7 +330,7 @@ class CrystalBuilder extends BaseBuilder {
 	function buildExpressionOWhile(sb:IndentStringBuilder, expression:OWhile) {
 		sb.add("while ");
 		buildExpression(sb, expression.conditionExpression);
-		sb.addNewLine(Indent(Inc));
+		sb.addNewLine(Inc);
 		buildExpression(sb, expression.nextExpression);
 		addEnd(sb);
 	}
@@ -364,7 +369,7 @@ class CrystalBuilder extends BaseBuilder {
 				sb.add(")");
 			}
 
-			sb.addNewLine(Indent(Inc));
+			sb.addNewLine(Inc);
 
 			buildExpression(sb, method.expression);
 
@@ -383,7 +388,7 @@ class CrystalBuilder extends BaseBuilder {
 	private function buildClass(sb:IndentStringBuilder, cls:OClass) {
 		sb.add("class ");
 		sb.add(cls.safeName);
-		sb.addNewLine(Indent(Inc));
+		sb.addNewLine(Inc);
 
 		if (cls.classVars.length > 0)
 			buildClassVars(sb, cls);

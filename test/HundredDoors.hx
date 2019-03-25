@@ -1,4 +1,4 @@
-class HundredDoors {
+class HundredDoors {		
 	static public function main() {
 		findOpenLockers(100);
 	}
@@ -10,5 +10,5 @@ class HundredDoors {
 			trace(i * i);
 			i++;
 		}
-	}
+	}	
 }

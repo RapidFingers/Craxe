@@ -1,15 +1,10 @@
-package craxe.builders.crystal;
+package craxe.util;
 
 /**
- * Type of new line
+ * Indent type
  */
-enum NewLineType {
-	None;
-	Indent(v:IndentType);
-}
-
 enum IndentType {
-	Remove;
+	None;
 	Same;
 	Inc;
 	Dec;
@@ -58,9 +53,9 @@ class IndentStringBuilder {
 	}
 
 	/**
-	 * Cursor on new line
+	 * Cursor on current item
 	 */
-	public var newLine(default, null):NewLineType;
+	public var currentItem(default, null):BufferItem;
 
 	/**
 	 * Calculate indent string
@@ -87,33 +82,43 @@ class IndentStringBuilder {
 	 * Increment indent
 	 */
 	public inline function inc() {
-		buffer.push(Indent(Inc));
+		currentItem = Indent(Inc);
+		buffer.push(currentItem);
 	}
 
 	/**
 	 * Decrement indent
 	 */
 	public inline function dec() {
-		buffer.push(Indent(Dec));
+		currentItem = Indent(Dec);
+		buffer.push(currentItem);
 	}
 
 	/**
 	 * Add value to buffer without indent
 	 */
 	public inline function add(value:String) {
-		buffer.push(Data(value));
-		newLine = None;
+		currentItem = Data(value);
+		buffer.push(currentItem);
 	}
 
 	/**
 	 * Add new Line
 	 */
-	public inline function addNewLine(indent:NewLineType = NewLineType.None) {
-		newLine = indent;
-		switch indent {
-			case Indent(v):
-				buffer.push(Line(v));
-			default:
+	public inline function addNewLine(indent:IndentType = None, addIfLine = false) {
+		function addLine() {
+			currentItem = Line(indent);
+			buffer.push(currentItem);
+		}
+
+		if (addIfLine) {
+			addLine();
+		} else {
+			switch currentItem {
+				case Line(_):
+				default:
+					addLine();
+			}
 		}
 	}
 
@@ -128,7 +133,7 @@ class IndentStringBuilder {
 
 		function proccIndent(v:IndentType) {
 			switch v {
-				case Remove:
+				case None:
 					ind = 0;
 				case Same:
 				case Inc:
@@ -137,7 +142,7 @@ class IndentStringBuilder {
 					ind -= 1;
 					if (ind < 0)
 						ind = 0;
-			}			
+			}
 		}
 
 		var state = 0;
