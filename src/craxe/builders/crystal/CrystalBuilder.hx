@@ -32,7 +32,7 @@ class CrystalBuilder extends BaseBuilder {
 	/**
 	 * Build entry point
 	 */
-	function buildMain(sb:IndentStringBuilder) {		
+	function buildMain(sb:IndentStringBuilder) {
 		sb.add('${mainMethod.cls.safeName}.${mainMethod.name}');
 		sb.addNewLine(Indent(Remove));
 	}
@@ -49,7 +49,7 @@ class CrystalBuilder extends BaseBuilder {
 					case Same:
 						sb.dec();
 					default:
-				}			
+				}
 			default:
 		}
 
@@ -152,6 +152,8 @@ class CrystalBuilder extends BaseBuilder {
 			buildExpressionOUnOp(sb, cast(expression, OUnOp));
 		} else if ((expression is OReturn)) {
 			buildExpressionOReturn(sb, cast(expression, OReturn));
+		} else if ((expression is OWhile)) {
+			buildExpressionOWhile(sb, cast(expression, OWhile));
 		}
 	}
 
@@ -180,8 +182,6 @@ class CrystalBuilder extends BaseBuilder {
 	 * Build expression OVar
 	 */
 	function buildExpressionOVar(sb:IndentStringBuilder, expression:OVar) {
-		sb.add("var ");
-
 		sb.add(expression.name);
 
 		if (expression.nextExpression != null) {
@@ -189,7 +189,7 @@ class CrystalBuilder extends BaseBuilder {
 			buildExpression(sb, expression.nextExpression);
 		}
 
-		sb.addNewLine();
+		sb.addNewLine(Indent(Same));
 	}
 
 	/**
@@ -252,6 +252,7 @@ class CrystalBuilder extends BaseBuilder {
 		}
 		sb.add(data.join(", "));
 		sb.add(")");
+		sb.addNewLine(Indent(Same));
 	}
 
 	/**
@@ -295,8 +296,14 @@ class CrystalBuilder extends BaseBuilder {
 	 */
 	function buildExpressionOUnOp(sb:IndentStringBuilder, expression:OUnOp) {
 		if (expression.post == true) {
-			buildExpression(sb, expression.nextExpression);
-			sb.add(expression.op);
+			switch(expression.op) {
+				case "++":					
+					buildExpression(sb, expression.nextExpression);
+					sb.add(" += 1");
+				default:
+					buildExpression(sb, expression.nextExpression);
+					sb.add(expression.op);
+			}	
 		} else {
 			sb.add(expression.op);
 			buildExpression(sb, expression.nextExpression);
@@ -310,6 +317,17 @@ class CrystalBuilder extends BaseBuilder {
 		sb.add("return ");
 		buildExpression(sb, expression.nextExpression);
 		sb.addNewLine(Indent(Same));
+	}
+
+	/**
+	 * Build expression OWhile
+	 */
+	function buildExpressionOWhile(sb:IndentStringBuilder, expression:OWhile) {
+		sb.add("while ");
+		buildExpression(sb, expression.conditionExpression);
+		sb.addNewLine(Indent(Inc));
+		buildExpression(sb, expression.nextExpression);
+		addEnd(sb);
 	}
 
 	/**
