@@ -3,3 +3,6 @@ class HaxeStd
     v.to_s
   end
 end
+
+class HaxeArray(T) < Array(T)
+end

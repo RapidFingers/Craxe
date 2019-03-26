@@ -85,11 +85,41 @@ class CrystalBuilder extends BaseBuilder {
 	}
 
 	/**
+	 * Return fixed type
+	 */
+	function getFixedType(type:String):String {
+		switch type {
+			case "Array":
+				return "HaxeArray";
+			case "Int":
+				return "Int32";
+		}
+
+		return type;
+	}
+
+	/**
+	 * Return class type as string	 
+	 */
+	function getClassType(cls:OClass):String {
+		if (cls.params != null) {
+			var clsType = getFixedType(cls.safeName);
+			var params = cls.params.map(x-> {
+				getFixedType(x);
+			});
+
+			var pars = params.join(",");
+			return '${clsType}(${pars})';
+		}
+		return cls.safeName;
+	}
+
+	/**
 	 * Build class vars
 	 * @param cls
 	 * @param sb
 	 */
-	private function buildClassVars(sb:IndentStringBuilder, cls:OClass) {
+	function buildClassVars(sb:IndentStringBuilder, cls:OClass) {
 		for (classVar in cls.classVars) {
 			sb.add("property ");
 			sb.add(classVar.name);
@@ -108,7 +138,7 @@ class CrystalBuilder extends BaseBuilder {
 	 * Build constant
 	 * @param c
 	 */
-	private static function buildConstant(sb:IndentStringBuilder, const:OConstant) {
+	static function buildConstant(sb:IndentStringBuilder, const:OConstant) {
 		switch (const.type) {
 			case "Int":
 				sb.add(const.value);
@@ -265,7 +295,8 @@ class CrystalBuilder extends BaseBuilder {
 	 */
 	function buildExpressionONew(sb:IndentStringBuilder, expression:ONew) {
 		var onew = cast(expression, ONew);
-		var varTypeName = onew.cls.safeName;
+		//var varTypeName = onew.cls.safeName;
+		var varTypeName = getClassType(onew.cls);
 		sb.add(varTypeName);
 		// TODO: arguments
 		sb.add(".new()");
@@ -410,8 +441,6 @@ class CrystalBuilder extends BaseBuilder {
 		for (c in classes) {
 			if (c.isExtern == false) {
 				buildClass(sb, c);
-			} else {
-				trace(c.fullName);
 			}
 		}
 

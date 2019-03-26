@@ -1,8 +1,23 @@
 package craxe.ast2obj;
 
 class OClass {
+	/**
+	 * Super class
+	 */
 	public var superClass:OClass;
+	/**
+	 * Parameters for generics
+	 */
+	public var params:Array<String>;
+
+	/**
+	 * Class full name
+	 */
 	public var fullName:String = "";
+
+	/**
+	 * Is extern class
+	 */
 	public var isExtern:Bool = false;
 	public var stackOnly:Bool = false;
 	public var externName:String = null;

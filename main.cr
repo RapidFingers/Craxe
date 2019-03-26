@@ -4,15 +4,18 @@ class HaxeStd
   end
 end
 
+class HaxeArray(T) < Array(T)
+end
+
 class MyType
   end
 
   class ArrayTest
     def self.main
-      arr = Array.new()
-      arr.push(MyType.new())
-      arr.push(MyType.new())
-      arr.push(MyType.new())
+      arr = HaxeArray(Int32).new()
+      arr.push(33)
+      arr.push(22)
+      arr.push(11)
       pp(arr)
     end
   end

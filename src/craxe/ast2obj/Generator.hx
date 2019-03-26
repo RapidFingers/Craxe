@@ -51,6 +51,30 @@ class Generator {
 		// Compiler.compile(ArduinoCPPBuilder.srcPath, ArduinoCPPBuilder.includePath, ArduinoCPPBuilder.outPath, libraries);
 	}
 
+	/**
+	 * Extract class parameters	 
+	 */
+	static function extractClassParams(types:Array<Type>):Array<String> {
+		var res = [];
+
+		for (tp in types) {
+			switch tp {
+				case TInst(t, params):
+					var name = t.get().name;
+					res.push(name);
+				case TAbstract(t, params):
+					var name = t.get().name;
+					res.push(name);
+				default:
+			}
+		}
+
+		if (res.length < 1)
+			return null;
+
+		return res;
+	}
+
 	private static function buildClass(c:Ref<ClassType>, params:Array<Type>):OClass {
 		var typeName = c.toString();
 		// TODO: filter
@@ -262,12 +286,11 @@ class Generator {
 				cast(oexpr, OUnOp).op = buildUnOp(op);
 				cast(oexpr, OUnOp).post = postFix;
 				oexpr.nextExpression = buildExpression(e, oexpr);
-			case TNew(c, params, el):
-				trace(c);
-				trace(params);
+			case TNew(c, params, el):				
 				var newExpr = new ONew();
 				oexpr = newExpr;
 				newExpr.cls = new OClass();
+				newExpr.cls.params = extractClassParams(params);
 				newExpr.cls.fullName += c.toString();
 				for (e in el) {
 					newExpr.expressions.push(buildExpression(e, oexpr));
