@@ -36,6 +36,7 @@ proc `$`[T](this:HaxeArray[T]) : string {.inline.} =
 
 type 
     MyType = ref object of RootObj
+        id : int
         name : string
 
     ArrayTest = ref object of RootObj
@@ -48,9 +49,7 @@ proc `$`(this : MyType):string {.inline.} =
 
 proc main(this : ArrayTestStatic) : void =
     var arr = newHaxeArray[MyType]()
-    arr.push(MyType())
-    arr.push(MyType())
-    echo(arr)
+    arr.push(newMyType(1, "Batman"))
 
 proc `$`(this : ArrayTest):string {.inline.} =
     result = "ArrayTest" & $this[]

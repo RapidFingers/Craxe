@@ -22,7 +22,17 @@ class OClass {
 	public var stackOnly:Bool = false;
 	public var externName:String = null;
 	public var externIncludes:Array<String> = null;
+
+	/**
+	 * Constructor of class if exists
+	 */
+	public var constructor:OConstructor;
+
+	/**
+	 * Methods of class
+	 */
 	public var methods:Array<OMethod> = [];
+
 	public var classVars:Array<OClassVar> = [];
 
 	public function new() {}

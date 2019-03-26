@@ -1,17 +1,19 @@
 class MyType {
-    public final name:String;
+	public var id:Int;
+	public var name:String;
 
-    public function new(name:String) {
-        this.name = name;
-    }
+	public function new(id:Int, name:String) {
+		this.id = id;
+		this.name = name;
+	}
 }
 
-class ArrayTest {	
+class ArrayTest {
 	public static function main() {
 		var arr = new Array<MyType>();
-        arr.push(new MyType("Batman"));
-        arr.push(new MyType("Superman"));
+		arr.push(new MyType(1, "Batman"));
+		// // arr.push(new MyType(2, "Superman"));
 
-        trace(arr);
+		//trace(arr);
 	}
 }

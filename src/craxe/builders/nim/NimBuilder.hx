@@ -23,7 +23,6 @@ class NimBuilder extends BaseBuilder {
 
 	/**
 	 * Return resolved type name
-	 * @param name
 	 */
 	function resolveTypeName(name:String):String {
 		switch (name) {
@@ -33,12 +32,12 @@ class NimBuilder extends BaseBuilder {
 				return "string";
 			case "Int":
 				return "int";
+			case "Array":
+				return "HaxeArray";
 			case "Float":
 				return "float";
-			case "TFun":
-				return "fun";
 			default:
-				throw 'Unknown type ${name}';
+				return name;
 		}
 	}
 
@@ -81,27 +80,13 @@ class NimBuilder extends BaseBuilder {
 	}
 
 	/**
-	 * Return fixed type
-	 */
-	function getFixedType(type:String):String {
-		switch type {
-			case "Array":
-				return "HaxeArray";
-			case "Int":
-				return "int32";
-		}
-
-		return type;
-	}
-
-	/**
 	 * Return class type as string
 	 */
 	function getClassType(cls:OClass):String {
 		if (cls.params != null) {
-			var clsType = getFixedType(cls.safeName);
+			var clsType = resolveTypeName(cls.safeName);
 			var params = cls.params.map(x -> {
-				getFixedType(x);
+				resolveTypeName(x);
 			});
 
 			var pars = params.join(",");
@@ -184,10 +169,10 @@ class NimBuilder extends BaseBuilder {
 
 	/**
 	 * Build class methods
-	 * @param sb
-	 * @param cls
 	 */
 	function buildClassMethods(sb:IndentStringBuilder, cls:OClass) {
+		trace(cls.fullName);
+		trace(cls.methods);
 		for (method in cls.methods) {
 			if (method.isStatic && method.name == BaseBuilder.MAIN_METHOD) {
 				mainMethod = method;
@@ -373,14 +358,17 @@ class NimBuilder extends BaseBuilder {
 	 */
 	function buildExpressionONew(sb:IndentStringBuilder, expression:ONew) {
 		var onew = cast(expression, ONew);
-		var varTypeName = switch onew.cls.fullName {
-			case "Array":
-				"new" + getClassType(onew.cls);
-			default:
-				getClassType(onew.cls);
-		}
+		var varTypeName = "new" + getClassType(onew.cls);
+
 		sb.add(varTypeName);
-		sb.add("()");
+		sb.add("(");
+		for (i in 0...onew.expressions.length) {
+			var expr = onew.expressions[i];
+			buildExpression(sb, expr);
+			if (i + 1 < onew.expressions.length)
+				sb.add(", ");
+		}
+		sb.add(")");
 	}
 
 	/**
@@ -422,10 +410,10 @@ class NimBuilder extends BaseBuilder {
 					sb.add("beforePlusRet(");
 					buildExpression(sb, expression.nextExpression);
 					sb.add(")");
-				default:					
+				default:
 					sb.add(expression.op);
 					buildExpression(sb, expression.nextExpression);
-			}			
+			}
 		}
 	}
 

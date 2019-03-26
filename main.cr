@@ -7,17 +7,18 @@ end
 class HaxeArray(T) < Array(T)
 end
 
-class MyType
-  end
-
-  class ArrayTest
-    def self.main
-      arr = HaxeArray(Int32).new()
-      arr.push(33)
-      arr.push(22)
-      arr.push(11)
-      pp(arr)
+class Fibonacci
+  def self.fib(n : Int)
+    if n <= 2
+      return 1
     end
+
+    return fib(n - 1) + fib(n - 2)
   end
 
-  ArrayTest.main
+  def self.main
+    pp(fib(50))
+  end
+end
+
+Fibonacci.main

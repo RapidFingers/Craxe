@@ -46,13 +46,10 @@ class Generator {
 			throw "Not supported builder type";
 
 		builder.build();
-
-		// var libraries:Array<String> = ArduinoCPPBuilder.libraries;
-		// Compiler.compile(ArduinoCPPBuilder.srcPath, ArduinoCPPBuilder.includePath, ArduinoCPPBuilder.outPath, libraries);
 	}
 
 	/**
-	 * Extract class parameters	 
+	 * Extract class parameters
 	 */
 	static function extractClassParams(types:Array<Type>):Array<String> {
 		var res = [];
@@ -79,6 +76,7 @@ class Generator {
 		var typeName = c.toString();
 		// TODO: filter
 		if (typeName == "Std"
+			|| typeName == "Array"
 			|| typeName == "Math"
 			|| typeName == "Reflect"
 			|| typeName == "Sys"
@@ -111,6 +109,12 @@ class Generator {
 		oclass.stackOnly = hasMeta(c.get().meta, ":stackOnly");
 
 		var classType:ClassType = c.get();
+
+		if (classType.constructor != null) {
+			var constructor = classType.constructor.get();
+			oclass.constructor = buildConstructor(oclass, constructor);
+		}
+
 		for (f in classType.fields.get()) {
 			switch (f.kind) {
 				case FMethod(k):
@@ -147,7 +151,7 @@ class Generator {
 				case _:
 					trace("buildClass not impl: " + f.kind);
 			}
-		}		
+		}
 		return oclass;
 	}
 
@@ -157,9 +161,22 @@ class Generator {
 		return oclassvar;
 	}
 
+	/**
+	 * Build constructor
+	 */
+	static function buildConstructor(oclass:OClass, con:ClassField):OConstructor {		
+		var oconstr = new OConstructor();
+		switch (con.type) {			
+			case TFun(args, ret):
+				trace(args);
+			case _:
+		}
+		
+		return oconstr;
+	}
+
 	private static function buildMethod(oclass:OClass, e:TypedExpr, isStatic:Bool = false):OMethod {
 		var omethod:OMethod = null;
-
 		if (e != null) {
 			switch (e.expr) {
 				case TFunction(tfunc):
@@ -193,7 +210,6 @@ class Generator {
 		}
 
 		var oexpr:OExpression = null;
-
 		switch (e.expr) {
 			case TBlock(el):
 				oexpr = new OBlock();
@@ -286,7 +302,7 @@ class Generator {
 				cast(oexpr, OUnOp).op = buildUnOp(op);
 				cast(oexpr, OUnOp).post = postFix;
 				oexpr.nextExpression = buildExpression(e, oexpr);
-			case TNew(c, params, el):				
+			case TNew(c, params, el):
 				var newExpr = new ONew();
 				oexpr = newExpr;
 				newExpr.cls = new OClass();
