@@ -66,9 +66,6 @@ class CrystalBuilder extends BaseBuilder {
 
 	/**
 	 * Substitute some statics
-	 * @param className
-	 * @param fieldName
-	 * @return String
 	 */
 	function substStaticFieldName(className:String, fieldName:String):String {
 		trace(className);
