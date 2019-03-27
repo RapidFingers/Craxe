@@ -18,16 +18,20 @@ class Generator {
 
 	public static function onGenerate(types:Array<Type>):Void {
 		var classes = new Array<OClass>();
+		var enums = new Array<OEnum>();
 
 		for (t in types) {
 			switch (t) {
 				case TInst(c, params):
 					var oclass = buildClass(c, params);
-					if (oclass != null) {
+					if (oclass != null)
 						classes.push(oclass);
-					}
-				default:
-					// trace(t);
+				case TEnum(t, params):
+					var oenum = buildEnum(t.get(), params);
+					if (oenum != null)
+						enums.push(oenum);
+				case t:
+					trace(t);
 			}
 		}
 
@@ -35,11 +39,16 @@ class Generator {
 			throw "No classes";
 
 		var builder:BaseBuilder = null;
+		var types:GeneratedTypes = {
+			classes: classes,
+			enums: enums
+		}
+
 		#if crystal
-		builder = new CrystalBuilder(classes);
+		builder = new CrystalBuilder(types);
 		#end
 		#if nim
-		builder = new NimBuilder(classes);
+		builder = new NimBuilder(types);
 		#end
 
 		if (builder == null)
@@ -72,7 +81,23 @@ class Generator {
 		return res;
 	}
 
-	private static function buildClass(c:Ref<ClassType>, params:Array<Type>):OClass {
+	/**
+	 * Build enum info
+	 */
+	static function buildEnum(c:EnumType, params:Array<Type>):OEnum {
+		if (c.name == "ValueType")
+			return null;
+
+		return {
+			enumType: c,
+			params: params
+		}
+	}
+
+	/**
+	 * Build class info
+	 */
+	static function buildClass(c:Ref<ClassType>, params:Array<Type>):OClass {
 		var typeName = c.toString();
 		// TODO: filter
 		if (typeName == "Std"
@@ -164,9 +189,9 @@ class Generator {
 	/**
 	 * Build constructor
 	 */
-	static function buildConstructor(oclass:OClass, con:ClassField):OConstructor {		
-		var oconstr = new OConstructor();		
-		switch (con.type) {			
+	static function buildConstructor(oclass:OClass, con:ClassField):OConstructor {
+		var oconstr = new OConstructor();
+		switch (con.type) {
 			case TFun(args, _):
 				for (arg in args) {
 					var oarg = new OMethodArg();
@@ -178,12 +203,12 @@ class Generator {
 		}
 
 		var nextExpression = con.expr();
-		switch (nextExpression.expr) {			
+		switch (nextExpression.expr) {
 			case TFunction(tfunc):
 				oconstr.expression = buildExpression(tfunc.expr, null);
 			case _:
-		}		
-		
+		}
+
 		return oconstr;
 	}
 

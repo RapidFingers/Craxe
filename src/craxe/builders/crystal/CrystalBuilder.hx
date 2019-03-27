@@ -435,7 +435,7 @@ class CrystalBuilder extends BaseBuilder {
 		var filename = Path.normalize("main.cr");
 		addHelpers(sb);
 
-		for (c in classes) {
+		for (c in types.classes) {
 			if (c.isExtern == false) {
 				buildClass(sb, c);
 			}

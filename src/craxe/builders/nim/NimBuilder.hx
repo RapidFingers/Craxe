@@ -25,6 +25,7 @@ class NimBuilder extends BaseBuilder {
 
 	/**
 	 * Return resolved type name
+	 * TODO: replace
 	 */
 	function resolveTypeName(name:String):String {
 		switch (name) {
@@ -492,7 +493,7 @@ class NimBuilder extends BaseBuilder {
 		sb.add("@[");
 		for (i in 0...expression.expressions.length) {
 			var expr = expression.expressions[i];
-			buildExpression(sb, expr);	
+			buildExpression(sb, expr);
 			if (i + 1 < expression.expressions.length)
 				sb.add(", ");
 		}
@@ -511,11 +512,44 @@ class NimBuilder extends BaseBuilder {
 
 		#if macro
 		final content = FileMacro.loadText("craxe/builders/nim/NimBoot.nim");
-		sb.add(content);		
-		#end		
+		sb.add(content);
+		#end
 
 		sb.addNewLine(None, true);
 		sb.addNewLine(None, true);
+	}
+
+	/**
+	 * Build enum
+	 */
+	function buildEnums(sb:IndentStringBuilder, enums:Array<OEnum>) {
+		if (enums.length < 1)
+			return;
+
+		// Generate types for enums
+		sb.add("type ");
+		sb.addNewLine(Inc);
+
+		for (en in enums) {
+			for (constr in en.enumType.constructs) {
+				sb.add('${en.enumType.name}${constr.name} = object of HaxeEnum');
+				sb.addNewLine(Same);
+			}
+		}
+
+		sb.addNewLine();
+		sb.addNewLine(None, true);
+
+		// Generate enums constructors
+
+		for (en in enums) {			
+			for (constr in en.enumType.constructs) {
+				var enumName = '${en.enumType.name}${constr.name}';
+				sb.add('proc new${enumName}(v:int) : ${enumName} =');
+				sb.addNewLine(Inc);
+				sb.addNewLine(Dec);
+			}
+		}
 	}
 
 	/**
@@ -527,13 +561,14 @@ class NimBuilder extends BaseBuilder {
 
 		addHelpers(sb);
 
-		if (classes.length > 0) {
+		buildEnums(sb, types.enums);
+
+		if (types.classes.length > 0) {
 			sb.add("type ");
-			sb.addNewLine();
+			sb.addNewLine(Inc);
 		}
 
-		sb.inc();
-		for (c in classes) {
+		for (c in types.classes) {
 			if (c.isExtern == false) {
 				buildClassInfo(sb, c);
 			}
@@ -542,14 +577,14 @@ class NimBuilder extends BaseBuilder {
 		sb.addNewLine(None, true);
 
 		// Init static classes
-		for (c in classes) {
+		for (c in types.classes) {
 			if (c.isExtern == false) {
 				buildInitStaticClass(sb, c);
 			}
 		}
 
 		sb.addNewLine(None, true);
-		for (c in classes) {
+		for (c in types.classes) {
 			if (c.isExtern == false) {
 				buildConstructor(sb, c);
 				buildClassMethods(sb, c);

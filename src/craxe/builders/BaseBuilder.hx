@@ -1,6 +1,22 @@
 package craxe.builders;
 
+import craxe.ast2obj.OEnum;
 import craxe.ast2obj.OClass;
+
+/**
+ * Types to generate code
+ */
+typedef GeneratedTypes = {
+    /**
+     * Classes to generate
+     */
+    var classes(default, null):Array<OClass>;
+
+    /**
+     * Enums to generate
+     */
+    var enums(default, null):Array<OEnum>;
+}
 
 /**
  * Base source code builder
@@ -14,13 +30,13 @@ class BaseBuilder {
     /**
 	 * Classes to build source
 	 */
-	public final classes:Array<OClass>;
+	public final types:GeneratedTypes;
 
     /**
      * Constructor
      */
-    public function new(classes:Array<OClass>) {
-        this.classes = classes;
+    public function new(types:GeneratedTypes) {
+        this.types = types;
     }
 
     /**

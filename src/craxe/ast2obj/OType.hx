@@ -1,7 +1,14 @@
 package craxe.ast2obj;
 
 class OType {
+    /**
+     * Type name
+     */
     public var name:String;
+
+    /**
+     * Type parameters
+     */
     public var typeParameters:Array<OType> = [];
     
     public function new() {
