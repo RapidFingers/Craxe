@@ -44,8 +44,9 @@ type
 
 let ArrayTestStaticInst = ArrayTestStatic()
 
-proc `$`(this : MyType):string {.inline.} =
-    result = "MyType" & $this[]
+proc newMyType(id : int, name : string): MyType =
+    proc `$`(this : MyType):string {.inline.} =
+        result = "MyType" & $this[]
 
 proc main(this : ArrayTestStatic) : void =
     var arr = newHaxeArray[MyType]()

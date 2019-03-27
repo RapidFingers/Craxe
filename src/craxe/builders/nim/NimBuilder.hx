@@ -168,11 +168,36 @@ class NimBuilder extends BaseBuilder {
 	}
 
 	/**
+	 * Build class constructor
+	 */
+	function buildConstructor(sb:IndentStringBuilder, cls:OClass) {
+		if (cls.constructor == null)
+			return;
+
+		sb.add('proc new${cls.safeName}(');
+		for (i in 0...cls.constructor.args.length) {
+			var oarg = cls.constructor.args[i];
+			var varTypeName = oarg.type.safeName;
+			sb.add(oarg.name);
+			sb.add(" : ");
+			sb.add(resolveTypeName(varTypeName));
+			if (i < cls.constructor.args.length - 1)
+				sb.add(", ");
+		}
+
+		sb.add('): ${cls.safeName} =');
+
+		sb.addNewLine(Inc);
+
+		buildExpression(sb, cls.constructor.expression);
+
+		sb.addNewLine(Dec);
+	}
+
+	/**
 	 * Build class methods
 	 */
 	function buildClassMethods(sb:IndentStringBuilder, cls:OClass) {
-		trace(cls.fullName);
-		trace(cls.methods);
 		for (method in cls.methods) {
 			if (method.isStatic && method.name == BaseBuilder.MAIN_METHOD) {
 				mainMethod = method;
@@ -502,6 +527,7 @@ class NimBuilder extends BaseBuilder {
 		sb.addNewLine(None, true);
 		for (c in classes) {
 			if (c.isExtern == false) {
+				buildConstructor(sb, c);
 				buildClassMethods(sb, c);
 			}
 		}

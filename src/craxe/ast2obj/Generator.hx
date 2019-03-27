@@ -165,12 +165,21 @@ class Generator {
 	 * Build constructor
 	 */
 	static function buildConstructor(oclass:OClass, con:ClassField):OConstructor {		
-		var oconstr = new OConstructor();
+		var oconstr = new OConstructor();		
 		switch (con.type) {			
-			case TFun(args, ret):
-				trace(args);
+			case TFun(args, _):
+				for (arg in args) {
+					var oarg = new OMethodArg();
+					oarg.name = arg.name;
+					oarg.type = buildType(arg.t);
+					oconstr.args.push(oarg);
+				}
 			case _:
 		}
+
+		var nextExpression = con.expr();
+		trace(nextExpression);
+		oconstr.expression = buildExpression(nextExpression, null);
 		
 		return oconstr;
 	}
