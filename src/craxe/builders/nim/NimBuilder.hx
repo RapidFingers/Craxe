@@ -185,13 +185,16 @@ class NimBuilder extends BaseBuilder {
 				sb.add(", ");
 		}
 
-		sb.add('): ${cls.safeName} =');
-
+		sb.add('): ${cls.safeName} {.inline.} =');
 		sb.addNewLine(Inc);
-
+		sb.add('let this = ${cls.safeName}()');
+		sb.addNewLine(Same);
+		sb.add('result = this');
+		sb.addNewLine(Same);
 		buildExpression(sb, cls.constructor.expression);
-
-		sb.addNewLine(Dec);
+		sb.addNewLine(Same);
+		sb.addNewLine();
+		sb.addNewLine(None, true);
 	}
 
 	/**
@@ -274,6 +277,8 @@ class NimBuilder extends BaseBuilder {
 			buildExpressionOReturn(sb, cast(expression, OReturn));
 		} else if ((expression is OArray)) {
 			buildExpressionOArray(sb, cast(expression, OArray));
+		} else if ((expression is OArrayDecl)) {
+			buildExpressionOArrayDecl(sb, cast(expression, OArrayDecl));
 		}
 	}
 
@@ -422,7 +427,7 @@ class NimBuilder extends BaseBuilder {
 		if (expression.post == true) {
 			switch (expression.op) {
 				case "++":
-					sb.add("afterPlusOperator(");
+					sb.add("apOperator(");
 					buildExpression(sb, expression.nextExpression);
 					sb.add(")");
 				default:
@@ -432,7 +437,7 @@ class NimBuilder extends BaseBuilder {
 		} else {
 			switch (expression.op) {
 				case "++":
-					sb.add("beforePlusRet(");
+					sb.add("bpOperator(");
 					buildExpression(sb, expression.nextExpression);
 					sb.add(")");
 				default:
@@ -476,6 +481,20 @@ class NimBuilder extends BaseBuilder {
 		sb.add(".get(");
 		buildExpression(sb, oarray.nextExpression);
 		sb.add(")");
+	}
+
+	/**
+	 * Build expression OArrayDecl
+	 */
+	function buildExpressionOArrayDecl(sb:IndentStringBuilder, expression:OArrayDecl) {
+		sb.add("@[");
+		for (i in 0...expression.expressions.length) {
+			var expr = expression.expressions[i];
+			buildExpression(sb, expr);	
+			if (i + 1 < expression.expressions.length)
+				sb.add(", ");
+		}
+		sb.add("]");
 	}
 
 	/**

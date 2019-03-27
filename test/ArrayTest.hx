@@ -6,14 +6,15 @@ class MyType {
 		this.id = id;
 		this.name = name;
 	}
+
+	public function say() {
+		trace('id: ${id} name: ${name}');
+	}
 }
 
 class ArrayTest {
 	public static function main() {
-		var arr = new Array<MyType>();
-		arr.push(new MyType(1, "Batman"));
-		// // arr.push(new MyType(2, "Superman"));
-
-		//trace(arr);
+		var arr = [new MyType(1, "Batman"), new MyType(3, "Superman")];
+		trace(arr);
 	}
 }

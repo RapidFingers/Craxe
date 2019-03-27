@@ -1,10 +1,19 @@
-proc afterPlusOperator[T](val:var T):T {.discardable, inline.} =        
+proc apOperator[T](val:var T):T {.discardable, inline.} =        
     result = val
     inc(val)
 
-proc beforePlusRet[T](val:var T):T {.discardable, inline.} =        
+proc bpOperator[T](val:var T):T {.discardable, inline.} =        
     inc(val)
     result = val
+
+template `+`(s:string, i:untyped): string =
+    s & $i
+
+template `+`(i:untyped, s:string): string =
+    $i & s
+
+template `+`(s1:string, s2:string): string =
+    s1 & s2
 
 type
     HaxeArray[T] = ref object of RootObj

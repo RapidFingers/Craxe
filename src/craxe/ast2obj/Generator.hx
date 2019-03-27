@@ -178,8 +178,11 @@ class Generator {
 		}
 
 		var nextExpression = con.expr();
-		trace(nextExpression);
-		oconstr.expression = buildExpression(nextExpression, null);
+		switch (nextExpression.expr) {			
+			case TFunction(tfunc):
+				oconstr.expression = buildExpression(tfunc.expr, null);
+			case _:
+		}		
 		
 		return oconstr;
 	}
