@@ -1,6 +1,8 @@
 package craxe.builders.nim;
 
+import craxe.util.FileMacro;
 import sys.io.File;
+import haxe.macro.Context;
 import haxe.io.Path;
 import craxe.ast2obj.*;
 import craxe.util.IndentStringBuilder;
@@ -410,7 +412,7 @@ class NimBuilder extends BaseBuilder {
 		sb.add(":");
 		sb.addNewLine(Inc);
 		buildExpression(sb, expression.nextExpression);
-		sb.addNewLine(Dec);
+		sb.addNewLine(Dec, true);
 	}
 
 	/**
@@ -507,8 +509,11 @@ class NimBuilder extends BaseBuilder {
 		sb.addNewLine(None, true);
 		sb.addNewLine(None, true);
 
-		final content = File.getContent("./src/craxe/builders/nim/NimBoot.nim");
-		sb.add(content);
+		#if macro
+		final content = FileMacro.loadText("craxe/builders/nim/NimBoot.nim");
+		sb.add(content);		
+		#end		
+
 		sb.addNewLine(None, true);
 		sb.addNewLine(None, true);
 	}

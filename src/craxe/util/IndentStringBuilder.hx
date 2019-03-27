@@ -115,7 +115,8 @@ class IndentStringBuilder {
 			addLine();
 		} else {
 			switch currentItem {
-				case Line(_):
+				case Line(v):
+					buffer.push(Indent(indent));
 				default:
 					addLine();
 			}

@@ -1,6 +1,5 @@
 -cp src
--cp test
 --macro craxe.ast2obj.Generator.generate()
 --no-output
--D crystal
+-D nim
 -D eval-stack
