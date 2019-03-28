@@ -13,17 +13,17 @@ class CommonAstPreprocessor {
 	static final excludedTypes:StringMap<Bool> = [
 		"Std" => true, "Array" => true, "Math" => true, "Reflect" => true, "Sys" => true, "EReg" => true, "ArrayAccess" => true, "String" => true,
 		"IntIterator" => true, "StringBuf" => true, "StringTools" => true, "Type" => true, "_EnumValue.EnumValue_Impl_" => true, "ValueType" => true,
-		"Encoding" => true, "Error" => true
+		"Encoding" => true, "Error" => true, "EnumValue_Impl_" => true
 	];
 
 	/**
 	 * Filter not needed type. Return true if filtered
 	 */
-	function filterType(name:String):Bool {
+	function filterType(name:String, module:String):Bool {
 		if (excludedTypes.exists(name))
 			return true;
 
-		if (StringTools.startsWith(name, "haxe."))
+		if (StringTools.startsWith(module, "haxe."))
 			return true;
 
 		return false;
@@ -33,9 +33,9 @@ class CommonAstPreprocessor {
 	 * Build class info
 	 */
 	function buildClass(c:ClassType, params:Array<Type>):ClassInfo {
-		if (filterType(c.name)) {
+		if (filterType(c.name, c.module)) {
 			return null;
-		}
+		}		
 
 		return {
 			classType: c,
@@ -47,7 +47,7 @@ class CommonAstPreprocessor {
 	 * Build enum info
 	 */
 	function buildEnum(c:EnumType, params:Array<Type>):EnumInfo {
-		if (filterType(c.name))
+		if (filterType(c.name, c.module))
 			return null;
 
 		return {
