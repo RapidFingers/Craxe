@@ -1,5 +1,6 @@
 package craxe.builders.nim;
 
+import haxe.macro.Type;
 import craxe.util.FileMacro;
 import sys.io.File;
 import haxe.macro.Context;
@@ -42,6 +43,37 @@ class NimBuilder extends BaseBuilder {
 			default:
 				return name;
 		}
+	}
+
+	/**
+	 * Return type name from type
+	 */
+	function resolveTypeNameNew(type:Type):String {
+		trace(type);
+		switch (type) {
+			case TMono(t):
+			case TEnum(t, params):
+				return t.get().name;
+			case TInst(t, params):
+				return t.get().name;
+			case TType(t, params):
+			case TFun(args, ret):
+				var sb = new StringBuf();			
+				for (arg in args) {
+					sb.add(arg.name);
+					sb.add(" : ");
+					sb.add(resolveTypeNameNew(arg.t));
+				}
+				return sb.toString();
+			case TAnonymous(a):
+			case TDynamic(t):
+				return "Dynamic";
+			case TLazy(f):
+			case TAbstract(t, params):
+				return t.get().name;
+		}
+
+		throw "Not supported type";
 	}
 
 	/**
@@ -533,8 +565,12 @@ class NimBuilder extends BaseBuilder {
 		for (en in enums) {
 			for (constr in en.enumType.constructs) {
 				sb.add('${en.enumType.name}${constr.name} = object of HaxeEnum');
-				sb.addNewLine(Same);
-			}
+				sb.addNewLine(Inc);
+				var tp = resolveTypeNameNew(constr.type);
+				sb.add(tp);
+				sb.addNewLine(Dec);
+				sb.addNewLine(Same, true);
+			}			
 		}
 
 		sb.addNewLine();

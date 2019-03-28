@@ -394,6 +394,9 @@ class Generator {
 		return oconstant;
 	}
 
+	/**
+	 * TODO: remove
+	 */
 	private static function buildType(tp:Type):OType {
 		var otype = new OType();
 
