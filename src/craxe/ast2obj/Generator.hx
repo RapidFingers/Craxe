@@ -8,6 +8,7 @@ import haxe.macro.Expr.Binop;
 import haxe.macro.Expr.Unop;
 import haxe.macro.ExprTools;
 import haxe.macro.Type;
+import haxe.ds.StringMap;
 
 class Generator {
 	#if macro
@@ -16,6 +17,15 @@ class Generator {
 	}
 	#end
 
+	static final excludedTypes:StringMap<Bool> = [
+		"Std" => true, "Array" => true, "Math" => true, "Reflect" => true, "Sys" => true, "EReg" => true, "ArrayAccess" => true, "String" => true,
+		"IntIterator" => true, "StringBuf" => true, "StringTools" => true, "Type" => true, "_EnumValue.EnumValue_Impl_" => true, "ValueType" => true,
+		"Encoding" => true, "Error" => true
+	];
+
+	/**
+	 * Callback on generating code from context
+	 */
 	public static function onGenerate(types:Array<Type>):Void {
 		var classes = new Array<OClass>();
 		var enums = new Array<OEnum>();
@@ -58,6 +68,19 @@ class Generator {
 	}
 
 	/**
+	 * Filter not needed type. Return true if filtered
+	 */
+	static function filterType(name:String):Bool {
+		if (excludedTypes.exists(name))
+			return true;
+
+		if (StringTools.startsWith(name, "haxe."))
+			return true;
+
+		return false;
+	}
+
+	/**
 	 * Extract class parameters
 	 */
 	static function extractClassParams(types:Array<Type>):Array<String> {
@@ -84,8 +107,8 @@ class Generator {
 	/**
 	 * Build enum info
 	 */
-	static function buildEnum(c:EnumType, params:Array<Type>):OEnum {
-		if (c.name == "ValueType")
+	static function buildEnum(c:EnumType, params:Array<Type>):OEnum {		
+		if (filterType(c.name))
 			return null;
 
 		return {
@@ -100,21 +123,7 @@ class Generator {
 	static function buildClass(c:Ref<ClassType>, params:Array<Type>):OClass {
 		var typeName = c.toString();
 		// TODO: filter
-		if (typeName == "Std"
-			|| typeName == "Array"
-			|| typeName == "Math"
-			|| typeName == "Reflect"
-			|| typeName == "Sys"
-			|| typeName == "EReg"
-			|| typeName == "ArrayAccess"
-			|| typeName == "String"
-			|| typeName == "IntIterator"
-			|| typeName == "StringBuf"
-			|| typeName == "StringTools"
-			|| typeName == "Type"
-			|| typeName == "_EnumValue.EnumValue_Impl_"
-			|| StringTools.startsWith(c.toString(), "haxe.")) {
-			// trace("Skipping: " + c.toString());
+		if (filterType(typeName)) {
 			return null;
 		} else {
 			trace("Generating: " + c.toString());

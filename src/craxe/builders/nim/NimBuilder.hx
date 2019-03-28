@@ -46,37 +46,6 @@ class NimBuilder extends BaseBuilder {
 	}
 
 	/**
-	 * Return type name from type
-	 */
-	function resolveTypeNameNew(type:Type):String {
-		trace(type);
-		switch (type) {
-			case TMono(t):
-			case TEnum(t, params):
-				return t.get().name;
-			case TInst(t, params):
-				return t.get().name;
-			case TType(t, params):
-			case TFun(args, ret):
-				var sb = new StringBuf();			
-				for (arg in args) {
-					sb.add(arg.name);
-					sb.add(" : ");
-					sb.add(resolveTypeNameNew(arg.t));
-				}
-				return sb.toString();
-			case TAnonymous(a):
-			case TDynamic(t):
-				return "Dynamic";
-			case TLazy(f):
-			case TAbstract(t, params):
-				return t.get().name;
-		}
-
-		throw "Not supported type";
-	}
-
-	/**
 	 * Build constant
 	 */
 	static function buildConstant(sb:IndentStringBuilder, const:OConstant) {
@@ -552,6 +521,191 @@ class NimBuilder extends BaseBuilder {
 	}
 
 	/**
+	 * Fix type name
+	 */
+	function fixTypeName(name:String):String {
+		switch name {
+			case "Array":
+				return "HaxeArray";
+		}
+
+		return name;
+	}
+
+	/**
+	 * Check type is simple by type name
+	 */
+	function isSimpleType(name:String):Bool {
+		switch name {
+			case "Int" | "Float" | "String" | "Bool":
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	/**
+	 * Generate simple type
+	 */
+	function generateSimpleType(sb:IndentStringBuilder, type:String) {
+		switch type {
+			case "Int":
+				sb.add("int");
+			case "Float":
+				sb.add("float");
+			case "String":
+				sb.add("string");
+			case "Bool":
+				sb.add("bool");
+		}
+	}
+
+	/**
+	 * Generate TAbstract
+	 */
+	function generateTAbstract(sb:IndentStringBuilder, t:AbstractType, params:Array<Type>) {
+		if (isSimpleType(t.name)) {
+			generateSimpleType(sb, t.name);
+		} else {
+			throw 'Unsupported ${t}';
+		}
+	}
+
+	/**
+	 * Generate TEnum
+	 */
+	function generateTEnum(sb:IndentStringBuilder, t:EnumType, params:Array<Type>) {
+		sb.add(t.name);
+	}
+
+	/**
+	 * Generate TInst
+	 */
+	function generateTInst(sb:IndentStringBuilder, t:ClassType, params:Array<Type>) {
+		if (isSimpleType(t.name)) {
+			generateSimpleType(sb, t.name);
+		} else {
+			var typeName = fixTypeName(t.name);
+			sb.add(typeName);
+			sb.add("[");
+			if (params != null) {
+				for (par in params) {
+					switch (par) {
+						case TInst(t, params):
+							generateTInst(sb, t.get(), params);
+						case TAbstract(t, params):
+							generateTAbstract(sb, t.get(), params);
+						case v:
+							throw 'Unsupported paramter ${v}';
+					}
+				}
+			}
+			sb.add("]");
+		}
+	}
+
+	/**
+	 * Generate types for enum
+	 */
+	function generateEnumFields(sb:IndentStringBuilder, type:Type):Void {
+		switch (type) {
+			case TEnum(_, _):
+			// skip
+			case TFun(args, _):
+				generateTypeFields(sb, args);
+			case v:
+				generateCommonTypes(sb, v);
+		}
+	}
+
+	/**
+	 * Generate arguments for enum
+	 */
+	function generateEnumArguments(sb:IndentStringBuilder, type:Type):Void {
+		switch (type) {
+			case TEnum(_, _):
+			// skip
+			case TFun(args, _):
+				generateFuncArguments(sb, args);
+			case v:
+				generateCommonTypes(sb, v);
+		}
+	}
+
+	/**
+	 * Generate constructor block for enum
+	 */
+	function generateEnumConstructor(sb:IndentStringBuilder, index:Int, enumName:String, type:Type):Void {
+		sb.add('${enumName}(index: ${index}, tag: "${enumName}"');
+		switch (type) {		
+			case TEnum(_, _):	
+				// Ignore
+			case TFun(args, _):
+				sb.add(", ");
+				for (i in 0...args.length) {
+					var arg = args[i];
+					sb.add('${arg.name}: ${arg.name}');
+					if (i + 1 < args.length)
+						sb.add(", ");
+				}								
+			case v:
+				throw 'Unsupported paramter ${v}';
+		}
+
+		sb.add(')');
+	}
+
+	/**
+	 * Generate fields for type
+	 * Example:
+	 *
+	 *	MyType = ref object of RootObject
+	 *		field1 : int
+	 * 		field2 : float
+	 */
+	function generateTypeFields(sb:IndentStringBuilder, args:Array<{name:String, opt:Bool, t:Type}>) {
+		for (arg in args) {
+			sb.add(arg.name);
+			sb.add(" : ");
+			generateCommonTypes(sb, arg.t);
+			sb.addNewLine(Same);
+		}
+	}
+
+	/**
+	 * Generate function arguments
+	 * Example:
+	 *
+	 * 	proc someproc(arg1:int, arg2:float) =
+	 */
+	function generateFuncArguments(sb:IndentStringBuilder, args:Array<{name:String, opt:Bool, t:Type}>) {
+		for (i in 0...args.length) {
+			var arg = args[i];
+			sb.add(arg.name);
+			sb.add(":");
+			generateCommonTypes(sb, arg.t);
+			if (i + 1 < args.length)
+				sb.add(", ");
+		}
+	}
+
+	/**
+	 * Generate common types
+	 */
+	function generateCommonTypes(sb:IndentStringBuilder, type:Type):Void {
+		switch (type) {
+			case TEnum(t, params):
+				generateTEnum(sb, t.get(), params);
+			case TInst(t, params):
+				generateTInst(sb, t.get(), params);
+			case TAbstract(t, params):
+				generateTAbstract(sb, t.get(), params);
+			case v:
+				throw 'Unsupported type ${v}';
+		}
+	}
+
+	/**
 	 * Build enum
 	 */
 	function buildEnums(sb:IndentStringBuilder, enums:Array<OEnum>) {
@@ -566,24 +720,31 @@ class NimBuilder extends BaseBuilder {
 			for (constr in en.enumType.constructs) {
 				sb.add('${en.enumType.name}${constr.name} = object of HaxeEnum');
 				sb.addNewLine(Inc);
-				var tp = resolveTypeNameNew(constr.type);
-				sb.add(tp);
+
+				generateEnumFields(sb, constr.type);
+
 				sb.addNewLine(Dec);
 				sb.addNewLine(Same, true);
-			}			
+			}
 		}
 
 		sb.addNewLine();
 		sb.addNewLine(None, true);
 
 		// Generate enums constructors
-
-		for (en in enums) {			
+		for (en in enums) {
 			for (constr in en.enumType.constructs) {
 				var enumName = '${en.enumType.name}${constr.name}';
-				sb.add('proc new${enumName}(v:int) : ${enumName} =');
+
+				sb.add('proc new${enumName}(');
+				generateEnumArguments(sb, constr.type);
+				sb.add(') : ${enumName} {.inline.} =');
 				sb.addNewLine(Inc);
-				sb.addNewLine(Dec);
+				
+				generateEnumConstructor(sb, constr.index, enumName, constr.type);
+
+				sb.addNewLine();
+				sb.addNewLine(None, true);
 			}
 		}
 	}
