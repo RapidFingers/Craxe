@@ -1,4 +1,4 @@
-package craxe.util;
+package craxe.common;
 
 #if macro
 
