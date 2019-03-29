@@ -16,12 +16,19 @@ template `+`*(s1:string, s2:string): string =
     s1 & s2
 
 type
+    LogStatic* = ref object of RootObj
+
     HaxeEnum* = object of RootObj
         tag*:string
         index*:int
 
     HaxeArray*[T] = ref object of RootObj
         data*:seq[T]
+
+let LogStaticInst* = LogStatic()
+
+template trace*(this:LogStatic, e:untyped):void =
+    echo e
 
 proc newHaxeArray*[T]() : HaxeArray[T] =
     result = HaxeArray[T]()

@@ -99,6 +99,23 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
+	 * Generate code for TIf
+	 */
+	function geterateTIf(sb:IndentStringBuilder, econd:TypedExpr, eif:TypedExpr, eelse:TypedExpr) {
+		sb.add("if ");
+		generateCommonExpression(sb, econd.expr);
+		sb.add(":");
+		sb.addNewLine(Inc);
+
+		generateCommonExpression(sb, eif.expr);
+		if (eelse != null) {
+			sb.add("else:");
+			generateCommonExpression(sb, eelse.expr);
+		}
+		sb.addNewLine(Dec);
+	}
+
+	/**
 	 * Generate code for TWhile
 	 */
 	function generateTWhile(sb:IndentStringBuilder, econd:TypedExpr, whileExpression:TypedExpr, isNormal:Bool) {
@@ -128,19 +145,27 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Generate code for TField
 	 */
-	function generateTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {
-		trace(expression.expr);
-		generateCommonExpression(sb, expression.expr);
-		sb.add(".");
+	function generateTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {		
+		//trace(expression.expr);
+		switch (expression.expr) {
+			case TTypeExpr(_):				
+			case _:
+				generateCommonExpression(sb, expression.expr);
+		}
 
 		switch (access) {
 			case FInstance(c, params, cf):
-			case FStatic(c, cf):
+				sb.add(".");
 				sb.add(cf.toString());
+			case FStatic(c, cf):
+				var name = c.get().name;
+				sb.add('${name}StaticInst.');
+				var fieldName = cf.toString();				
+				sb.add(fieldName);
 			case FAnon(cf):
 			case FDynamic(s):
 			case FClosure(c, cf):
-			case FEnum(e, ef):
+			case FEnum(e, ef):				
 		}
 	}
 
@@ -179,7 +204,7 @@ class NimGenerator extends BaseGenerator {
 			case TFloat(s):
 				sb.add(Std.string(s));
 			case TString(s):
-				sb.add(Std.string(s));
+				sb.add('"${Std.string(s)}"');
 			case TBool(b):
 				sb.add(Std.string(b));
 			case TNull:
@@ -195,7 +220,7 @@ class NimGenerator extends BaseGenerator {
 	 * Generate code for TLocal
 	 */
 	function genecrateTLocal(sb:IndentStringBuilder, vr:TVar) {
-		var name = vr.name;
+		var name = vr.name;		
 		sb.add(name);
 	}
 
@@ -275,6 +300,14 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
+	 * Generate code for TReturn
+	 */
+	function generateTReturn(sb:IndentStringBuilder, expression:TypedExpr) {
+		sb.add("return ");
+		generateCommonExpression(sb, expression.expr);
+	}
+
+	/**
 	 * Generate common expression
 	 */
 	function generateCommonExpression(sb:IndentStringBuilder, expr:TypedExprDef) {
@@ -307,11 +340,13 @@ class NimGenerator extends BaseGenerator {
 				generateTBlock(sb, el);
 			case TFor(v, e1, e2):
 			case TIf(econd, eif, eelse):
+				geterateTIf(sb, econd, eif, eelse);
 			case TWhile(econd, e, normalWhile):
 				generateTWhile(sb, econd, e, normalWhile);
 			case TSwitch(e, cases, edef):
 			case TTry(e, catches):
 			case TReturn(e):
+				generateTReturn(sb, e);
 			case TBreak:
 			case TContinue:
 			case TThrow(e):
@@ -612,7 +647,10 @@ class NimGenerator extends BaseGenerator {
 		sb.add('proc new${cls.classType.name}(');
 		switch (constructor.type) {
 			case TFun(args, ret):
-				trace(args);
+				generateFuncArguments(sb, args);
+				sb.add(") =");
+				sb.addNewLine();
+				sb.addNewLine(None, true);
 			case v:
 				throw 'Unsupported paramter ${v}';
 		}
