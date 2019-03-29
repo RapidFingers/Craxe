@@ -1,12 +1,34 @@
 package craxe.common.ast;
 
+import craxe.common.ast.EntryPointInfo;
+import craxe.common.ast.ClassInfo;
 import haxe.ds.StringMap;
 import haxe.macro.Type;
+
+/**
+ * Build class result
+ */
+typedef BuildClassResult = {
+	/**
+	 * Class info
+	 */
+	var classInfo(default, null):ClassInfo;
+
+	/**
+	 * Entry point if exists
+	 */
+	var entryPoint:EntryPointInfo;
+}
 
 /**
  * Common preprocessor for AST tree
  */
 class CommonAstPreprocessor {
+	/**
+	 * Name of entry point
+	 */
+	public static inline final MAIN_METHOD = "main";
+
 	/**
 	 * Excluded types
 	 */
@@ -32,14 +54,61 @@ class CommonAstPreprocessor {
 	/**
 	 * Build class info
 	 */
-	function buildClass(c:ClassType, params:Array<Type>):ClassInfo {
+	function buildClass(c:ClassType, params:Array<Type>):BuildClassResult {
 		if (filterType(c.name, c.module)) {
 			return null;
-		}		
+		}
+
+		var classFields = c.fields.get();
+		var classStaticFields = c.statics.get();
+
+		var instFields = [];
+		var instMethods = [];
+		var staticFields = [];
+		var staticMethods = [];
+
+		var entryMethod:ClassField = null;
+
+		for (ifield in classFields) {
+			switch (ifield.kind) {
+				case FVar(_, _):
+					instFields.push(ifield);
+				case FMethod(_):
+					instMethods.push(ifield);
+			}
+		}
+
+		for (ifield in classStaticFields) {
+			switch (ifield.kind) {
+				case FVar(_, _):
+					staticFields.push(ifield);
+				case FMethod(_):
+					staticMethods.push(ifield);
+					if (ifield.name == MAIN_METHOD) {
+						entryMethod = ifield;
+					}
+			}
+		}
+
+		var classInfo:ClassInfo = {
+			classType: c,
+			params: params,
+			instanceFields: instFields,
+			instanceMethods: instMethods,
+			staticFields: staticFields,
+			staticMethods: staticMethods
+		};
+
+		var entryPoint:EntryPointInfo = if (entryMethod != null) {
+			{
+				classInfo: classInfo,
+				method: entryMethod
+			}
+		} else null;
 
 		return {
-			classType: c,
-			params: params
+			classInfo: classInfo,
+			entryPoint: entryPoint
 		}
 	}
 
@@ -67,13 +136,17 @@ class CommonAstPreprocessor {
 	public function process(types:Array<Type>):PreprocessedTypes {
 		var classes = new Array<ClassInfo>();
 		var enums = new Array<EnumInfo>();
+		var entryPoint:EntryPointInfo = null;
 
 		for (t in types) {
 			switch (t) {
 				case TInst(c, params):
-					var cls = buildClass(c.get(), params);
-					if (cls != null)
-						classes.push(cls);
+					var res = buildClass(c.get(), params);
+					if (res != null) {
+						classes.push(res.classInfo);
+						if (res.entryPoint != null)
+							entryPoint = res.entryPoint;
+					}
 				case TEnum(t, params):
 					var enu = buildEnum(t.get(), params);
 					if (enu != null)
@@ -84,7 +157,8 @@ class CommonAstPreprocessor {
 
 		var types:PreprocessedTypes = {
 			classes: classes,
-			enums: enums
+			enums: enums,
+			entryPoint: entryPoint
 		}
 
 		return types;

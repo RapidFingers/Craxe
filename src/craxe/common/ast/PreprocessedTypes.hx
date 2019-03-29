@@ -13,4 +13,9 @@ typedef PreprocessedTypes = {
      * Enums to generate
      */
     var enums(default, null):Array<EnumInfo>;
+
+    /**
+     * Information about entry point
+     */
+    var entryPoint(default, null):EntryPointInfo;
 }

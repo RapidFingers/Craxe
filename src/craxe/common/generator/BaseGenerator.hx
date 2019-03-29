@@ -7,11 +7,6 @@ import craxe.common.ast.PreprocessedTypes;
  */
 class BaseGenerator {
     /**
-	 * Name of entry point
-	 */
-	public static inline final MAIN_METHOD = "main";
-
-    /**
 	 * Types to generate code
 	 */
 	public final types:PreprocessedTypes;
