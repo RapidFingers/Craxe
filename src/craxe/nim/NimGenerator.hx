@@ -1,5 +1,6 @@
 package craxe.nim;
 
+#if macro
 import haxe.macro.Context;
 import haxe.macro.Type;
 import haxe.io.Path;
@@ -10,7 +11,6 @@ import craxe.common.ast.ClassInfo;
 import craxe.common.IndentStringBuilder;
 import craxe.common.generator.BaseGenerator;
 
-#if macro
 /**
  * Builder for nim code
  */
@@ -195,7 +195,7 @@ class NimGenerator extends BaseGenerator {
 				throw 'Unsupported type ${v}';
 		}
 	}
-	
+
 	/**
 	 * Generate types for enum
 	 */
@@ -318,33 +318,113 @@ class NimGenerator extends BaseGenerator {
 		sb.addNewLine(Dec);
 		sb.addNewLine(Same, true);
 
-		// var instanceVars = cls.classVars.filter((x) -> !x.isStatic);
-		// if (instanceVars.length > 0) {
-		// 	sb.inc();
-		// 	buildFields(sb, instanceVars);
-		// 	sb.dec();
-		// }
+		var staticFields = cls.classType.statics.get();
+		if (staticFields.length > 0) {
+			var line = '${cls.classType.name}Static = ref object of RootObj';
+			sb.add(line);
+			sb.addNewLine();
+		}
+	}
 
-		// var hasStatic = false;
-		// var classVars = cls.classVars.filter((x) -> x.isStatic);
-		// if (classVars.length > 0) {
-		// 	sb.inc();
-		// 	buildFields(sb, classVars);
-		// 	hasStatic = true;
-		// 	sb.dec();
-		// }
+	/**
+	 * Build static class initialization
+	 * @param sb
+	 * @param cls
+	 */
+	function generateStaticClassInit(sb:IndentStringBuilder, cls:ClassInfo) {
+		var staticFields = cls.classType.statics.get();
+		if (staticFields.length < 1)
+			return;
 
-		// // Has static
-		// // TODO: remove
-		// if (cls.methods.filter((x) -> x.isStatic).length > 0) {
-		// 	hasStatic = true;
-		// }
+		var clsName = cls.classType.name;
+		var hasStaticMethod = false;
+		for (field in staticFields) {
+			switch (field.kind) {
+				case FVar(read, write):
+				case FMethod(k):
+					hasStaticMethod = true;
+					break;
+			}
+		}
 
-		// if (hasStatic) {
-		// 	var line = '${cls.safeName}Static = ref object of RootObj';
-		// 	sb.add(line);
-		// 	sb.addNewLine();
-		// }
+		if (hasStaticMethod) {
+			sb.add('let ${clsName}StaticInst = ${clsName}Static()');
+			sb.addNewLine();
+		}
+	}
+
+	/**
+	 * Build class constructor
+	 */
+	function generateConstructor(sb:IndentStringBuilder, cls:ClassInfo) {		
+		if (cls.classType.constructor == null)
+			return;
+
+		var constructor = cls.classType.constructor.get();
+
+		sb.add('proc new${cls.classType.name}(');
+		switch (constructor.type) {			
+			case TFun(args, ret):
+				trace(args);
+			case v:
+				throw 'Unsupported paramter ${v}';
+		}
+
+		// sb.add('): ${cls.safeName} {.inline.} =');
+		// sb.addNewLine(Inc);
+		// sb.add('let this = ${cls.safeName}()');
+		// sb.addNewLine(Same);
+		// sb.add('result = this');
+		// sb.addNewLine(Same);
+		// buildExpression(sb, cls.constructor.expression);
+		// sb.addNewLine(Same);
+		// sb.addNewLine();
+		// sb.addNewLine(None, true);
+	}
+
+	/**
+	 * Build class methods
+	 */
+	function generateClassMethods(sb:IndentStringBuilder, cls:ClassInfo) {
+		var instFields = cls.classType.fields.get();
+		var staticFields = cls.classType.statics.get();
+
+		// for (method in cls.methods) {
+		// 	if (method.isStatic && method.name == BaseBuilder.MAIN_METHOD) {
+		// 		mainMethod = method;
+		// 	}
+
+		// 	var clsName = !method.isStatic ? cls.safeName : '${cls.safeName}Static';
+
+		// 	sb.add('proc ${method.name}(this : ${clsName}');
+		// 	if (method.args.length > 0) {
+		// 		sb.add(", ");
+		// 		for (i in 0...method.args.length) {
+		// 			var arg = method.args[i];
+		// 			var varTypeName = arg.type.safeName;
+		// 			sb.add(arg.name);
+		// 			sb.add(" : ");
+		// 			sb.add(resolveTypeName(varTypeName));
+
+		// 			if (i < method.args.length - 1)
+		// 				sb.add(", ");
+		// 		}
+		// 	}
+		// 	sb.add(") : ");
+		// 	sb.add(resolveTypeName(method.type.safeName));
+		// 	sb.add(" =");
+		// 	sb.addNewLine(Inc);
+
+		// 	buildExpression(sb, method.expression);
+		// 	sb.addNewLine(None, true);
+		}
+
+		// Add to string proc
+		sb.add('proc `$`(this : ${cls.safeName}):string {.inline.} =');
+		sb.addNewLine(Inc);
+		sb.add('result = "${cls.safeName}"' + " & $this[]");
+		sb.addNewLine();
+		sb.addNewLine(None, true);
 	}
 
 	/**
@@ -356,9 +436,8 @@ class NimGenerator extends BaseGenerator {
 			sb.addNewLine(Inc);
 		}
 
-		for (c in types.classes) {			
+		for (c in types.classes) {
 			if (c.classType.isExtern == false) {
-				trace(c.classType.name);
 				generateClassInfo(sb, c);
 			}
 		}
@@ -366,27 +445,27 @@ class NimGenerator extends BaseGenerator {
 		sb.addNewLine(None, true);
 
 		// Init static classes
-		// for (c in types.classes) {
-		// 	if (c.classType.isExtern == false) {
-		// 		buildInitStaticClass(sb, c);
-		// 	}
-		// }
+		for (c in types.classes) {
+			if (c.classType.isExtern == false) {
+				generateStaticClassInit(sb, c);
+			}
+		}
 
-		// sb.addNewLine(None, true);
-		// for (c in types.classes) {
-		// 	if (c.classType.isExtern == false) {
-		// 		buildConstructor(sb, c);
-		// 		buildClassMethods(sb, c);
-		// 	}
-		// }
+		sb.addNewLine(None, true);
+		for (c in types.classes) {
+			if (c.classType.isExtern == false) {
+				generateConstructor(sb, c);
+				generateClassMethods(sb, c);
+			}
+		}
 	}
 
 	/**
 	 * Build sources
 	 */
 	override function build() {
-		trace(types.classes.map(x -> x.classType.name).join("\n"));
-		trace(types.enums.map(x -> x.enumType.name).join("\n"));
+		trace("Classes: " + types.classes.map(x -> x.classType.name).join("\n"));
+		trace("Enums " + types.enums.map(x -> x.enumType.name).join("\n"));
 
 		var nimOut = Context.getDefines().get("nim-out");
 		if (nimOut == null)
