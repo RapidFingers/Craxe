@@ -18,8 +18,7 @@ template `+`*(s1:string, s2:string): string =
 type
     LogStatic* = ref object of RootObj
 
-    HaxeEnum* = object of RootObj
-        tag*:string
+    HaxeEnum* = ref object of RootObj
         index*:int
 
     HaxeArray*[T] = ref object of RootObj
@@ -27,8 +26,12 @@ type
 
 let LogStaticInst* = LogStatic()
 
-template trace*(this:LogStatic, e:untyped):void =
-    echo e
+template trace*(this:LogStatic, v:untyped, e:varargs[string, `$`]):void =
+    write(stdout, e[0] & " " & e[1] & ": ")
+    echo v
+
+proc `$`*(this:HaxeEnum) : string =
+    result = $this[]
 
 proc newHaxeArray*[T]() : HaxeArray[T] =
     result = HaxeArray[T]()
@@ -50,3 +53,6 @@ template length*[T](this:HaxeArray[T]): int =
 
 proc `$`*[T](this:HaxeArray[T]) : string {.inline.} =
     result = $this.data
+
+converter toHaxeArray*[T](s:seq[T]) : HaxeArray[T] =
+    return HaxeArray[T](data: s)

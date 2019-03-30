@@ -15,6 +15,8 @@ import craxe.common.ast.ArgumentInfo;
 import craxe.common.IndentStringBuilder;
 import craxe.common.generator.BaseGenerator;
 
+using StringTools;
+
 /**
  * Builder for nim code
  */
@@ -89,6 +91,32 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
+	 * Fix local var name
+	 */
+	inline function fixLocalVarName(name:String):String {
+		return name.replace("_", "loc");
+	}
+
+	/**
+	 * Return parameters as string
+	 */
+	function resolveParameters(params:Array<Type>):String {
+		if (params.length > 0) {
+			var sb = new IndentStringBuilder();
+
+			sb.add("[");
+			for (item in params) {
+				generateCommonTypes(sb, item);
+			}
+			sb.add("]");
+
+			return sb.toString();
+		} else {
+			return "";
+		}
+	}
+
+	/**
 	 * Generate code for TBlock
 	 */
 	function generateTBlock(sb:IndentStringBuilder, expressions:Array<TypedExpr>) {
@@ -131,24 +159,50 @@ class NimGenerator extends BaseGenerator {
 	 * Generate code for TCall
 	 */
 	function generateTCall(sb:IndentStringBuilder, expression:TypedExpr, expressions:Array<TypedExpr>) {
-		//trace(expression.expr);
-		generateCommonExpression(sb, expression.expr);
-		sb.add("(");
+		switch (expression.expr) {
+			case TField(_, FEnum(c, ef)):
+				var name = c.get().name;
+				sb.add('new${name}${ef.name}');
+			case _:
+				generateCommonExpression(sb, expression.expr);
+		}
 
-		for (e in expressions) {
-			generateCommonExpression(sb, e.expr);
+		sb.add("(");
+		for (i in 0...expressions.length) {
+			var expr = expressions[i].expr;
+			generateCommonExpression(sb, expr);
+			if (i + 1 < expressions.length)
+				sb.add(", ");
 		}
 
 		sb.add(")");
 	}
 
 	/**
+	 * Generate code for TNew
+	 */
+	function generateTNew(sb:IndentStringBuilder, classType:ClassType, params:Array<Type>, elements:Array<TypedExpr>) {
+		var typeName = fixTypeName(classType.name);
+		var typeParams = resolveParameters(params);
+		var varTypeName = 'new${typeName}${typeParams}';
+
+		sb.add(varTypeName);
+		sb.add("(");
+		for (i in 0...elements.length) {
+			var expr = elements[i];
+			generateCommonExpression(sb, expr.expr);
+			if (i + 1 < elements.length)
+				sb.add(", ");
+		}
+		sb.add(")");
+	}
+
+	/**
 	 * Generate code for TField
 	 */
-	function generateTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {		
-		//trace(expression.expr);
+	function generateTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {
 		switch (expression.expr) {
-			case TTypeExpr(_):				
+			case TTypeExpr(_):
 			case _:
 				generateCommonExpression(sb, expression.expr);
 		}
@@ -160,12 +214,14 @@ class NimGenerator extends BaseGenerator {
 			case FStatic(c, cf):
 				var name = c.get().name;
 				sb.add('${name}StaticInst.');
-				var fieldName = cf.toString();				
+				var fieldName = cf.toString();
 				sb.add(fieldName);
 			case FAnon(cf):
 			case FDynamic(s):
 			case FClosure(c, cf):
-			case FEnum(e, ef):				
+			case FEnum(e, ef):
+				var name = e.get().name;
+				sb.add('new${name}${ef.name}()');
 		}
 	}
 
@@ -187,8 +243,9 @@ class NimGenerator extends BaseGenerator {
 	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {
 		sb.add("var ");
 		var name = fixTypeName(vr.name);
+		name = fixLocalVarName(name);
 		sb.add(name);
-		if (expr.expr != null) {
+		if (expr != null) {
 			sb.add(" = ");
 			generateCommonExpression(sb, expr.expr);
 		}
@@ -220,8 +277,34 @@ class NimGenerator extends BaseGenerator {
 	 * Generate code for TLocal
 	 */
 	function genecrateTLocal(sb:IndentStringBuilder, vr:TVar) {
-		var name = vr.name;		
+		var name = fixLocalVarName(vr.name);
 		sb.add(name);
+	}
+
+	/**
+	 * Generate code for TArray
+	 * Array access arr[it]
+	 */
+	function generateTArray(sb:IndentStringBuilder, e1:TypedExpr, e2:TypedExpr) {
+		generateCommonExpression(sb, e1.expr);
+		sb.add(".get(");
+		generateCommonExpression(sb, e2.expr);
+		sb.add(")");
+	}
+
+	/**
+	 * Generate code for TArrayDecl
+	 * An array declaration `[el]`
+	 */
+	function generateTArrayDecl(sb:IndentStringBuilder, elements:Array<TypedExpr>) {
+		sb.add("@[");
+		for (i in 0...elements.length) {
+			var expr = elements[i];
+			generateCommonExpression(sb, expr.expr);
+			if (i + 1 < elements.length)
+				sb.add(", ");
+		}
+		sb.add("]");
 	}
 
 	/**
@@ -292,7 +375,7 @@ class NimGenerator extends BaseGenerator {
 				}
 				generateCommonExpression(sb, expr.expr);
 				sb.add(")");
-			case OpDecrement:				
+			case OpDecrement:
 			case OpNot:
 			case OpNeg:
 			case OpNegBits:
@@ -308,6 +391,18 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
+	 * Generate code for TObjectDecl
+	 */
+	function generateTObjectDecl(sb:IndentStringBuilder, fields:Array<{name:String, expr:TypedExpr}>) {
+		for (i in 0...fields.length) {
+			var field = fields[i];
+			generateCommonExpression(sb, field.expr.expr);
+			if (i + 1 < fields.length)
+				sb.add(", ");
+		}
+	}
+
+	/**
 	 * Generate common expression
 	 */
 	function generateCommonExpression(sb:IndentStringBuilder, expr:TypedExprDef) {
@@ -318,6 +413,7 @@ class NimGenerator extends BaseGenerator {
 			case TLocal(v):
 				genecrateTLocal(sb, v);
 			case TArray(e1, e2):
+				generateTArray(sb, e1, e2);
 			case TBinop(op, e1, e2):
 				generateTBinop(sb, op, e1, e2);
 			case TField(e, fa):
@@ -327,10 +423,13 @@ class NimGenerator extends BaseGenerator {
 			case TParenthesis(e):
 				generateCommonExpression(sb, e.expr);
 			case TObjectDecl(fields):
+				generateTObjectDecl(sb, fields);
 			case TArrayDecl(el):
+				generateTArrayDecl(sb, el);
 			case TCall(e, el):
 				generateTCall(sb, e, el);
 			case TNew(c, params, el):
+				generateTNew(sb, c.get(), params, el);
 			case TUnop(op, postFix, e):
 				generateTUnop(sb, op, postFix, e);
 			case TFunction(tfunc):
@@ -411,8 +510,8 @@ class NimGenerator extends BaseGenerator {
 		} else {
 			var typeName = fixTypeName(t.name);
 			sb.add(typeName);
-			sb.add("[");
-			if (params != null) {
+			if (params != null && params.length > 0) {
+				sb.add("[");
 				for (par in params) {
 					switch (par) {
 						case TInst(t, params):
@@ -423,8 +522,8 @@ class NimGenerator extends BaseGenerator {
 							throw 'Unsupported paramter ${v}';
 					}
 				}
+				sb.add("]");
 			}
-			sb.add("]");
 		}
 	}
 
@@ -512,7 +611,11 @@ class NimGenerator extends BaseGenerator {
 	 * Generate constructor block for enum
 	 */
 	function generateEnumConstructor(sb:IndentStringBuilder, index:Int, enumName:String, type:Type):Void {
-		sb.add('${enumName}(index: ${index}, tag: "${enumName}"');
+		sb.add('proc new${enumName}(');
+		generateEnumArguments(sb, type);
+		sb.add(') : ${enumName} {.inline.} =');
+		sb.addNewLine(Inc);
+		sb.add('${enumName}(index: ${index}');
 		switch (type) {
 			case TEnum(_, _):
 			// Ignore
@@ -529,6 +632,22 @@ class NimGenerator extends BaseGenerator {
 		}
 
 		sb.add(')');
+		sb.addBreak();
+	}
+
+	/**
+	 * Generate enum helpers
+	 */
+	function generateEnumHelpers(sb:IndentStringBuilder, enumName:String) {
+		sb.add('proc `$`(this: ${enumName}) : string {.inline.} =');
+		sb.addNewLine(Inc);
+		sb.add("result = $this[]");
+		sb.addBreak();
+
+		sb.add('proc `==`(e1:${enumName}, e2:${enumName}) : bool {.inline.} =');
+		sb.addNewLine(Inc);
+		sb.add("result = e1[] == e2[]");
+		sb.addBreak();
 	}
 
 	/**
@@ -543,8 +662,12 @@ class NimGenerator extends BaseGenerator {
 		sb.addNewLine(Inc);
 
 		for (en in enums) {
+			var enumName = en.enumType.name;
+			sb.add('${enumName} = ref object of HaxeEnum');
+			sb.addNewLine(Same);
+			sb.addNewLine(Same, true);
 			for (constr in en.enumType.constructs) {
-				sb.add('${en.enumType.name}${constr.name} = object of HaxeEnum');
+				sb.add('${enumName}${constr.name} = ref object of ${enumName}');
 				sb.addNewLine(Inc);
 
 				generateEnumFields(sb, constr.type);
@@ -562,15 +685,8 @@ class NimGenerator extends BaseGenerator {
 			for (constr in en.enumType.constructs) {
 				var enumName = '${en.enumType.name}${constr.name}';
 
-				sb.add('proc new${enumName}(');
-				generateEnumArguments(sb, constr.type);
-				sb.add(') : ${enumName} {.inline.} =');
-				sb.addNewLine(Inc);
-
 				generateEnumConstructor(sb, constr.index, enumName, constr.type);
-
-				sb.addNewLine();
-				sb.addNewLine(None, true);
+				generateEnumHelpers(sb, enumName);
 			}
 		}
 	}
@@ -622,10 +738,11 @@ class NimGenerator extends BaseGenerator {
 		var hasStaticMethod = false;
 		for (field in staticFields) {
 			switch (field.kind) {
-				case FVar(read, write):
 				case FMethod(k):
 					hasStaticMethod = true;
 					break;
+				case v:
+					throw 'Unsupported paramter ${v}';
 			}
 		}
 
@@ -636,35 +753,43 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
-	 * Build class constructor
+	 * Generate method body
 	 */
-	function generateConstructor(sb:IndentStringBuilder, cls:ClassInfo) {
-		if (cls.classType.constructor == null)
-			return;
-
-		var constructor = cls.classType.constructor.get();
-
-		sb.add('proc new${cls.classType.name}(');
-		switch (constructor.type) {
-			case TFun(args, ret):
-				generateFuncArguments(sb, args);
-				sb.add(") =");
-				sb.addNewLine();
-				sb.addNewLine(None, true);
+	function generateMethodBody(sb:IndentStringBuilder, expression:TypedExprDef) {
+		switch (expression) {
+			case TFunction(tfunc):
+				generateCommonExpression(sb, tfunc.expr.expr);
 			case v:
 				throw 'Unsupported paramter ${v}';
 		}
 
-		// sb.add('): ${cls.safeName} {.inline.} =');
-		// sb.addNewLine(Inc);
-		// sb.add('let this = ${cls.safeName}()');
-		// sb.addNewLine(Same);
-		// sb.add('result = this');
-		// sb.addNewLine(Same);
-		// buildExpression(sb, cls.constructor.expression);
-		// sb.addNewLine(Same);
-		// sb.addNewLine();
-		// sb.addNewLine(None, true);
+		sb.addNewLine();
+		sb.addNewLine(None, true);
+	}
+
+	/**
+	 * Build class constructor
+	 */
+	function generateClassConstructor(sb:IndentStringBuilder, cls:ClassInfo) {
+		if (cls.classType.constructor == null)
+			return;
+
+		var constructor = cls.classType.constructor.get();
+		var className = cls.classType.name;
+		sb.add('proc new${className}(');
+		switch (constructor.type) {
+			case TFun(args, _):
+				generateFuncArguments(sb, args);
+				sb.add(') : ${className} {.inline.} =');
+				sb.addNewLine(Inc);
+				sb.add('let this = ${className}()');
+				sb.addNewLine(Same);
+				sb.add('result = this');
+				sb.addNewLine(Same);
+				generateMethodBody(sb, constructor.expr().expr);
+			case v:
+				throw 'Unsupported paramter ${v}';
+		}
 	}
 
 	/**
@@ -684,15 +809,7 @@ class NimGenerator extends BaseGenerator {
 				sb.add(" =");
 				sb.addNewLine(Inc);
 
-				switch (method.expr().expr) {
-					case TFunction(tfunc):
-						generateCommonExpression(sb, tfunc.expr.expr);
-					case v:
-						throw 'Unsupported paramter ${v}';
-				}
-
-				sb.addNewLine();
-				sb.addNewLine(None, true);
+				generateMethodBody(sb, method.expr().expr);
 			case v:
 				throw 'Unsupported paramter ${v}';
 		}
@@ -710,34 +827,12 @@ class NimGenerator extends BaseGenerator {
 			generateClassMethod(sb, cls, method, true);
 		}
 
-		// 	sb.add('proc ${method.name}(this : ${clsName}');
-		// 	if (method.args.length > 0) {
-		// 		sb.add(", ");
-		// 		for (i in 0...method.args.length) {
-		// 			var arg = method.args[i];
-		// 			var varTypeName = arg.type.safeName;
-		// 			sb.add(arg.name);
-		// 			sb.add(" : ");
-		// 			sb.add(resolveTypeName(varTypeName));
-
-		// 			if (i < method.args.length - 1)
-		// 				sb.add(", ");
-		// 		}
-		// 	}
-		// 	sb.add(") : ");
-		// 	sb.add(resolveTypeName(method.type.safeName));
-		// 	sb.add(" =");
-		// 	sb.addNewLine(Inc);
-
-		// 	buildExpression(sb, method.expression);
-		// 	sb.addNewLine(None, true);
-
-		// Add to string proc
-		// sb.add('proc `$`(this : ${cls.safeName}):string {.inline.} =');
-		// sb.addNewLine(Inc);
-		// sb.add('result = "${cls.safeName}"' + " & $this[]");
-		// sb.addNewLine();
-		// sb.addNewLine(None, true);
+		// Generate heplers
+		var clsName = cls.classType.name;
+		sb.add('proc `$`(this:${clsName}) : string {.inline.} = ');
+		sb.addNewLine(Inc);
+		sb.add('result = "${clsName}"' + " & $this[]");
+		sb.addBreak();
 	}
 
 	/**
@@ -765,10 +860,9 @@ class NimGenerator extends BaseGenerator {
 		}
 
 		sb.addNewLine(None, true);
-		var entryPoint:ClassField;
 		for (c in types.classes) {
 			if (c.classType.isExtern == false) {
-				generateConstructor(sb, c);
+				generateClassConstructor(sb, c);
 				generateClassMethods(sb, c);
 			}
 		}
@@ -804,8 +898,8 @@ class NimGenerator extends BaseGenerator {
 		addLibraries(outPath);
 		addCodeHelpers(sb);
 
-		buildClasses(sb, types.classes);
 		buildEnums(sb, types.enums);
+		buildClasses(sb, types.classes);
 
 		if (types.entryPoint != null) {
 			sb.addNewLine();

@@ -105,7 +105,7 @@ class IndentStringBuilder {
 	/**
 	 * Add new Line
 	 */
-	public inline function addNewLine(indent:IndentType = None, addIfLine = false) {
+	public function addNewLine(indent:IndentType = None, addIfLine = false) {
 		function addLine() {
 			currentItem = Line(indent);
 			buffer.push(currentItem);
@@ -121,6 +121,16 @@ class IndentStringBuilder {
 					addLine();
 			}
 		}
+	}
+
+	/**
+	 * Helps to add break
+	 * addNewLine(None)
+	 * addNewLine(None, true)
+	 */
+	public inline function addBreak() {
+		addNewLine();
+		addNewLine(None, true);
 	}
 
 	/**
