@@ -122,10 +122,21 @@ class NimGenerator extends BaseGenerator {
 	 * Generate code for ESwitch
 	 */
 	function generateTSwitch(sb:IndentStringBuilder, expression:TypedExpr, cases:Array<{values:Array<TypedExpr>, expr:TypedExpr}>, edef:TypedExpr) {
+		var ifname = "if ";
 		for (cs in cases) {
-			trace(cs);
+			for (val in cs.values) {
+				sb.add(ifname);
+				generateTypedAstExpression(sb, expression.expr);
+				sb.add(" == ");
+				generateTypedAstExpression(sb, val.expr);
+				sb.add(":");
+				sb.addNewLine(Inc);
+				generateTypedAstExpression(sb, cs.expr.expr);
+				sb.addNewLine(Dec);
+			}
+			ifname = "elif ";
 		}
-		//generateAstExpression(sb, expression);
+		// generateAstExpression(sb, expression);
 	}
 
 	/**
@@ -149,8 +160,16 @@ class NimGenerator extends BaseGenerator {
 
 		generateTypedAstExpression(sb, eif.expr);
 		if (eelse != null) {
-			sb.add("else:");
-			generateTypedAstExpression(sb, eelse.expr);
+			switch (eelse.expr) {
+				case TBlock(el):
+					if (el.length > 0) {
+						sb.addNewLine(Dec);
+						sb.add("else:");
+						generateTypedAstExpression(sb, eelse.expr);
+					}
+				case _:
+					throw "Unsupported expression";
+			}
 		}
 		sb.addNewLine(Dec);
 	}
@@ -214,7 +233,8 @@ class NimGenerator extends BaseGenerator {
 	 */
 	function generateTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {
 		switch (expression.expr) {
-			case TTypeExpr(_):
+			case TTypeExpr(v):
+				trace(v);
 			case _:
 				generateTypedAstExpression(sb, expression.expr);
 		}
@@ -410,6 +430,26 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
+	 * Generate code for TEnumParameter
+	 */
+	function generateTEnumParameter(sb:IndentStringBuilder, expression:TypedExpr, enumField:EnumField, index:Int) {
+		generateTypedAstExpression(sb, expression.expr);
+		switch (enumField.type) {
+			case TFun(args, _):
+				sb.add('.${args[0].name}');
+			case v:
+				generateCommonTypes(sb, v);
+		}
+	}
+
+	/**
+	 * Generate code for TMeta
+	 */
+	function generateTEnumIndex(sb:IndentStringBuilder, expression:TypedExpr) {
+		generateTypedAstExpression(sb, expression.expr);
+	}
+
+	/**
 	 * Generate code for TObjectDecl
 	 */
 	function generateTObjectDecl(sb:IndentStringBuilder, fields:Array<{name:String, expr:TypedExpr}>) {
@@ -473,7 +513,9 @@ class NimGenerator extends BaseGenerator {
 			case TMeta(m, e1):
 				generateTMeta(sb, m, e1);
 			case TEnumParameter(e1, ef, index):
+				generateTEnumParameter(sb, e1, ef, index);
 			case TEnumIndex(e1):
+				generateTEnumIndex(sb, e1);
 			case TIdent(s):
 		}
 	}
