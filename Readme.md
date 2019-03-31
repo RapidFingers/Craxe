@@ -13,13 +13,13 @@
 ## How to use it
 
 * Create project with "src" folder and Main.hx in it
-* Add build.hxml with following strings
--cp src
---macro craxe.Generator.generate()
---no-output
--main Main
--D nim
--D nim-out=main.nim
+* Add build.hxml with following strings:\
+-cp src\
+--macro craxe.Generator.generate()\
+--no-output\
+-main Main\
+-D nim\
+-D nim-out=main.nim\
 * Add some simple code to Main.hx
 * Launch "haxe build.hxml"
 * Launch "nim c -d:release main.nim" and pray :)
@@ -35,6 +35,7 @@ https://github.com/Grabli66/CraxeExamples
 - [ ] Interfaces
 - [ ] Generics
 - [ ] GADT
+- [ ] Some kind of std lib
 - [ ] Benchmarks
 - [ ] Extern for nim asynchttp or httpbeast
 - [ ] Example of async http server
