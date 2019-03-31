@@ -30,7 +30,7 @@
 
 https://github.com/Grabli66/CraxeExamples
 
-## Roadmap
+## Roadmap for nim target
 
 - [ ] Switch expression
 - [ ] Inheritance
