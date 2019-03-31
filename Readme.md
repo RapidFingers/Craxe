@@ -12,6 +12,7 @@
 
 ## How to use it
 
+* Install craxe by "haxelib git craxe https://github.com/Grabli66/Craxe"
 * Create project with "src" folder and Main.hx in it
 * Add build.hxml with following strings:\
 -cp src\
@@ -36,6 +37,7 @@ https://github.com/Grabli66/CraxeExamples
 - [ ] Interfaces
 - [ ] Generics
 - [ ] GADT
+- [ ] Externs
 - [ ] Some kind of std lib
 - [ ] Benchmarks
 - [ ] Extern for nim asynchttp or httpbeast
