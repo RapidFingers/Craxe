@@ -17,6 +17,7 @@
 -cp src\
 --macro craxe.Generator.generate()\
 --no-output\
+-lib craxe\
 -main Main\
 -D nim\
 -D nim-out=main.nim\
