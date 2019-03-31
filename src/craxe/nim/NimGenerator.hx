@@ -1,5 +1,7 @@
 package craxe.nim;
 
+import haxe.macro.Expr;
+import haxe.macro.Expr.MetadataEntry;
 import craxe.common.ast.EntryPointInfo;
 import haxe.macro.Expr.Unop;
 import haxe.macro.Expr.Binop;
@@ -117,11 +119,21 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
+	 * Generate code for ESwitch
+	 */
+	function generateTSwitch(sb:IndentStringBuilder, expression:TypedExpr, cases:Array<{values:Array<TypedExpr>, expr:TypedExpr}>, edef:TypedExpr) {
+		for (cs in cases) {
+			trace(cs);
+		}
+		//generateAstExpression(sb, expression);
+	}
+
+	/**
 	 * Generate code for TBlock
 	 */
 	function generateTBlock(sb:IndentStringBuilder, expressions:Array<TypedExpr>) {
 		for (expr in expressions) {
-			generateCommonExpression(sb, expr.expr);
+			generateTypedAstExpression(sb, expr.expr);
 			sb.addNewLine(Same);
 		}
 	}
@@ -131,14 +143,14 @@ class NimGenerator extends BaseGenerator {
 	 */
 	function geterateTIf(sb:IndentStringBuilder, econd:TypedExpr, eif:TypedExpr, eelse:TypedExpr) {
 		sb.add("if ");
-		generateCommonExpression(sb, econd.expr);
+		generateTypedAstExpression(sb, econd.expr);
 		sb.add(":");
 		sb.addNewLine(Inc);
 
-		generateCommonExpression(sb, eif.expr);
+		generateTypedAstExpression(sb, eif.expr);
 		if (eelse != null) {
 			sb.add("else:");
-			generateCommonExpression(sb, eelse.expr);
+			generateTypedAstExpression(sb, eelse.expr);
 		}
 		sb.addNewLine(Dec);
 	}
@@ -148,10 +160,10 @@ class NimGenerator extends BaseGenerator {
 	 */
 	function generateTWhile(sb:IndentStringBuilder, econd:TypedExpr, whileExpression:TypedExpr, isNormal:Bool) {
 		sb.add("while ");
-		generateCommonExpression(sb, econd.expr);
+		generateTypedAstExpression(sb, econd.expr);
 		sb.add(":");
 		sb.addNewLine(Inc);
-		generateCommonExpression(sb, whileExpression.expr);
+		generateTypedAstExpression(sb, whileExpression.expr);
 		sb.addNewLine(Dec, true);
 	}
 
@@ -164,13 +176,13 @@ class NimGenerator extends BaseGenerator {
 				var name = c.get().name;
 				sb.add('new${name}${ef.name}');
 			case _:
-				generateCommonExpression(sb, expression.expr);
+				generateTypedAstExpression(sb, expression.expr);
 		}
 
 		sb.add("(");
 		for (i in 0...expressions.length) {
 			var expr = expressions[i].expr;
-			generateCommonExpression(sb, expr);
+			generateTypedAstExpression(sb, expr);
 			if (i + 1 < expressions.length)
 				sb.add(", ");
 		}
@@ -190,7 +202,7 @@ class NimGenerator extends BaseGenerator {
 		sb.add("(");
 		for (i in 0...elements.length) {
 			var expr = elements[i];
-			generateCommonExpression(sb, expr.expr);
+			generateTypedAstExpression(sb, expr.expr);
 			if (i + 1 < elements.length)
 				sb.add(", ");
 		}
@@ -204,7 +216,7 @@ class NimGenerator extends BaseGenerator {
 		switch (expression.expr) {
 			case TTypeExpr(_):
 			case _:
-				generateCommonExpression(sb, expression.expr);
+				generateTypedAstExpression(sb, expression.expr);
 		}
 
 		switch (access) {
@@ -247,7 +259,7 @@ class NimGenerator extends BaseGenerator {
 		sb.add(name);
 		if (expr != null) {
 			sb.add(" = ");
-			generateCommonExpression(sb, expr.expr);
+			generateTypedAstExpression(sb, expr.expr);
 		}
 	}
 
@@ -286,9 +298,9 @@ class NimGenerator extends BaseGenerator {
 	 * Array access arr[it]
 	 */
 	function generateTArray(sb:IndentStringBuilder, e1:TypedExpr, e2:TypedExpr) {
-		generateCommonExpression(sb, e1.expr);
+		generateTypedAstExpression(sb, e1.expr);
 		sb.add(".get(");
-		generateCommonExpression(sb, e2.expr);
+		generateTypedAstExpression(sb, e2.expr);
 		sb.add(")");
 	}
 
@@ -300,7 +312,7 @@ class NimGenerator extends BaseGenerator {
 		sb.add("@[");
 		for (i in 0...elements.length) {
 			var expr = elements[i];
-			generateCommonExpression(sb, expr.expr);
+			generateTypedAstExpression(sb, expr.expr);
 			if (i + 1 < elements.length)
 				sb.add(", ");
 		}
@@ -311,7 +323,7 @@ class NimGenerator extends BaseGenerator {
 	 * Generate code for TBinop
 	 */
 	function generateTBinop(sb:IndentStringBuilder, op:Binop, e1:TypedExpr, e2:TypedExpr) {
-		generateCommonExpression(sb, e1.expr);
+		generateTypedAstExpression(sb, e1.expr);
 		sb.add(" ");
 		switch (op) {
 			case OpAdd:
@@ -359,7 +371,7 @@ class NimGenerator extends BaseGenerator {
 		sb.add(" ");
 
 		if (e2.expr != null)
-			generateCommonExpression(sb, e2.expr);
+			generateTypedAstExpression(sb, e2.expr);
 	}
 
 	/**
@@ -373,7 +385,7 @@ class NimGenerator extends BaseGenerator {
 				} else {
 					sb.add("bpOperator(");
 				}
-				generateCommonExpression(sb, expr.expr);
+				generateTypedAstExpression(sb, expr.expr);
 				sb.add(")");
 			case OpDecrement:
 			case OpNot:
@@ -387,7 +399,14 @@ class NimGenerator extends BaseGenerator {
 	 */
 	function generateTReturn(sb:IndentStringBuilder, expression:TypedExpr) {
 		sb.add("return ");
-		generateCommonExpression(sb, expression.expr);
+		generateTypedAstExpression(sb, expression.expr);
+	}
+
+	/**
+	 * Generate code for TMeta
+	 */
+	function generateTMeta(sb:IndentStringBuilder, meta:MetadataEntry, expression:TypedExpr) {
+		generateTypedAstExpression(sb, expression.expr);
 	}
 
 	/**
@@ -396,7 +415,7 @@ class NimGenerator extends BaseGenerator {
 	function generateTObjectDecl(sb:IndentStringBuilder, fields:Array<{name:String, expr:TypedExpr}>) {
 		for (i in 0...fields.length) {
 			var field = fields[i];
-			generateCommonExpression(sb, field.expr.expr);
+			generateTypedAstExpression(sb, field.expr.expr);
 			if (i + 1 < fields.length)
 				sb.add(", ");
 		}
@@ -405,7 +424,7 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Generate common expression
 	 */
-	function generateCommonExpression(sb:IndentStringBuilder, expr:TypedExprDef) {
+	function generateTypedAstExpression(sb:IndentStringBuilder, expr:TypedExprDef) {
 		trace(expr.getName());
 		switch (expr) {
 			case TConst(c):
@@ -421,7 +440,7 @@ class NimGenerator extends BaseGenerator {
 			case TTypeExpr(m):
 				generateTTypeExpr(sb, m);
 			case TParenthesis(e):
-				generateCommonExpression(sb, e.expr);
+				generateTypedAstExpression(sb, e.expr);
 			case TObjectDecl(fields):
 				generateTObjectDecl(sb, fields);
 			case TArrayDecl(el):
@@ -443,6 +462,7 @@ class NimGenerator extends BaseGenerator {
 			case TWhile(econd, e, normalWhile):
 				generateTWhile(sb, econd, e, normalWhile);
 			case TSwitch(e, cases, edef):
+				generateTSwitch(sb, e, cases, edef);
 			case TTry(e, catches):
 			case TReturn(e):
 				generateTReturn(sb, e);
@@ -451,6 +471,7 @@ class NimGenerator extends BaseGenerator {
 			case TThrow(e):
 			case TCast(e, m):
 			case TMeta(m, e1):
+				generateTMeta(sb, m, e1);
 			case TEnumParameter(e1, ef, index):
 			case TEnumIndex(e1):
 			case TIdent(s):
@@ -758,7 +779,7 @@ class NimGenerator extends BaseGenerator {
 	function generateMethodBody(sb:IndentStringBuilder, expression:TypedExprDef) {
 		switch (expression) {
 			case TFunction(tfunc):
-				generateCommonExpression(sb, tfunc.expr.expr);
+				generateTypedAstExpression(sb, tfunc.expr.expr);
 			case v:
 				throw 'Unsupported paramter ${v}';
 		}
