@@ -759,7 +759,12 @@ class NimGenerator extends BaseGenerator {
 	 */
 	function generateClassInfo(sb:IndentStringBuilder, cls:ClassInfo) {
 		var clsName = cls.classType.name;
-		var line = '${clsName} = ref object of RootObj';
+		var superName = if (cls.classType.superClass != null) {
+			cls.classType.superClass.t.get().name;
+		} else {
+			"RootObj";
+		}
+		var line = '${clsName} = ref object of ${superName}';
 		sb.add(line);
 		sb.addNewLine(Same);
 
@@ -839,17 +844,69 @@ class NimGenerator extends BaseGenerator {
 
 		var constructor = cls.classType.constructor.get();
 		var className = cls.classType.name;
-		sb.add('proc new${className}(');
+		var superName:String = null;
+		var superConstructor:ClassField = null;
+
+		if (cls.classType.superClass != null) {
+			var superCls = cls.classType.superClass.t.get();
+			superName = superCls.name;
+			if (superCls.constructor != null)
+				superConstructor = superCls.constructor.get();
+		}
+
 		switch (constructor.type) {
 			case TFun(args, _):
+				// Generate init proc for haxe "super(params)"
+				sb.add('proc init${className}(this:${className}');
+				if (args.length > 0) {
+					sb.add(", ");
+					generateFuncArguments(sb, args);
+				}
+				sb.add(') {.inline.} =');
+				sb.addNewLine(Inc);
+
+				if (superName != null) {
+					// Add helper for super
+					// TODO: find another way
+					if (superConstructor != null) {
+						sb.add('template super(');
+						switch (superConstructor.type) {
+							case TFun(args, ret):
+								if (args.length > 0) {
+									sb.add(args.map(x -> x.name).join(", "));
+								}
+								sb.add(") =");
+								sb.addNewLine(Inc);
+								sb.add('init${superName}(this');
+								if (args.length > 0) {
+									sb.add(", ");
+									sb.add(args.map(x -> x.name).join(", "));
+								}
+								sb.add(")");
+							case v:
+								throw 'Unsupported paramter ${v}';
+						}
+						sb.addNewLine(Dec);
+					}
+				}
+
+				generateMethodBody(sb, constructor.expr().expr);
+				sb.addNewLine(Dec);
+
+				// Generate constructor
+				sb.add('proc new${className}(');
 				generateFuncArguments(sb, args);
 				sb.add(') : ${className} {.inline.} =');
 				sb.addNewLine(Inc);
-				sb.add('let this = ${className}()');
+				sb.add('result = ${className}()');
 				sb.addNewLine(Same);
-				sb.add('result = this');
-				sb.addNewLine(Same);
-				generateMethodBody(sb, constructor.expr().expr);
+				sb.add('init${className}(result');
+				if (args.length > 0) {
+					sb.add(", ");
+					sb.add(args.map(x -> x.name).join(", "));
+				}
+				sb.add(')');
+				sb.addBreak();
 			case v:
 				throw 'Unsupported paramter ${v}';
 		}

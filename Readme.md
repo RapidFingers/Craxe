@@ -10,18 +10,32 @@
 
 ## What it's all good for?
 
-Backend, micro services.
+Backend, micro services, iot, calculations, haxe compiler :)
 
-## Why not a go, rust, D and other languages?
+## Why not go, rust, D and other languages?
 
 Because.
 
 ## What it can do:
 
-* Classes: constructor, methods, instance fields
-* Basic types: Int, Float, String, Bool and Array
+* Classes: 
+    - inheritance
+    - constructors
+    - super call
+    - static and instance methods
+    - instance fields
+* Basic types: 
+    - Int
+    - Float
+    - String
+    - Bool
+    - Generic Array<T>
 * Enums and ADT
-* Expressions: for, while, if, switch
+* Expressions: 
+    - for
+    - while
+    - if
+    - switch
 * Stdin output by trace
 
 ## How to use it
@@ -47,11 +61,14 @@ https://github.com/RapidFingers/CraxeExamples
 ## Roadmap for nim target
 
 - [x] Switch expression
-- [ ] Inheritance
+- [x] Inheritance
 - [ ] Interfaces
+- [ ] Type checking (operator is)
 - [ ] Map/Dictionary
 - [ ] Generics
 - [ ] GADT
+- [ ] Abstracts
+- [ ] Closures
 - [ ] Externs
 - [ ] Some kind of std lib
 - [ ] Benchmarks
