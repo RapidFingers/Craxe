@@ -2,6 +2,20 @@
 
 ## Transpiler from haxe to nim (http://nim-lang.org/) and maybe to crystal (http://crystal-lang.org/)
 
+## The main goal for now is:
+* High performance.
+* Low memory footprint.
+* Stable garbage collector, or maybe no GC at all (is relevant to nim target).
+* Async IO: Files, TCP, UDP, HTTP, HTTPS, Websockets.
+
+## What it's all good for?
+
+Backend, micro services.
+
+## Why not a go, rust, D and other languages?
+
+Because.
+
 ## What it can do:
 
 * Classes: constructor, methods, instance fields
@@ -35,6 +49,7 @@ https://github.com/RapidFingers/CraxeExamples
 - [x] Switch expression
 - [ ] Inheritance
 - [ ] Interfaces
+- [ ] Map/Dictionary
 - [ ] Generics
 - [ ] GADT
 - [ ] Externs
