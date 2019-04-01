@@ -1,3 +1,4 @@
 *.exe
 main.cr
 main.nim
+nimboot.nim

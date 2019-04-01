@@ -7,7 +7,7 @@
 * Classes: constructor, methods, instance fields
 * Basic types: Int, Float, String, Bool and Array
 * Enums and ADT
-* Expressions: for, while, if
+* Expressions: for, while, if, switch
 * Stdin output by trace
 
 ## How to use it
@@ -32,7 +32,7 @@ https://github.com/RapidFingers/CraxeExamples
 
 ## Roadmap for nim target
 
-- [ ] Switch expression
+- [x] Switch expression
 - [ ] Inheritance
 - [ ] Interfaces
 - [ ] Generics
