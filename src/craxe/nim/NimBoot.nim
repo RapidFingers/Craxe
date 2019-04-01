@@ -16,6 +16,7 @@ template `+`*(s1:string, s2:string): string =
     s1 & s2
 
 type
+    StdStatic* = ref object of RootObj
     LogStatic* = ref object of RootObj
 
     HaxeEnum* = ref object of RootObj
@@ -25,10 +26,14 @@ type
         data*:seq[T]
 
 let LogStaticInst* = LogStatic()
+let StdStaticInst* = StdStatic()
 
 template trace*(this:LogStatic, v:untyped, e:varargs[string, `$`]):void =
     write(stdout, e[0] & " " & e[1] & ": ")
     echo v
+
+template string*(this:LogStatic, v:untyped): string =
+    $v    
 
 proc `$`*(this:HaxeEnum) : string =
     result = $this[]
