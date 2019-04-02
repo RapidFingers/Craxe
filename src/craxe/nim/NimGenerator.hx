@@ -966,7 +966,9 @@ class NimGenerator extends BaseGenerator {
 
 		for (c in types.classes) {
 			if (c.classType.isExtern == false) {
-				generateClassInfo(sb, c);
+				if (!c.classType.isInterface) {
+					generateClassInfo(sb, c);
+				}
 			}
 		}
 
@@ -975,15 +977,19 @@ class NimGenerator extends BaseGenerator {
 		// Init static classes
 		for (c in types.classes) {
 			if (c.classType.isExtern == false) {
-				generateStaticClassInit(sb, c);
+				if (!c.classType.isInterface) {
+					generateStaticClassInit(sb, c);
+				}
 			}
 		}
 
 		sb.addNewLine(None, true);
 		for (c in types.classes) {
 			if (c.classType.isExtern == false) {
-				generateClassConstructor(sb, c);
-				generateClassMethods(sb, c);
+				if (!c.classType.isInterface) {
+					generateClassConstructor(sb, c);
+					generateClassMethods(sb, c);
+				}
 			}
 		}
 	}
