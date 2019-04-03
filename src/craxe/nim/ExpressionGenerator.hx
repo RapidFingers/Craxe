@@ -1,5 +1,6 @@
 package craxe.nim;
 
+import craxe.common.ast.ClassInfo;
 import haxe.macro.Type;
 import haxe.macro.Type.EnumField;
 import haxe.macro.Expr.MetadataEntry;
@@ -31,7 +32,12 @@ class ExpressionGenerator {
 	 */
 	final typeResolver:TypeResolver;
 
-    /**
+	/**
+	 * Class context
+	 */
+	var classContext:ClassInfo;
+
+	/**
 	 * Fix local var name
 	 */
 	inline function fixLocalVarName(name:String):String {
@@ -114,11 +120,18 @@ class ExpressionGenerator {
 			case TField(_, FEnum(c, ef)):
 				var name = c.get().name;
 				sb.add('new${name}${ef.name}');
+				sb.add("(");
+			case TConst(TSuper):
+				if (classContext.classType.superClass != null) {
+					var superCls = classContext.classType.superClass.t.get();
+					var superName = superCls.name;
+					sb.add('init${superName}(this, ');
+				}
 			case _:
 				generateTypedAstExpression(sb, expression.expr);
+				sb.add("(");
 		}
-
-		sb.add("(");
+		
 		for (i in 0...expressions.length) {
 			var expr = expressions[i].expr;
 			generateTypedAstExpression(sb, expr);
@@ -193,7 +206,7 @@ class ExpressionGenerator {
 	 * Generate code for TVar
 	 */
 	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {
-		sb.add("var ");		
+		sb.add("var ");
 		var name = typeResolver.getFixedTypeName(vr.name);
 		name = fixLocalVarName(name);
 		sb.add(name);
@@ -221,7 +234,7 @@ class ExpressionGenerator {
 			case TThis:
 				sb.add("this");
 			case TSuper:
-				sb.add("super");
+				throw "Unsupported super";
 		}
 	}
 
@@ -447,6 +460,13 @@ class ExpressionGenerator {
 	public function new(context:TypeContext, typeResolver:TypeResolver) {
 		this.context = context;
 		this.typeResolver = typeResolver;
+	}
+
+	/**
+	 * Set class context
+	 */
+	public function setClassContext(classContext:ClassInfo) {
+		this.classContext = classContext;
 	}
 
 	/**

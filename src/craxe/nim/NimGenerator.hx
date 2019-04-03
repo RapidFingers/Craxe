@@ -1,12 +1,7 @@
 package craxe.nim;
 
 import craxe.common.ast.PreprocessedTypes;
-import haxe.macro.Expr;
-import haxe.macro.Expr.MetadataEntry;
 import craxe.common.ast.EntryPointInfo;
-import haxe.macro.Expr.Unop;
-import haxe.macro.Expr.Binop;
-import haxe.macro.Context;
 import craxe.common.ContextMacro;
 import haxe.macro.Type;
 import haxe.io.Path;
@@ -93,76 +88,6 @@ class NimGenerator extends BaseGenerator {
 			sb.addNewLine();
 		}
 		sb.addNewLine(None, true);
-	}	
-
-	/**
-	 * Check type is simple by type name
-	 */
-	function isSimpleType(name:String):Bool {
-		return simpleTypes.exists(name);
-	}
-
-	/**
-	 * Generate simple type
-	 */
-	function generateSimpleType(sb:IndentStringBuilder, type:String) {
-		var res = simpleTypes.get(type);
-		if (res != null) {
-			sb.add(res);
-		} else {
-			throw 'Unsupported simple type ${type}';
-		}
-	}
-
-	/**
-	 * Generate TEnum
-	 */
-	function generateTEnum(sb:IndentStringBuilder, t:EnumType, params:Array<Type>) {
-		sb.add(t.name);
-	}
-
-	/**
-	 * Generate TAbstract
-	 */
-	function generateTAbstract(sb:IndentStringBuilder, t:AbstractType, params:Array<Type>) {
-		if (isSimpleType(t.name)) {
-			generateSimpleType(sb, t.name);
-		} else {
-			throw 'Unsupported ${t}';
-		}
-	}
-
-	/**
-	 * Generate TType
-	 */
-	function generateTType(sb:IndentStringBuilder, t:DefType, params:Array<Type>) {
-		trace(t.name);
-	}
-
-	/**
-	 * Generate TInst
-	 */
-	function generateTInst(sb:IndentStringBuilder, t:ClassType, params:Array<Type>) {
-		if (isSimpleType(t.name)) {
-			generateSimpleType(sb, t.name);
-		} else {
-			var typeName = typeResolver.getFixedTypeName(t.name);
-			sb.add(typeName);
-			if (params != null && params.length > 0) {
-				sb.add("[");
-				for (par in params) {
-					switch (par) {
-						case TInst(t, params):
-							generateTInst(sb, t.get(), params);
-						case TAbstract(t, params):
-							generateTAbstract(sb, t.get(), params);
-						case v:
-							throw 'Unsupported paramter ${v}';
-					}
-				}
-				sb.add("]");
-			}
-		}
 	}
 
 	/**
@@ -314,7 +239,7 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Build class fields
 	 */
-	function generateClassInfo(sb:IndentStringBuilder, cls:ClassInfo) {
+	function generateClassInfo(sb:IndentStringBuilder, cls:ClassInfo) {		
 		var clsName = cls.classType.name;
 		var superName = if (cls.classType.superClass != null) {
 			cls.classType.superClass.t.get().name;
@@ -399,6 +324,7 @@ class NimGenerator extends BaseGenerator {
 		if (cls.classType.constructor == null)
 			return;
 
+		expressionGenerator.setClassContext(cls);
 		var constructor = cls.classType.constructor.get();
 		var className = cls.classType.name;
 		var superName:String = null;
@@ -422,32 +348,32 @@ class NimGenerator extends BaseGenerator {
 				sb.add(') {.inline.} =');
 				sb.addNewLine(Inc);
 
-				if (superName != null) {
-					// Add helper for super
-					// TODO: find another way
-					if (superConstructor != null) {
-						sb.add('template super(');
-						switch (superConstructor.type) {
-							case TFun(args, ret):
-								if (args.length > 0) {
-									sb.add(args.map(x -> x.name).join(", "));
-								}
-								sb.add(") =");
-								sb.addNewLine(Inc);
-								sb.add('init${superName}(this');
-								if (args.length > 0) {
-									sb.add(", ");
-									sb.add(args.map(x -> x.name).join(", "));
-								}
-								sb.add(")");
-							case v:
-								throw 'Unsupported paramter ${v}';
-						}
-						sb.addNewLine(Dec);
-					}
-				}
+				// if (superName != null) {
+				// 	// Add helper for super
+				// 	// TODO: find another way
+				// 	if (superConstructor != null) {
+				// 		sb.add('template super(');
+				// 		switch (superConstructor.type) {
+				// 			case TFun(args, ret):
+				// 				if (args.length > 0) {
+				// 					sb.add(args.map(x -> x.name).join(", "));
+				// 				}
+				// 				sb.add(") =");
+				// 				sb.addNewLine(Inc);
+				// 				sb.add('init${superName}(this');
+				// 				if (args.length > 0) {
+				// 					sb.add(", ");
+				// 					sb.add(args.map(x -> x.name).join(", "));
+				// 				}
+				// 				sb.add(")");
+				// 			case v:
+				// 				throw 'Unsupported paramter ${v}';
+				// 		}
+				// 		sb.addNewLine(Dec);
+				// 	}
+				// }
 
-				generateMethodBody(sb, constructor.expr().expr);
+				generateMethodBody(sb, constructor.expr().expr);				
 				sb.addNewLine(Dec);
 
 				// Generate constructor
