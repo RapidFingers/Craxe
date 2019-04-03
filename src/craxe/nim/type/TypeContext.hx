@@ -23,6 +23,21 @@ class TypeContext {
 	final enums = new StringMap<EnumInfo>();
 
 	/**
+	 * Has interfaces
+	 */
+	public final hasInterfaces:Bool;
+
+	/**
+	 * Has classes
+	 */
+	public final hasClasses:Bool;
+
+	/**
+	 * Has enums
+	 */
+	public final hasEnums:Bool;
+
+	/**
 	 * Constructor
 	 */
 	public function new(processed:PreprocessedTypes) {
@@ -37,6 +52,10 @@ class TypeContext {
         for (item in processed.enums) {
 			enums.set(item.enumType.name, item);
 		}
+
+		hasInterfaces = processed.interfaces.length > 0;
+		hasClasses = processed.classes.length > 0;
+		hasEnums = processed.enums.length > 0;
 	}
 
 	/**
@@ -45,6 +64,14 @@ class TypeContext {
 	public function classIterator():Iterator<ClassInfo> {
 		return classes.iterator();
 	}
+
+	/**
+	 * Return iterator for all interfaces
+	 */
+	public function interfaceIterator():Iterator<ClassInfo> {
+		return interfaces.iterator();
+	}
+
 
 	/**
 	 * Return interface by name

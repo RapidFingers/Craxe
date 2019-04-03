@@ -31,7 +31,7 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Type resolver
 	 */
-	final typeResolver:TypeResolver;	
+	final typeResolver:TypeResolver;
 
 	/**
 	 * Code generator for expressions
@@ -196,7 +196,7 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
-	 * Build enum
+	 * Generate code for enums
 	 */
 	function buildEnums(sb:IndentStringBuilder, enums:Array<EnumInfo>) {
 		if (enums.length < 1)
@@ -237,9 +237,37 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
+	 * Generate code for interfaces
+	 */
+	function buildInterfaces(sb:IndentStringBuilder) {
+		if (!typeContext.hasInterfaces)
+			return;
+
+		// Generate types for enums
+		sb.add("type ");
+		sb.addNewLine(Inc);
+
+		var interGenerateor = new InterfaceGenerator();
+		for (inter in typeContext.interfaceIterator()) {
+			interGenerateor.generateInterfaceObject(sb, inter);
+		}
+
+		sb.addBreak();		
+
+		for (cls in typeContext.classIterator()) {
+			for (inter in cls.classType.interfaces) {
+				var cinter = typeContext.getInterfaceByName(inter.t.get().name);
+				interGenerateor.generateInterfaceConverter(sb, cls, cinter);
+			}
+		}
+
+		sb.addBreak();
+	}
+
+	/**
 	 * Build class fields
 	 */
-	function generateClassInfo(sb:IndentStringBuilder, cls:ClassInfo) {		
+	function generateClassInfo(sb:IndentStringBuilder, cls:ClassInfo) {
 		var clsName = cls.classType.name;
 		var superName = if (cls.classType.superClass != null) {
 			cls.classType.superClass.t.get().name;
@@ -373,7 +401,7 @@ class NimGenerator extends BaseGenerator {
 				// 	}
 				// }
 
-				generateMethodBody(sb, constructor.expr().expr);				
+				generateMethodBody(sb, constructor.expr().expr);
 				sb.addNewLine(Dec);
 
 				// Generate constructor
@@ -488,7 +516,7 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	public function new(processed:PreprocessedTypes) {
-		super(processed);		
+		super(processed);
 		typeContext = new TypeContext(processed);
 		typeResolver = new TypeResolver(typeContext);
 		expressionGenerator = new ExpressionGenerator(typeContext, typeResolver);
@@ -515,6 +543,7 @@ class NimGenerator extends BaseGenerator {
 		addCodeHelpers(sb);
 
 		buildEnums(sb, types.enums);
+		buildInterfaces(sb);
 		buildClasses(sb, types.classes);
 
 		if (types.entryPoint != null) {
