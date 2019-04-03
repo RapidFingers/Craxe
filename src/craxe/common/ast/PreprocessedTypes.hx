@@ -5,12 +5,17 @@ package craxe.common.ast;
  */
 typedef PreprocessedTypes = {
     /**
-     * Classes to generate
+     * All found interfaces
+     */
+    var interfaces(default, null):Array<ClassInfo>;
+
+    /**
+     * All found classes
      */
     var classes(default, null):Array<ClassInfo>;
 
     /**
-     * Enums to generate
+     * All found enums
      */
     var enums(default, null):Array<EnumInfo>;
 

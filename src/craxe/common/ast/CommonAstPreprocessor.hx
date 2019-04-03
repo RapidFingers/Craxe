@@ -135,6 +135,7 @@ class CommonAstPreprocessor {
 	 */
 	public function process(types:Array<Type>):PreprocessedTypes {
 		var classes = new Array<ClassInfo>();
+		var interfaces = new Array<ClassInfo>();
 		var enums = new Array<EnumInfo>();
 		var entryPoint:EntryPointInfo = null;
 
@@ -143,7 +144,11 @@ class CommonAstPreprocessor {
 				case TInst(c, params):
 					var res = buildClass(c.get(), params);
 					if (res != null) {
-						classes.push(res.classInfo);
+						if (res.classInfo.classType.isInterface) {
+							interfaces.push(res.classInfo);
+						} else {
+							classes.push(res.classInfo);
+						}
 						if (res.entryPoint != null)
 							entryPoint = res.entryPoint;
 					}
@@ -156,6 +161,7 @@ class CommonAstPreprocessor {
 		}
 
 		var types:PreprocessedTypes = {
+			interfaces: interfaces,
 			classes: classes,
 			enums: enums,
 			entryPoint: entryPoint
