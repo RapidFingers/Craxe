@@ -4,6 +4,7 @@ import haxe.macro.Type;
 import haxe.macro.Type.EnumType;
 import haxe.macro.Type.AbstractType;
 import haxe.macro.Type.ClassType;
+
 /**
  * AST type resolver
  */
@@ -114,10 +115,42 @@ class TypeResolver {
 	}
 
 	/**
+	 * Return fixed type name
+	 * @param name
+	 */
+	public function getFixedTypeName(name:String) {
+		switch name {
+			case "Array":
+				return "HaxeArray";
+		}
+
+		return name;
+	}
+
+	/**
+	 * Return type parameters as string
+	 */
+	public function resolveParameters(params:Array<Type>):String {
+		if (params.length > 0) {
+			var sb = new StringBuf();
+
+			sb.add("[");
+			for (item in params) {
+				sb.add(resolve(item));
+			}
+			sb.add("]");
+
+			return sb.toString();
+		} else {
+			return "";
+		}
+	}
+
+	/**
 	 * Resolve types to string
 	 */
 	public function resolve(type:Type):String {
-        var sb = new StringBuf();
+		var sb = new StringBuf();
 		switch (type) {
 			case TEnum(t, params):
 				generateTEnum(sb, t.get(), params);
@@ -131,6 +164,6 @@ class TypeResolver {
 				throw 'Unsupported type ${v}';
 		}
 
-        return sb.toString();
+		return sb.toString();
 	}
 }

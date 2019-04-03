@@ -13,6 +13,7 @@ import haxe.macro.Type.ClassType;
 import haxe.macro.Type.TypedExpr;
 import haxe.macro.Type.TypedExprDef;
 import craxe.common.IndentStringBuilder;
+import craxe.nim.type.*;
 
 using StringTools;
 
@@ -20,6 +21,16 @@ using StringTools;
  * Generate code for expression
  */
 class ExpressionGenerator {
+	/**
+	 * Type resolver
+	 */
+	final context:TypeContext;
+
+	/**
+	 * Type resolver
+	 */
+	final typeResolver:TypeResolver;
+
     /**
 	 * Fix local var name
 	 */
@@ -122,8 +133,8 @@ class ExpressionGenerator {
 	 * Generate code for TNew
 	 */
 	function generateTNew(sb:IndentStringBuilder, classType:ClassType, params:Array<Type>, elements:Array<TypedExpr>) {
-		var typeName = fixTypeName(classType.name);
-		var typeParams = resolveParameters(params);
+		var typeName = typeResolver.getFixedTypeName(classType.name);
+		var typeParams = typeResolver.resolveParameters(params);
 		var varTypeName = 'new${typeName}${typeParams}';
 
 		sb.add(varTypeName);
@@ -182,8 +193,8 @@ class ExpressionGenerator {
 	 * Generate code for TVar
 	 */
 	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {
-		sb.add("var ");
-		var name = fixTypeName(vr.name);
+		sb.add("var ");		
+		var name = typeResolver.getFixedTypeName(vr.name);
 		name = fixLocalVarName(name);
 		sb.add(name);
 		if (expr != null) {
@@ -347,7 +358,8 @@ class ExpressionGenerator {
 			case TFun(args, _):
 				sb.add('.${args[0].name}');
 			case v:
-				generateCommonTypes(sb, v);
+				var resolved = typeResolver.resolve(v);
+				sb.add(resolved);
 		}
 	}
 
@@ -430,7 +442,17 @@ class ExpressionGenerator {
 	}
 
 	/**
+	 * Constructor
+	 */
+	public function new(context:TypeContext, typeResolver:TypeResolver) {
+		this.context = context;
+		this.typeResolver = typeResolver;
+	}
+
+	/**
 	 * Generate codes
 	 */
-	public function generate(sb:IndentStringBuilder, expression:TypedExprDef) {}
+	public function generate(sb:IndentStringBuilder, expression:TypedExprDef) {
+		generateTypedAstExpression(sb, expression);
+	}
 }

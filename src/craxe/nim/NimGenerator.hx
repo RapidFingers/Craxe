@@ -1,5 +1,6 @@
 package craxe.nim;
 
+import craxe.common.ast.PreprocessedTypes;
 import haxe.macro.Expr;
 import haxe.macro.Expr.MetadataEntry;
 import craxe.common.ast.EntryPointInfo;
@@ -16,6 +17,7 @@ import craxe.common.ast.ClassInfo;
 import craxe.common.ast.ArgumentInfo;
 import craxe.common.IndentStringBuilder;
 import craxe.common.generator.BaseGenerator;
+import craxe.nim.type.*;
 
 /**
  * Builder for nim code
@@ -25,6 +27,21 @@ class NimGenerator extends BaseGenerator {
 	 * Default out file
 	 */
 	static inline final DEFAULT_OUT = "main.nim";
+
+	/**
+	 * Type context
+	 */
+	final typeContext:TypeContext;
+
+	/**
+	 * Type resolver
+	 */
+	final typeResolver:TypeResolver;	
+
+	/**
+	 * Code generator for expressions
+	 */
+	final expressionGenerator:ExpressionGenerator;
 
 	/**
 	 * SImple type map
@@ -76,38 +93,7 @@ class NimGenerator extends BaseGenerator {
 			sb.addNewLine();
 		}
 		sb.addNewLine(None, true);
-	}
-
-	/**
-	 * Fix type name
-	 */
-	function fixTypeName(name:String):String {
-		switch name {
-			case "Array":
-				return "HaxeArray";
-		}
-
-		return name;
-	}
-
-	/**
-	 * Return parameters as string
-	 */
-	function resolveParameters(params:Array<Type>):String {
-		if (params.length > 0) {
-			var sb = new IndentStringBuilder();
-
-			sb.add("[");
-			for (item in params) {
-				generateCommonTypes(sb, item);
-			}
-			sb.add("]");
-
-			return sb.toString();
-		} else {
-			return "";
-		}
-	}
+	}	
 
 	/**
 	 * Check type is simple by type name
@@ -160,7 +146,7 @@ class NimGenerator extends BaseGenerator {
 		if (isSimpleType(t.name)) {
 			generateSimpleType(sb, t.name);
 		} else {
-			var typeName = fixTypeName(t.name);
+			var typeName = typeResolver.getFixedTypeName(t.name);
 			sb.add(typeName);
 			if (params != null && params.length > 0) {
 				sb.add("[");
@@ -191,7 +177,7 @@ class NimGenerator extends BaseGenerator {
 		for (arg in args) {
 			sb.add(arg.name);
 			sb.add(" : ");
-			generateCommonTypes(sb, arg.t);
+			sb.add(typeResolver.resolve(arg.t));
 			sb.addNewLine(Same);
 		}
 	}
@@ -207,27 +193,9 @@ class NimGenerator extends BaseGenerator {
 			var arg = args[i];
 			sb.add(arg.name);
 			sb.add(":");
-			generateCommonTypes(sb, arg.t);
+			sb.add(typeResolver.resolve(arg.t));
 			if (i + 1 < args.length)
 				sb.add(", ");
-		}
-	}
-
-	/**
-	 * Generate common types
-	 */
-	function generateCommonTypes(sb:IndentStringBuilder, type:Type):Void {
-		switch (type) {
-			case TEnum(t, params):
-				generateTEnum(sb, t.get(), params);
-			case TInst(t, params):
-				generateTInst(sb, t.get(), params);
-			case TAbstract(t, params):
-				generateTAbstract(sb, t.get(), params);
-			case TType(t, params):
-				generateTType(sb, t.get(), params);
-			case v:
-				throw 'Unsupported type ${v}';
 		}
 	}
 
@@ -241,7 +209,7 @@ class NimGenerator extends BaseGenerator {
 			case TFun(args, _):
 				generateTypeFields(sb, args);
 			case v:
-				generateCommonTypes(sb, v);
+				sb.add(typeResolver.resolve(v));
 		}
 	}
 
@@ -255,7 +223,7 @@ class NimGenerator extends BaseGenerator {
 			case TFun(args, _):
 				generateFuncArguments(sb, args);
 			case v:
-				generateCommonTypes(sb, v);
+				sb.add(typeResolver.resolve(v));
 		}
 	}
 
@@ -415,7 +383,7 @@ class NimGenerator extends BaseGenerator {
 	function generateMethodBody(sb:IndentStringBuilder, expression:TypedExprDef) {
 		switch (expression) {
 			case TFunction(tfunc):
-				generateTypedAstExpression(sb, tfunc.expr.expr);
+				expressionGenerator.generate(sb, tfunc.expr.expr);
 			case v:
 				throw 'Unsupported paramter ${v}';
 		}
@@ -514,7 +482,7 @@ class NimGenerator extends BaseGenerator {
 					generateFuncArguments(sb, args);
 				}
 				sb.add(") : ");
-				generateCommonTypes(sb, ret);
+				sb.add(typeResolver.resolve(ret));
 				sb.add(" =");
 				sb.addNewLine(Inc);
 
@@ -591,6 +559,13 @@ class NimGenerator extends BaseGenerator {
 		var clsName = entryPoint.classInfo.classType.name;
 		var methodName = entryPoint.method.name;
 		sb.add('${clsName}StaticInst.${methodName}()');
+	}
+
+	public function new(processed:PreprocessedTypes) {
+		super(processed);		
+		typeContext = new TypeContext(processed);
+		typeResolver = new TypeResolver(typeContext);
+		expressionGenerator = new ExpressionGenerator(typeContext, typeResolver);
 	}
 
 	/**
