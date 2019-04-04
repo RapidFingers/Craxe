@@ -1,6 +1,6 @@
 # Warning. Just an experiment. Lot of bugs!!!
 
-## Transpiler from haxe to nim (http://nim-lang.org/) and maybe to crystal (http://crystal-lang.org/)
+## Transpiler from haxe to nim (http://nim-lang.org/)
 
 ## The main goal for now is:
 * High performance.
