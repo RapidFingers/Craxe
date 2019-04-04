@@ -59,7 +59,7 @@ Because.
 
 https://github.com/RapidFingers/CraxeExamples
 
-## Roadmap for nim target
+## Roadmap
 
 - [x] Switch expression
 - [x] Inheritance
