@@ -62,7 +62,7 @@ https://github.com/RapidFingers/CraxeExamples
 
 - [x] Switch expression
 - [x] Inheritance
-- [ ] Interfaces
+- [x] Interfaces
 - [ ] Type checking (operator is)
 - [ ] Map/Dictionary
 - [ ] Generics
