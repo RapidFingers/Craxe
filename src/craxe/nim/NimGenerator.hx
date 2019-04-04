@@ -257,7 +257,7 @@ class NimGenerator extends BaseGenerator {
 		for (cls in typeContext.classIterator()) {
 			for (inter in cls.classType.interfaces) {
 				var cinter = typeContext.getInterfaceByName(inter.t.get().name);
-				interGenerateor.generateInterfaceConverter(sb, cls, cinter);
+				interGenerateor.generateInterfaceConverter(sb, cls, cinter, typeResolver);
 			}
 		}
 

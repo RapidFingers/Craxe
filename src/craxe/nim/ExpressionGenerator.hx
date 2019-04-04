@@ -178,8 +178,19 @@ class ExpressionGenerator {
 
 		switch (access) {
 			case FInstance(c, params, cf):
+				var inst = c.get();
+				var field = cf.get();
 				sb.add(".");
-				sb.add(cf.toString());
+				if (inst.isInterface) {
+					switch (field.kind) {
+						case FVar(_, _):
+							sb.add('${field.name}[]');
+						case FMethod(_):
+							sb.add(field.name);
+					}
+				} else {	
+					sb.add(field.name);
+				}
 			case FStatic(c, cf):
 				var name = c.get().name;
 				sb.add('${name}StaticInst.');

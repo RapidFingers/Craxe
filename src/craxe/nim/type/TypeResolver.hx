@@ -1,5 +1,7 @@
 package craxe.nim.type;
 
+import craxe.common.ast.ArgumentInfo;
+import craxe.common.ast.ResolvedArgumentInfo;
 import haxe.macro.Type;
 import haxe.macro.Type.EnumType;
 import haxe.macro.Type.AbstractType;
@@ -144,6 +146,19 @@ class TypeResolver {
 		} else {
 			return "";
 		}
+	}
+
+	/**
+	 * Resolve arguments to resolved arguments
+	 */
+	public function resolveArguments(args:Array<ArgumentInfo>):Array<ResolvedArgumentInfo> {
+		return args.map(x-> {
+			return {
+				name: x.name,
+				opt: x.opt,
+				t: resolve(x.t)
+			}
+		});
 	}
 
 	/**

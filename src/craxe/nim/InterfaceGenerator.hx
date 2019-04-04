@@ -34,14 +34,21 @@ class InterfaceGenerator {
 			sb.addNewLine(Same);
 			sb.add(meth.name);
 			sb.add(" : ");
-            sb.add("proc (");
+			sb.add("proc (");
 			switch (meth.type) {
-				case TFun(args, ret):                    
-                    sb.add(") : ");
-                    sb.add(typeResolver.resolve(ret));
+				case TFun(args, ret):
+					var resolved = typeResolver.resolveArguments(args);
+					if (resolved.length > 0) {
+						var sargs = resolved.map(x -> {
+							return '${x.name}:${x.t}';
+						}).join(", ");
+						sb.add(sargs);
+					}
+					sb.add(") : ");
+					sb.add(typeResolver.resolve(ret));
 				case v:
 					throw 'Unsupported ${v}';
-			}			
+			}
 		}
 
 		sb.addNewLine(Dec);
@@ -51,7 +58,7 @@ class InterfaceGenerator {
 	/**
 	 * Generate converter to interface for class
 	 */
-	public function generateInterfaceConverter(sb:IndentStringBuilder, classInfo:ClassInfo, interfaceInfo:ClassInfo) {
+	public function generateInterfaceConverter(sb:IndentStringBuilder, classInfo:ClassInfo, interfaceInfo:ClassInfo, typeResolver:TypeResolver) {
 		var iname = interfaceInfo.classType.name;
 		var cname = classInfo.classType.name;
 		sb.add('converter to${iname}(this:${cname}) : ${iname} = ');
@@ -59,7 +66,44 @@ class InterfaceGenerator {
 		sb.add("return (");
 		sb.addNewLine(Inc);
 
-		sb.add("obj: this,");
+		sb.add("obj: this");
+
+		for (field in interfaceInfo.instanceFields) {
+			sb.add(", ");
+			sb.addNewLine(Same);
+			sb.add(field.name);
+			sb.add(" : addr this.");
+			sb.add(field.name);
+		}
+
+		for (meth in interfaceInfo.instanceMethods) {
+			sb.add(", ");
+			sb.addNewLine(Same);
+			sb.add(meth.name);
+			sb.add(" : ");
+			sb.add("proc (");
+			switch (meth.type) {
+				case TFun(args, ret):
+					var resolved = typeResolver.resolveArguments(args);
+					if (resolved.length > 0) {
+						var sargs = resolved.map(x -> {
+							return '${x.name}:${x.t}';
+						}).join(", ");
+						sb.add(sargs);
+					}
+
+					sb.add(") : ");
+					sb.add(typeResolver.resolve(ret));
+					sb.add(' = this.${meth.name}(');
+					if (resolved.length > 0) {
+						var sargs = resolved.map(x -> x.name).join(", ");
+						sb.add(sargs);
+					}
+					sb.add(")");
+				case v:
+					throw 'Unsupported ${v}';
+			}
+		}
 
 		sb.addNewLine(Dec);
 		sb.add(")");
