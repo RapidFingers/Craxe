@@ -5,7 +5,7 @@
 ## The main goal for now is:
 * High performance.
 * Low memory footprint.
-* Stable garbage collector, or maybe no GC at all (is relevant to nim target).
+* Stable garbage collector, or maybe no GC at all (owned/unowned ref).
 * Async IO: Files, TCP, UDP, HTTP, HTTPS, Websockets.
 
 ## What it's all good for?
