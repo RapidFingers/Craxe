@@ -24,6 +24,7 @@ Because.
     - super call
     - static and instance methods
     - instance fields
+* Interfaces
 * Basic types: 
     - Int
     - Float
