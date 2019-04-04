@@ -241,7 +241,7 @@ class NimGenerator extends BaseGenerator {
 	 */
 	function buildInterfaces(sb:IndentStringBuilder) {
 		if (!typeContext.hasInterfaces)
-			return;
+			return;		
 
 		// Generate types for enums
 		sb.add("type ");
@@ -249,7 +249,7 @@ class NimGenerator extends BaseGenerator {
 
 		var interGenerateor = new InterfaceGenerator();
 		for (inter in typeContext.interfaceIterator()) {
-			interGenerateor.generateInterfaceObject(sb, inter);
+			interGenerateor.generateInterfaceObject(sb, inter, typeResolver);
 		}
 
 		sb.addBreak();		
@@ -367,6 +367,8 @@ class NimGenerator extends BaseGenerator {
 
 		switch (constructor.type) {
 			case TFun(args, _):
+				var constrExp = constructor.expr().expr;
+
 				// Generate init proc for haxe "super(params)"
 				sb.add('proc init${className}(this:${className}');
 				if (args.length > 0) {
@@ -376,32 +378,7 @@ class NimGenerator extends BaseGenerator {
 				sb.add(') {.inline.} =');
 				sb.addNewLine(Inc);
 
-				// if (superName != null) {
-				// 	// Add helper for super
-				// 	// TODO: find another way
-				// 	if (superConstructor != null) {
-				// 		sb.add('template super(');
-				// 		switch (superConstructor.type) {
-				// 			case TFun(args, ret):
-				// 				if (args.length > 0) {
-				// 					sb.add(args.map(x -> x.name).join(", "));
-				// 				}
-				// 				sb.add(") =");
-				// 				sb.addNewLine(Inc);
-				// 				sb.add('init${superName}(this');
-				// 				if (args.length > 0) {
-				// 					sb.add(", ");
-				// 					sb.add(args.map(x -> x.name).join(", "));
-				// 				}
-				// 				sb.add(")");
-				// 			case v:
-				// 				throw 'Unsupported paramter ${v}';
-				// 		}
-				// 		sb.addNewLine(Dec);
-				// 	}
-				// }
-
-				generateMethodBody(sb, constructor.expr().expr);
+				generateMethodBody(sb, constrExp);
 				sb.addNewLine(Dec);
 
 				// Generate constructor

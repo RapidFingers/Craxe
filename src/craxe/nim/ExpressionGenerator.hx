@@ -69,9 +69,13 @@ class ExpressionGenerator {
 	 * Generate code for TBlock
 	 */
 	function generateTBlock(sb:IndentStringBuilder, expressions:Array<TypedExpr>) {
-		for (expr in expressions) {
-			generateTypedAstExpression(sb, expr.expr);
-			sb.addNewLine(Same);
+		if (expressions.length > 0) {
+			for (expr in expressions) {
+				generateTypedAstExpression(sb, expr.expr);
+				sb.addNewLine(Same);
+			}
+		} else {
+			sb.add("discard");
 		}
 	}
 
@@ -131,7 +135,7 @@ class ExpressionGenerator {
 				generateTypedAstExpression(sb, expression.expr);
 				sb.add("(");
 		}
-		
+
 		for (i in 0...expressions.length) {
 			var expr = expressions[i].expr;
 			generateTypedAstExpression(sb, expr);
