@@ -1,5 +1,0 @@
--cp src
---macro craxe.Generator.generate()
---no-output
--D crystal
--D eval-stack
