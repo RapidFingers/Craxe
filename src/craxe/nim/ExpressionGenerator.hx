@@ -189,7 +189,7 @@ class ExpressionGenerator {
 						case FMethod(_):
 							sb.add(name);
 					}
-				} else {	
+				} else {
 					sb.add(name);
 				}
 			case FStatic(c, cf):
@@ -223,12 +223,42 @@ class ExpressionGenerator {
 	 */
 	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {
 		sb.add("var ");
+
+		trace("GOOD");
+
 		var name = typeResolver.getFixedTypeName(vr.name);
 		name = fixLocalVarName(name);
 		sb.add(name);
 		if (expr != null) {
 			sb.add(" = ");
-			generateTypedAstExpression(sb, expr.expr);
+
+			// Cast enum
+			switch (expr.expr) {
+				case TEnumParameter(e1, ef, index):
+					switch (e1.expr) {
+						case TLocal(v):
+							switch (v.t) {
+								case TEnum(t, params):
+									var enumName = t.get().name;
+									var en = context.getEnumByName(enumName);
+									var instName = en.enumType.names[ef.index];
+									sb.add('cast[${enumName}${instName}](');
+									sb.add(v.name);
+									sb.add(')');
+									switch (ef.type) {
+										case TFun(args, _):
+											sb.add('.${args[0].name}');
+										case v:
+											var resolved = typeResolver.resolve(v);
+											sb.add(resolved);
+									}
+								default:
+							}
+						default:
+					}
+				default:
+					generateTypedAstExpression(sb, expr.expr);
+			}
 		}
 	}
 
@@ -257,7 +287,7 @@ class ExpressionGenerator {
 	/**
 	 * Generate code for TLocal
 	 */
-	function genecrateTLocal(sb:IndentStringBuilder, vr:TVar) {
+	function generateTLocal(sb:IndentStringBuilder, vr:TVar) {
 		var name = fixLocalVarName(vr.name);
 		sb.add(name);
 	}
@@ -355,7 +385,7 @@ class ExpressionGenerator {
 	 * Generate code for TUnop
 	 */
 	function generateTUnop(sb:IndentStringBuilder, op:Unop, post:Bool, expr:TypedExpr) {
-		switch (op) {			
+		switch (op) {
 			case OpIncrement:
 				if (post) {
 					sb.add("apOperator(");
@@ -428,7 +458,7 @@ class ExpressionGenerator {
 			case TConst(c):
 				generateTConst(sb, c);
 			case TLocal(v):
-				genecrateTLocal(sb, v);
+				generateTLocal(sb, v);
 			case TArray(e1, e2):
 				generateTArray(sb, e1, e2);
 			case TBinop(op, e1, e2):
