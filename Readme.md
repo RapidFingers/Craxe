@@ -64,6 +64,7 @@ https://github.com/RapidFingers/CraxeExamples
 - [x] Switch expression
 - [x] Inheritance
 - [x] Interfaces
+- [ ] BrainF**k benchmark
 - [ ] Type checking (operator is)
 - [ ] Map/Dictionary
 - [ ] Generics
@@ -72,6 +73,5 @@ https://github.com/RapidFingers/CraxeExamples
 - [ ] Closures
 - [ ] Externs
 - [ ] Some kind of std lib
-- [ ] Benchmarks
 - [ ] Extern for nim asynchttp or httpbeast
 - [ ] Example of async http server
