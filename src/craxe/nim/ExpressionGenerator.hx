@@ -219,12 +219,48 @@ class ExpressionGenerator {
 	}
 
 	/**
+	 * Generate custom code for getting enum values
+	 * cast[EnumType](enum).value
+	 * TODO: minimize casts
+	 * Return true if it was processed
+	 */
+	function generateEnumParameterCall(sb:IndentStringBuilder, expr:TypedExprDef):Bool {
+		// Cast enum
+		switch (expr) {
+			case TEnumParameter(e1, ef, _):
+				switch (e1.expr) {
+					case TLocal(v):
+						switch (v.t) {
+							case TEnum(t, _):
+								var enumName = t.get().name;
+								var en = context.getEnumByName(enumName);
+								var instName = en.enumType.names[ef.index];
+								sb.add('cast[${enumName}${instName}](');
+								sb.add(v.name);
+								sb.add(')');
+								switch (ef.type) {
+									case TFun(args, _):
+										sb.add('.${args[0].name}');
+									case v:
+										var resolved = typeResolver.resolve(v);
+										sb.add(resolved);
+								}
+								return true;
+							default:
+						}
+					default:
+				}
+			default:
+		}
+
+		return false;
+	}
+
+	/**
 	 * Generate code for TVar
 	 */
 	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {
 		sb.add("var ");
-
-		trace("GOOD");
 
 		var name = typeResolver.getFixedTypeName(vr.name);
 		name = fixLocalVarName(name);
@@ -232,33 +268,8 @@ class ExpressionGenerator {
 		if (expr != null) {
 			sb.add(" = ");
 
-			// Cast enum
-			switch (expr.expr) {
-				case TEnumParameter(e1, ef, index):
-					switch (e1.expr) {
-						case TLocal(v):
-							switch (v.t) {
-								case TEnum(t, params):
-									var enumName = t.get().name;
-									var en = context.getEnumByName(enumName);
-									var instName = en.enumType.names[ef.index];
-									sb.add('cast[${enumName}${instName}](');
-									sb.add(v.name);
-									sb.add(')');
-									switch (ef.type) {
-										case TFun(args, _):
-											sb.add('.${args[0].name}');
-										case v:
-											var resolved = typeResolver.resolve(v);
-											sb.add(resolved);
-									}
-								default:
-							}
-						default:
-					}
-				default:
-					generateTypedAstExpression(sb, expr.expr);
-			}
+			if (!generateEnumParameterCall(sb, expr.expr))
+				generateTypedAstExpression(sb, expr.expr);
 		}
 	}
 
@@ -298,9 +309,9 @@ class ExpressionGenerator {
 	 */
 	function generateTArray(sb:IndentStringBuilder, e1:TypedExpr, e2:TypedExpr) {
 		generateTypedAstExpression(sb, e1.expr);
-		sb.add(".get(");
+		sb.add("[");
 		generateTypedAstExpression(sb, e2.expr);
-		sb.add(")");
+		sb.add("]");
 	}
 
 	/**
@@ -421,13 +432,6 @@ class ExpressionGenerator {
 	 */
 	function generateTEnumParameter(sb:IndentStringBuilder, expression:TypedExpr, enumField:EnumField, index:Int) {
 		generateTypedAstExpression(sb, expression.expr);
-		switch (enumField.type) {
-			case TFun(args, _):
-				sb.add('.${args[0].name}');
-			case v:
-				var resolved = typeResolver.resolve(v);
-				sb.add(resolved);
-		}
 	}
 
 	/**

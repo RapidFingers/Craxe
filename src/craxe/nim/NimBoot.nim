@@ -16,9 +16,10 @@ template `+`*(s1:string, s2:string): string =
     s1 & s2
 
 type
-    StdStatic* = ref object of RootObj
-    LogStatic* = ref object of RootObj
-    HaxeBytesStatic* = ref object of RootObj
+    StdStatic* = object
+    LogStatic* = object
+    HaxeBytesStatic* = object
+    FileStatic* = object
 
     HaxeEnum* = ref object of RootObj
         index*:int
@@ -32,13 +33,24 @@ type
 let LogStaticInst* = LogStatic()
 let StdStaticInst* = StdStatic()
 let HaxeBytesStaticInst* = HaxeBytesStatic()
+let FileStaticInst* = FileStatic()
+
+template trace*(this:LogStatic, v:byte, e:varargs[string, `$`]):void =
+    write(stdout, e[0] & " " & e[1] & ": ")
+    echo cast[int](v)
 
 template trace*(this:LogStatic, v:untyped, e:varargs[string, `$`]):void =
     write(stdout, e[0] & " " & e[1] & ": ")
     echo v
 
 template string*(this:StdStatic, v:untyped): string =
-    $v    
+    $v
+
+converter toInt*(this:byte) : int =
+    return cast[int](this)
+
+converter toByte*(this:int) : byte =
+    return cast[byte](this)
 
 # String
 template length*(this:string) : int =
@@ -58,6 +70,9 @@ proc `==`*(e1:HaxeEnum, e2:int) : bool {.inline.} =
 # HaxeArray
 proc newHaxeArray*[T]() : HaxeArray[T] =
     result = HaxeArray[T]()
+
+proc `[]`*[T](this:HaxeArray[T], pos:int):T =
+    this.data[pos]
 
 template push*[T](this:HaxeArray[T], value:T) =
     this.data.add(value)
@@ -98,3 +113,7 @@ template set*(this:HaxeBytes, pos:int, v:Natural) =
 
 template length*(this:HaxeBytes): int =    
     len(this.b)
+
+# File
+template getContent*(this:FileStatic, path:string): string =
+    readFile(path)
