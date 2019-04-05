@@ -333,6 +333,14 @@ class ExpressionGenerator {
 			case OpMod:
 				sb.add("%");
 			case OpAssignOp(op):
+				switch op {
+					case OpAdd:
+						sb.add("+=");
+					case OpDiv:
+						sb.add("-=");
+					case v:
+						throw 'Unsupported ${v}';
+				}
 			case OpInterval:
 			case OpArrow:
 			case OpIn:
@@ -347,7 +355,7 @@ class ExpressionGenerator {
 	 * Generate code for TUnop
 	 */
 	function generateTUnop(sb:IndentStringBuilder, op:Unop, post:Bool, expr:TypedExpr) {
-		switch (op) {
+		switch (op) {			
 			case OpIncrement:
 				if (post) {
 					sb.add("apOperator(");

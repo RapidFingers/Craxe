@@ -1,5 +1,7 @@
 package craxe;
 
+import haxe.PosInfos;
+import haxe.Log;
 import haxe.macro.Type;
 import craxe.common.ast.CommonAstPreprocessor;
 import craxe.common.generator.BaseGenerator;
@@ -14,14 +16,21 @@ class Generator {
 	}
 	#end
 
-    /**
+	/**
 	 * Callback on generating code from context
 	 */
 	public static function onGenerate(types:Array<Type>):Void {
 		var preprocessor = new CommonAstPreprocessor();
-		var builder:BaseGenerator = null;		
+		var builder:BaseGenerator = null;
 
 		var processed = preprocessor.process(types);
+
+		Log.trace = (v:Dynamic, ?infos:PosInfos) -> {			
+			#if debug_gen
+				var str = Log.formatOutput(v, infos);
+				Sys.println(str);
+			#end
+		};
 
 		#if nim
 		builder = new craxe.nim.NimGenerator(processed);
@@ -32,4 +41,4 @@ class Generator {
 
 		builder.build();
 	}
-} 
+}
