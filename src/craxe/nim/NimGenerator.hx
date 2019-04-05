@@ -39,17 +39,6 @@ class NimGenerator extends BaseGenerator {
 	final expressionGenerator:ExpressionGenerator;
 
 	/**
-	 * SImple type map
-	 */
-	final simpleTypes = [
-		"Bool" => "bool",
-		"Int" => "int",
-		"Float" => "float",
-		"String" => "string",
-		"Void" => "void"
-	];
-
-	/**
 	 * Libs to include
 	 */
 	final includeLibs = ["NimBoot.nim"];
@@ -312,7 +301,7 @@ class NimGenerator extends BaseGenerator {
 		if (staticFields.length < 1)
 			return;
 
-		var clsName = cls.classType.name;
+		var clsName = typeResolver.getFixedTypeName(cls.classType.name);		
 		var hasStaticMethod = false;
 		for (field in staticFields) {
 			switch (field.kind) {

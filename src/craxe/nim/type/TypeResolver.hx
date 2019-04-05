@@ -45,24 +45,12 @@ class TypeResolver {
 			throw 'Unsupported simple type ${type}';
 		}
 	}
-
-	/**
-	 * Fix type name
-	 */
-	function fixTypeName(name:String):String {
-		switch name {
-			case "Array":
-				return "HaxeArray";
-		}
-
-		return name;
-	}
-
+	
 	/**
 	 * Generate TEnum
 	 */
 	function generateTEnum(sb:StringBuf, enumType:EnumType, params:Array<Type>) {
-		sb.add(enumType.name);
+		sb.add(getFixedTypeName(enumType.name));
 	}
 
 	/**
@@ -83,7 +71,7 @@ class TypeResolver {
 		if (isSimpleType(t.name)) {
 			generateSimpleType(sb, t.name);
 		} else {
-			var typeName = fixTypeName(t.name);
+			var typeName = getFixedTypeName(t.name);
 			sb.add(typeName);
 			if (params != null && params.length > 0) {
 				sb.add("[");
@@ -93,6 +81,8 @@ class TypeResolver {
 							generateTInst(sb, t.get(), params);
 						case TAbstract(t, params):
 							generateTAbstract(sb, t.get(), params);
+						case TEnum(t, params):
+							generateTEnum(sb, t.get(), params);
 						case v:
 							throw 'Unsupported paramter ${v}';
 					}
@@ -106,7 +96,7 @@ class TypeResolver {
 	 * Generate TType
 	 */
 	function generateTType(sb:StringBuf, t:DefType, params:Array<Type>) {
-		trace(t.name);
+		throw "Not supported";
 	}
 
 	/**
@@ -124,6 +114,8 @@ class TypeResolver {
 		switch name {
 			case "Array":
 				return "HaxeArray";
+			case "Bytes":
+				return "HaxeBytes";
 		}
 
 		return name;

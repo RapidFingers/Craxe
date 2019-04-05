@@ -180,19 +180,20 @@ class ExpressionGenerator {
 			case FInstance(c, params, cf):
 				var inst = c.get();
 				var field = cf.get();
+				var name = typeResolver.getFixedTypeName(field.name);
 				sb.add(".");
 				if (inst.isInterface) {
 					switch (field.kind) {
 						case FVar(_, _):
-							sb.add('${field.name}[]');
+							sb.add('${name}[]');
 						case FMethod(_):
-							sb.add(field.name);
+							sb.add(name);
 					}
 				} else {	
-					sb.add(field.name);
+					sb.add(name);
 				}
 			case FStatic(c, cf):
-				var name = c.get().name;
+				var name = typeResolver.getFixedTypeName(c.get().name);
 				sb.add('${name}StaticInst.');
 				var fieldName = cf.toString();
 				sb.add(fieldName);
@@ -200,7 +201,7 @@ class ExpressionGenerator {
 			case FDynamic(s):
 			case FClosure(c, cf):
 			case FEnum(e, ef):
-				var name = e.get().name;
+				var name = typeResolver.getFixedTypeName(e.get().name);
 				sb.add('new${name}${ef.name}()');
 		}
 	}
