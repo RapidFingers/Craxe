@@ -308,7 +308,20 @@ class ExpressionGenerator {
 	 * Array access arr[it]
 	 */
 	function generateTArray(sb:IndentStringBuilder, e1:TypedExpr, e2:TypedExpr) {
-		generateTypedAstExpression(sb, e1.expr);
+		switch e1.expr {
+			case TField(e, fa):			
+				switch (e.t) {					
+					case TInst(t, params):
+						if (t.get().name == "Bytes") {
+							generateTypedAstExpression(sb, e.expr);
+						}
+					default:
+						generateTypedAstExpression(sb, e1.expr);
+				}
+			default:
+				generateTypedAstExpression(sb, e1.expr);
+		}
+		
 		sb.add("[");
 		generateTypedAstExpression(sb, e2.expr);
 		sb.add("]");
