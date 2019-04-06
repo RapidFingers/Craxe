@@ -52,8 +52,9 @@ Because.
 -D nim\
 -D nim-out=main.nim
 * Add some simple code to Main.hx
-* Launch "haxe build.hxml"
-* Launch "nim c -d:release main.nim" and pray :)
+* Launch "haxe build.hxml"\
+It will generate code and will launch the nim compiler\
+"nim c -d:release filename.nim"
 
 ## Examples
 
