@@ -45,6 +45,65 @@ class ExpressionGenerator {
 	}
 
 	/**
+	 * Generate custom code for getting enum values
+	 * cast[EnumType](enum).value
+	 * TODO: minimize casts
+	 * Return true if it was processed
+	 */
+	function generateCustomEnumParameterCall(sb:IndentStringBuilder, expr:TypedExprDef):Bool {
+		// Cast enum
+		switch (expr) {
+			case TEnumParameter(e1, ef, _):
+				switch (e1.expr) {
+					case TLocal(v):
+						switch (v.t) {
+							case TEnum(t, _):
+								var enumName = t.get().name;
+								var en = context.getEnumByName(enumName);
+								var instName = en.enumType.names[ef.index];
+								sb.add('cast[${enumName}${instName}](');
+								sb.add(v.name);
+								sb.add(')');
+								switch (ef.type) {
+									case TFun(args, _):
+										sb.add('.${args[0].name}');
+									case v:
+										var resolved = typeResolver.resolve(v);
+										sb.add(resolved);
+								}
+								return true;
+							default:
+						}
+					default:
+				}
+			default:
+		}
+
+		return false;
+	}
+
+	/**
+	 * Generate code for access Bytes data
+	 * Fixes inline access to seq[byte]	of HaxeBytes
+	 */
+	function generateCustomBytesAccess(sb:IndentStringBuilder, expression:TypedExprDef) {
+		switch expression {
+			case TField(e, _):
+				switch (e.t) {
+					case TInst(t, _):
+						if (t.get().name == "Bytes") {
+							generateTypedAstExpression(sb, e.expr);
+							return true;
+						}
+					default:
+				}
+			default:
+		}
+
+		return false;
+	}
+
+	/**
 	 * Generate code for ESwitch
 	 */
 	function generateTSwitch(sb:IndentStringBuilder, expression:TypedExpr, cases:Array<{values:Array<TypedExpr>, expr:TypedExpr}>, edef:TypedExpr) {
@@ -219,44 +278,6 @@ class ExpressionGenerator {
 	}
 
 	/**
-	 * Generate custom code for getting enum values
-	 * cast[EnumType](enum).value
-	 * TODO: minimize casts
-	 * Return true if it was processed
-	 */
-	function generateEnumParameterCall(sb:IndentStringBuilder, expr:TypedExprDef):Bool {
-		// Cast enum
-		switch (expr) {
-			case TEnumParameter(e1, ef, _):
-				switch (e1.expr) {
-					case TLocal(v):
-						switch (v.t) {
-							case TEnum(t, _):
-								var enumName = t.get().name;
-								var en = context.getEnumByName(enumName);
-								var instName = en.enumType.names[ef.index];
-								sb.add('cast[${enumName}${instName}](');
-								sb.add(v.name);
-								sb.add(')');
-								switch (ef.type) {
-									case TFun(args, _):
-										sb.add('.${args[0].name}');
-									case v:
-										var resolved = typeResolver.resolve(v);
-										sb.add(resolved);
-								}
-								return true;
-							default:
-						}
-					default:
-				}
-			default:
-		}
-
-		return false;
-	}
-
-	/**
 	 * Generate code for TVar
 	 */
 	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {
@@ -268,7 +289,7 @@ class ExpressionGenerator {
 		if (expr != null) {
 			sb.add(" = ");
 
-			if (!generateEnumParameterCall(sb, expr.expr))
+			if (!generateCustomEnumParameterCall(sb, expr.expr))
 				generateTypedAstExpression(sb, expr.expr);
 		}
 	}
@@ -308,20 +329,9 @@ class ExpressionGenerator {
 	 * Array access arr[it]
 	 */
 	function generateTArray(sb:IndentStringBuilder, e1:TypedExpr, e2:TypedExpr) {
-		switch e1.expr {
-			case TField(e, fa):			
-				switch (e.t) {					
-					case TInst(t, params):
-						if (t.get().name == "Bytes") {
-							generateTypedAstExpression(sb, e.expr);
-						}
-					default:
-						generateTypedAstExpression(sb, e1.expr);
-				}
-			default:
-				generateTypedAstExpression(sb, e1.expr);
-		}
-		
+		if (!generateCustomBytesAccess(sb, e1.expr))
+			generateTypedAstExpression(sb, e1.expr);
+
 		sb.add("[");
 		generateTypedAstExpression(sb, e2.expr);
 		sb.add("]");
