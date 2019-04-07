@@ -1,4 +1,4 @@
-package craxe.nim;
+package craxe.generators.nim;
 
 #if macro
 import haxe.macro.Context;

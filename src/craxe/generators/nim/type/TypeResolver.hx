@@ -1,4 +1,4 @@
-package craxe.nim.type;
+package craxe.generators.nim.type;
 
 import craxe.common.ast.ArgumentInfo;
 import craxe.common.ast.ResolvedArgumentInfo;

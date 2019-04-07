@@ -1,8 +1,8 @@
-package craxe.nim;
+package craxe.generators.nim;
 
 import craxe.common.ast.ClassInfo;
 import craxe.common.IndentStringBuilder;
-import craxe.nim.type.TypeResolver;
+import craxe.generators.nim.type.TypeResolver;
 
 /**
  * Code generator for interface

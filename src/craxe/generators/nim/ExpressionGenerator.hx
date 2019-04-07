@@ -1,4 +1,4 @@
-package craxe.nim;
+package craxe.generators.nim;
 
 import craxe.common.ast.ClassInfo;
 import haxe.macro.Type;
@@ -14,7 +14,7 @@ import haxe.macro.Type.ClassType;
 import haxe.macro.Type.TypedExpr;
 import haxe.macro.Type.TypedExprDef;
 import craxe.common.IndentStringBuilder;
-import craxe.nim.type.*;
+import craxe.generators.nim.type.*;
 
 using StringTools;
 

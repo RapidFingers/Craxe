@@ -1,4 +1,4 @@
-package craxe.nim.type;
+package craxe.generators.nim.type;
 
 import haxe.ds.StringMap;
 import craxe.common.ast.*;

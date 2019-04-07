@@ -1,4 +1,4 @@
-package craxe.nim;
+package craxe.generators.nim;
 
 import craxe.common.ast.PreprocessedTypes;
 import craxe.common.ast.EntryPointInfo;
@@ -12,7 +12,8 @@ import craxe.common.ast.ClassInfo;
 import craxe.common.ast.ArgumentInfo;
 import craxe.common.IndentStringBuilder;
 import craxe.common.generator.BaseGenerator;
-import craxe.nim.type.*;
+import craxe.generators.nim.type.*;
+import craxe.generators.nim.*;
 
 /**
  * Builder for nim code
@@ -50,7 +51,7 @@ class NimGenerator extends BaseGenerator {
 		var libPath = ContextMacro.resolvePath(".");
 		for (lib in includeLibs) {
 			var lowLib = lib.toLowerCase();
-			var srcPath = Path.join([libPath, "craxe", "nim", lib]);
+			var srcPath = Path.join([libPath, "craxe", "generators", "nim", lib]);
 			var dstPath = Path.join([outPath, lowLib]);
 			File.copy(srcPath, dstPath);
 		}
