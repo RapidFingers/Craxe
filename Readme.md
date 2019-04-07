@@ -65,7 +65,7 @@ https://github.com/RapidFingers/CraxeExamples
 - [x] Switch expression
 - [x] Inheritance
 - [x] Interfaces
-- [ ] BrainF**k benchmark
+- [x] BrainF**k benchmark
 - [ ] Type checking (operator is)
 - [ ] Map/Dictionary
 - [ ] Generics
