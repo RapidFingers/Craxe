@@ -225,6 +225,37 @@ class ExpressionGenerator {
 	}
 
 	/**
+	 * Generate code for TField FStatic
+	 */
+	function generateTFieldFStatic(sb:IndentStringBuilder, classType:ClassType, classField:ClassField) {
+		var className = "";
+
+		if (classType.isExtern) {
+			var nt = classType.meta.get().filter(x -> x.name == ":native");
+			if (nt.length > 0 && nt[0].params.length > 0) {
+				var meta = nt[0];
+				switch (meta.params[0].expr) {
+					case EConst(CString(s)):
+						className = s;
+					case v:
+						throw 'Unsupported ${v}';
+				}
+			} else {
+				className = classType.name;
+			}
+		} else {
+			typeResolver.getFixedTypeName(classType.name);
+			var name = typeResolver.getFixedTypeName(classType.name);
+			className = '${name}StaticInst';
+		}
+
+		sb.add('${className}.');
+
+		var fieldName = classField.name;
+		sb.add(fieldName);
+	}
+
+	/**
 	 * Generate code for TField
 	 */
 	function generateTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {
@@ -236,7 +267,7 @@ class ExpressionGenerator {
 		}
 
 		switch (access) {
-			case FInstance(c, params, cf):
+			case FInstance(c, _, cf):
 				var inst = c.get();
 				var field = cf.get();
 				var name = typeResolver.getFixedTypeName(field.name);
@@ -252,10 +283,7 @@ class ExpressionGenerator {
 					sb.add(name);
 				}
 			case FStatic(c, cf):
-				var name = typeResolver.getFixedTypeName(c.get().name);
-				sb.add('${name}StaticInst.');
-				var fieldName = cf.toString();
-				sb.add(fieldName);
+				generateTFieldFStatic(sb, c.get(), cf.get());
 			case FAnon(cf):
 			case FDynamic(s):
 			case FClosure(c, cf):
