@@ -45,7 +45,8 @@ class CommonAstPreprocessor {
 		if (excludedTypes.exists(name))
 			return true;
 
-		if (StringTools.startsWith(module, "haxe."))
+		if (StringTools.startsWith(module, "haxe.") ||
+			StringTools.startsWith(module, "craxe.nim."))
 			return true;
 
 		return false;

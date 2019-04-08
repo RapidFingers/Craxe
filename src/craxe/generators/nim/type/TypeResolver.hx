@@ -37,15 +37,30 @@ class TypeResolver {
 	/**
 	 * Generate simple type
 	 */
-	function generateSimpleType(sb:StringBuf, type:String) {
+	function generateSimpleType(sb:StringBuf, type:String):Bool {
 		var res = simpleTypes.get(type);
 		if (res != null) {
 			sb.add(res);
-		} else {
-			throw 'Unsupported simple type ${type}';
+			return true;
 		}
+
+		return false;
+	}	
+
+	/**
+	 * Generate code for pass modificator	 
+	 */
+	function generatePassModificator(sb:StringBuf, t:AbstractType, params:Array<Type>):Bool {
+		if (t.name == "Var") {
+			sb.add("var ");
+			for (par in params) {
+				sb.add(resolve(par));
+			}
+			return true;
+		}
+		return false;
 	}
-	
+
 	/**
 	 * Generate TEnum
 	 */
@@ -57,38 +72,39 @@ class TypeResolver {
 	 * Generate TAbstract
 	 */
 	function generateTAbstract(sb:StringBuf, t:AbstractType, params:Array<Type>) {
-		if (isSimpleType(t.name)) {
-			generateSimpleType(sb, t.name);
-		} else {
-			throw 'Unsupported ${t}';
-		}
+		if (generateSimpleType(sb, t.name))
+			return;
+
+		if (generatePassModificator(sb, t, params))
+			return;
+
+		throw 'Unsupported ${t}';
 	}
 
 	/**
 	 * Generate TInst
 	 */
 	function generateTInst(sb:StringBuf, t:ClassType, params:Array<Type>) {
-		if (isSimpleType(t.name)) {
-			generateSimpleType(sb, t.name);
-		} else {
-			var typeName = getFixedTypeName(t.name);
-			sb.add(typeName);
-			if (params != null && params.length > 0) {
-				sb.add("[");
-				for (par in params) {
-					switch (par) {
-						case TInst(t, params):
-							generateTInst(sb, t.get(), params);
-						case TAbstract(t, params):
-							generateTAbstract(sb, t.get(), params);
-						case TEnum(t, params):
-							generateTEnum(sb, t.get(), params);
-						case v:
-							throw 'Unsupported paramter ${v}';
-					}
+		if (generateSimpleType(sb, t.name))
+			return;
+
+		var typeName = getFixedTypeName(t.name);
+		sb.add(typeName);
+		if (params != null && params.length > 0) {
+			sb.add("[");
+			for (par in params) {
+				switch (par) {
+					case TInst(t, params):
+						generateTInst(sb, t.get(), params);
+					case TAbstract(t, params):
+						generateTAbstract(sb, t.get(), params);
+					case TEnum(t, params):
+						generateTEnum(sb, t.get(), params);
+					case v:
+						throw 'Unsupported paramter ${v}';
 				}
-				sb.add("]");
 			}
+			sb.add("]");
 		}
 	}
 
@@ -144,7 +160,7 @@ class TypeResolver {
 	 * Resolve arguments to resolved arguments
 	 */
 	public function resolveArguments(args:Array<ArgumentInfo>):Array<ResolvedArgumentInfo> {
-		return args.map(x-> {
+		return args.map(x -> {
 			return {
 				name: x.name,
 				opt: x.opt,
