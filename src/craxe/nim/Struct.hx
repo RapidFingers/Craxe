@@ -1,6 +1,8 @@
 package craxe.nim;
 
 /**
- * Value object
+ * Nim's object of RootObj
+ * It passed by value, and can be passed by reference 
+ * with Var modificator
  */
-class Struct {}
+extern class Struct {}

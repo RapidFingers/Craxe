@@ -24,6 +24,8 @@ type
     HaxeBytesStatic* = object
     FileStatic* = object
 
+    Struct* = object of RootObj
+
     HaxeEnum* = ref object of RootObj
         index*:int
 

@@ -21,20 +21,20 @@ typedef ClassInfo = {
     /**
      * Fields of instance
      */
-    var instanceFields:Array<ClassField>;
+    var instanceFields(default, null):Array<ClassField>;
 
     /**
      * Methods of instance
      */
-    var instanceMethods:Array<ClassField>;
+    var instanceMethods(default, null):Array<ClassField>;
 
     /**
      * Static fields
      */
-    var staticFields:Array<ClassField>;
+    var staticFields(default, null):Array<ClassField>;
 
     /**
      * Static methods
      */
-    var staticMethods:Array<ClassField>;
+    var staticMethods(default, null):Array<ClassField>;
 }

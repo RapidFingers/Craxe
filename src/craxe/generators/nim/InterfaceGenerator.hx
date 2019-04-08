@@ -1,5 +1,6 @@
 package craxe.generators.nim;
 
+import craxe.common.ast.InterfaceInfo;
 import craxe.common.ast.ClassInfo;
 import craxe.common.IndentStringBuilder;
 import craxe.generators.nim.type.TypeResolver;
@@ -16,12 +17,12 @@ class InterfaceGenerator {
 	/**
 	 * Generate tuple object with interface fields
 	 */
-	public function generateInterfaceObject(sb:IndentStringBuilder, interfaceInfo:ClassInfo, typeResolver:TypeResolver) {
+	public function generateInterfaceObject(sb:IndentStringBuilder, interfaceInfo:InterfaceInfo, typeResolver:TypeResolver) {
 		var iname = interfaceInfo.classType.name;
 		sb.add('${iname} = tuple[');
 		sb.addNewLine(Inc);
 		sb.add("obj : ref RootObj");
-		for (field in interfaceInfo.instanceFields) {
+		for (field in interfaceInfo.fields) {
 			sb.add(", ");
 			sb.addNewLine(Same);
 			sb.add(field.name);
@@ -29,7 +30,7 @@ class InterfaceGenerator {
 			sb.add(typeResolver.resolve(field.type));
 		}
 
-		for (meth in interfaceInfo.instanceMethods) {
+		for (meth in interfaceInfo.methods) {
 			sb.add(", ");
 			sb.addNewLine(Same);
 			sb.add(meth.name);
@@ -58,7 +59,7 @@ class InterfaceGenerator {
 	/**
 	 * Generate converter to interface for class
 	 */
-	public function generateInterfaceConverter(sb:IndentStringBuilder, classInfo:ClassInfo, interfaceInfo:ClassInfo, typeResolver:TypeResolver) {
+	public function generateInterfaceConverter(sb:IndentStringBuilder, classInfo:ClassInfo, interfaceInfo:InterfaceInfo, typeResolver:TypeResolver) {
 		var iname = interfaceInfo.classType.name;
 		var cname = classInfo.classType.name;
 		sb.add('converter to${iname}(this:${cname}) : ${iname} = ');
@@ -68,7 +69,7 @@ class InterfaceGenerator {
 
 		sb.add("obj: this");
 
-		for (field in interfaceInfo.instanceFields) {
+		for (field in interfaceInfo.fields) {
 			sb.add(", ");
 			sb.addNewLine(Same);
 			sb.add(field.name);
@@ -76,7 +77,7 @@ class InterfaceGenerator {
 			sb.add(field.name);
 		}
 
-		for (meth in interfaceInfo.instanceMethods) {
+		for (meth in interfaceInfo.methods) {
 			sb.add(", ");
 			sb.addNewLine(Same);
 			sb.add(meth.name);

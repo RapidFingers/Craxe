@@ -7,7 +7,7 @@ typedef PreprocessedTypes = {
     /**
      * All found interfaces
      */
-    var interfaces(default, null):Array<ClassInfo>;
+    var interfaces(default, null):Array<InterfaceInfo>;
 
     /**
      * All found classes
