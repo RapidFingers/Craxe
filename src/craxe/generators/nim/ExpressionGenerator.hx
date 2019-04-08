@@ -16,6 +16,7 @@ import haxe.macro.Type.TypedExprDef;
 import craxe.common.IndentStringBuilder;
 import craxe.generators.nim.type.*;
 
+using craxe.common.ast.MetaHelper;
 using StringTools;
 
 /**
@@ -231,18 +232,9 @@ class ExpressionGenerator {
 		var className = "";
 
 		if (classType.isExtern) {
-			var nt = classType.meta.get().filter(x -> x.name == ":native");
-			if (nt.length > 0 && nt[0].params.length > 0) {
-				var meta = nt[0];
-				switch (meta.params[0].expr) {
-					case EConst(CString(s)):
-						className = s;
-					case v:
-						throw 'Unsupported ${v}';
-				}
-			} else {
+			className = classType.meta.getMetaValue(":native");
+			if (className == null)
 				className = classType.name;
-			}
 		} else {
 			typeResolver.getFixedTypeName(classType.name);
 			var name = typeResolver.getFixedTypeName(classType.name);
