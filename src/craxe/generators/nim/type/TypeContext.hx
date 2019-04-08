@@ -2,6 +2,7 @@ package craxe.generators.nim.type;
 
 import haxe.ds.StringMap;
 import craxe.common.ast.*;
+import craxe.common.ast.type.*;
 
 /**
  * Context with all types

@@ -1,6 +1,6 @@
 package craxe.common.ast;
 
-import craxe.common.ast.ClassInfo;
+import craxe.common.ast.type.ClassInfo;
 import haxe.macro.Type.ClassField;
 
 /**

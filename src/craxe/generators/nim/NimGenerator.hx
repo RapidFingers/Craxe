@@ -1,5 +1,6 @@
 package craxe.generators.nim;
 
+import craxe.common.ast.ArgumentInfo;
 import craxe.common.ast.PreprocessedTypes;
 import craxe.common.ast.EntryPointInfo;
 import craxe.common.ContextMacro;
@@ -7,9 +8,7 @@ import haxe.macro.Type;
 import haxe.io.Path;
 import sys.io.File;
 import sys.FileSystem;
-import craxe.common.ast.EnumInfo;
-import craxe.common.ast.ClassInfo;
-import craxe.common.ast.ArgumentInfo;
+import craxe.common.ast.type.*;
 import craxe.common.IndentStringBuilder;
 import craxe.common.generator.BaseGenerator;
 import craxe.generators.nim.type.*;
@@ -278,7 +277,7 @@ class NimGenerator extends BaseGenerator {
 		sb.add(line);
 		sb.addNewLine(Same);
 
-		var instanceFields = cls.instanceFields;
+		var instanceFields = cls.fields;
 		var iargs = [];
 		for (ifield in instanceFields) {
 			switch (ifield.kind) {
@@ -427,7 +426,7 @@ class NimGenerator extends BaseGenerator {
 	 * Build class methods and return entry point if found
 	 */
 	function generateClassMethods(sb:IndentStringBuilder, cls:ClassInfo) {
-		for (method in cls.instanceMethods) {
+		for (method in cls.methods) {
 			generateClassMethod(sb, cls, method, false);
 		}
 

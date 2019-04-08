@@ -1,7 +1,7 @@
 package craxe.common.ast;
 
 import craxe.common.ast.EntryPointInfo;
-import craxe.common.ast.ClassInfo;
+import craxe.common.ast.type.*;
 import haxe.ds.StringMap;
 import haxe.macro.Type;
 
@@ -117,13 +117,7 @@ class CommonAstPreprocessor {
 		}
 
 		var res = getFieldsAndMethods(c);
-
-		return {
-			classType: c,
-			params: params,
-			fields: res.fields,
-			methods: res.methods
-		};
+		return new InterfaceInfo(c, params, res.fields, res.methods);
 	}
 
 	/**
@@ -137,14 +131,7 @@ class CommonAstPreprocessor {
 		var instanceRes = getFieldsAndMethods(c);
 		var staticRes = getStaticFieldsAndMethods(c);
 
-		var classInfo:ClassInfo = {
-			classType: c,
-			params: params,
-			instanceFields: instanceRes.fields,
-			instanceMethods: instanceRes.methods,
-			staticFields: staticRes.fields,
-			staticMethods: staticRes.methods
-		};
+		var classInfo = new ClassInfo(c, params, instanceRes.fields, instanceRes.methods, staticRes.fields, staticRes.methods);
 
 		var entryPoint:EntryPointInfo = if (staticRes.entryMethod != null) {
 			{

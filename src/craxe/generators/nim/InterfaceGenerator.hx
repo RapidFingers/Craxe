@@ -1,7 +1,6 @@
 package craxe.generators.nim;
 
-import craxe.common.ast.InterfaceInfo;
-import craxe.common.ast.ClassInfo;
+import craxe.common.ast.type.*;
 import craxe.common.IndentStringBuilder;
 import craxe.generators.nim.type.TypeResolver;
 

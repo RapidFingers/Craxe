@@ -1,5 +1,7 @@
 package craxe.common.ast;
 
+import craxe.common.ast.type.*;
+
 /**
  * Types from AST to generate code
  */

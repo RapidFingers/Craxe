@@ -1,6 +1,6 @@
 package craxe.generators.nim;
 
-import craxe.common.ast.ClassInfo;
+import craxe.common.ast.type.*;
 import haxe.macro.Type;
 import haxe.macro.Type.EnumField;
 import haxe.macro.Expr.MetadataEntry;
