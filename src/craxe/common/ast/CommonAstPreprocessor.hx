@@ -165,10 +165,34 @@ class CommonAstPreprocessor {
 	public function new() {}
 
 	/**
+	 * Process class, interface, struct and return ObjectType info
+	 */
+	function processTInst(c:ClassType, params:Array<Type>):{
+		?objectInfo:ObjectType,
+		?entryPoint:EntryPointInfo
+	} {
+		if (c.isInterface) {
+			return {
+				objectInfo: buildInterface(c, params)
+			}
+		} else {
+			var res = buildClass(c, params);
+			if (res != null)
+				return {
+					objectInfo: res.classInfo,
+					entryPoint: res.entryPoint
+				}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Process AST and get types
 	 */
 	public function process(types:Array<Type>):PreprocessedTypes {
 		var classes = new Array<ClassInfo>();
+		var structures = new Array<StructInfo>();
 		var interfaces = new Array<InterfaceInfo>();
 		var enums = new Array<EnumInfo>();
 		var entryPoint:EntryPointInfo = null;
@@ -176,17 +200,16 @@ class CommonAstPreprocessor {
 		for (t in types) {
 			switch (t) {
 				case TInst(c, params):
-					var cl = c.get();
-					if (cl.isInterface) {
-						var res = buildInterface(cl, params);
-						if (res != null)
-							interfaces.push(res);
-					} else {
-						var res = buildClass(cl, params);
-						if (res != null) {
-							classes.push(res.classInfo);
+					var res = processTInst(c.get(), params);
+					if (res != null) {
+						if ((res.objectInfo is ClassInfo)) {
+							classes.push(cast(res.objectInfo, ClassInfo));
 							if (res.entryPoint != null)
 								entryPoint = res.entryPoint;
+						} else if ((res.objectInfo is InterfaceInfo)) {
+							interfaces.push(cast(res.objectInfo, InterfaceInfo));
+						} else if ((res.objectInfo is StructInfo)) {
+							structures.push(cast(res.objectInfo, StructInfo));
 						}
 					}
 				case TEnum(t, params):
