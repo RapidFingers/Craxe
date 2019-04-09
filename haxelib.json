@@ -2,13 +2,13 @@
 	"name": "craxe",
 	"license": "MIT",
 	"tags": [
-		"nim", "crystal", "performance", "transpiler"
+		"nim", "performance", "transpiler"
 	],
 	"classPath": "src",
-	"description": "Transpiler to nim or crystal",
+	"description": "Transpiler to nim",
 	"contributors": [
 		"grabli66"
 	],
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"url": "https://github.com/Grabli66/Craxe"
 }
