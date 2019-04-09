@@ -1,7 +1,8 @@
-package craxe.nim.type;
+package craxe.generators.nim.type;
 
 import haxe.ds.StringMap;
 import craxe.common.ast.*;
+import craxe.common.ast.type.*;
 
 /**
  * Context with all types
@@ -10,7 +11,7 @@ class TypeContext {
     /**
 	 * Information about interfaces
 	 */
-	final interfaces = new StringMap<ClassInfo>();
+	final interfaces = new StringMap<InterfaceInfo>();
 
 	/**
 	 * Information about classes
@@ -68,7 +69,7 @@ class TypeContext {
 	/**
 	 * Return iterator for all interfaces
 	 */
-	public function interfaceIterator():Iterator<ClassInfo> {
+	public function interfaceIterator():Iterator<InterfaceInfo> {
 		return interfaces.iterator();
 	}
 
@@ -76,7 +77,7 @@ class TypeContext {
 	/**
 	 * Return interface by name
 	 */
-	public function getInterfaceByName(name:String):ClassInfo {
+	public function getInterfaceByName(name:String):InterfaceInfo {
 		return interfaces.get(name);
 	}
 

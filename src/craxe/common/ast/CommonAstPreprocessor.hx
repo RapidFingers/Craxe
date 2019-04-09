@@ -1,7 +1,7 @@
 package craxe.common.ast;
 
 import craxe.common.ast.EntryPointInfo;
-import craxe.common.ast.ClassInfo;
+import craxe.common.ast.type.*;
 import haxe.ds.StringMap;
 import haxe.macro.Type;
 
@@ -45,10 +45,79 @@ class CommonAstPreprocessor {
 		if (excludedTypes.exists(name))
 			return true;
 
-		if (StringTools.startsWith(module, "haxe."))
+		if (StringTools.startsWith(module, "haxe.") || StringTools.startsWith(module, "craxe.nim."))
 			return true;
 
 		return false;
+	}
+
+	/**
+	 * Get fields and methods of instance
+	 */
+	function getFieldsAndMethods(c:ClassType):{fields:Array<ClassField>, methods:Array<ClassField>} {
+		var classFields = c.fields.get();
+
+		var fields = [];
+		var methods = [];
+
+		for (ifield in classFields) {
+			switch (ifield.kind) {
+				case FVar(_, _):
+					fields.push(ifield);
+				case FMethod(_):
+					methods.push(ifield);
+			}
+		}
+
+		return {
+			fields: fields,
+			methods: methods
+		}
+	}
+
+	/**
+	 * Get fields and methods of instance
+	 */
+	function getStaticFieldsAndMethods(c:ClassType):{
+		fields:Array<ClassField>,
+		methods:Array<ClassField>,
+		entryMethod:ClassField
+	} {
+		var classFields = c.statics.get();
+
+		var fields = [];
+		var methods = [];
+		var entryMethod:ClassField = null;
+
+		for (ifield in classFields) {
+			switch (ifield.kind) {
+				case FVar(_, _):
+					fields.push(ifield);
+				case FMethod(_):
+					methods.push(ifield);
+					if (ifield.name == MAIN_METHOD) {
+						entryMethod = ifield;
+					}
+			}
+		}
+
+		return {
+			fields: fields,
+			methods: methods,
+			entryMethod: entryMethod
+		}
+	}
+
+	/**
+	 * Build interface info
+	 */
+	function buildInterface(c:ClassType, params:Array<Type>):InterfaceInfo {
+		if (filterType(c.name, c.module)) {
+			return null;
+		}
+
+		var res = getFieldsAndMethods(c);
+		return new InterfaceInfo(c, params, res.fields, res.methods);
 	}
 
 	/**
@@ -59,50 +128,15 @@ class CommonAstPreprocessor {
 			return null;
 		}
 
-		var classFields = c.fields.get();
-		var classStaticFields = c.statics.get();
+		var instanceRes = getFieldsAndMethods(c);
+		var staticRes = getStaticFieldsAndMethods(c);
 
-		var instFields = [];
-		var instMethods = [];
-		var staticFields = [];
-		var staticMethods = [];
+		var classInfo = new ClassInfo(c, params, instanceRes.fields, instanceRes.methods, staticRes.fields, staticRes.methods);
 
-		var entryMethod:ClassField = null;
-
-		for (ifield in classFields) {
-			switch (ifield.kind) {
-				case FVar(_, _):
-					instFields.push(ifield);
-				case FMethod(_):
-					instMethods.push(ifield);
-			}
-		}
-
-		for (ifield in classStaticFields) {
-			switch (ifield.kind) {
-				case FVar(_, _):
-					staticFields.push(ifield);
-				case FMethod(_):
-					staticMethods.push(ifield);
-					if (ifield.name == MAIN_METHOD) {
-						entryMethod = ifield;
-					}
-			}
-		}
-
-		var classInfo:ClassInfo = {
-			classType: c,
-			params: params,
-			instanceFields: instFields,
-			instanceMethods: instMethods,
-			staticFields: staticFields,
-			staticMethods: staticMethods
-		};
-
-		var entryPoint:EntryPointInfo = if (entryMethod != null) {
+		var entryPoint:EntryPointInfo = if (staticRes.entryMethod != null) {
 			{
 				classInfo: classInfo,
-				method: entryMethod
+				method: staticRes.entryMethod
 			}
 		} else null;
 
@@ -135,22 +169,25 @@ class CommonAstPreprocessor {
 	 */
 	public function process(types:Array<Type>):PreprocessedTypes {
 		var classes = new Array<ClassInfo>();
-		var interfaces = new Array<ClassInfo>();
+		var interfaces = new Array<InterfaceInfo>();
 		var enums = new Array<EnumInfo>();
 		var entryPoint:EntryPointInfo = null;
 
 		for (t in types) {
 			switch (t) {
 				case TInst(c, params):
-					var res = buildClass(c.get(), params);
-					if (res != null) {
-						if (res.classInfo.classType.isInterface) {
-							interfaces.push(res.classInfo);
-						} else {
+					var cl = c.get();
+					if (cl.isInterface) {
+						var res = buildInterface(cl, params);
+						if (res != null)
+							interfaces.push(res);
+					} else {
+						var res = buildClass(cl, params);
+						if (res != null) {
 							classes.push(res.classInfo);
+							if (res.entryPoint != null)
+								entryPoint = res.entryPoint;
 						}
-						if (res.entryPoint != null)
-							entryPoint = res.entryPoint;
 					}
 				case TEnum(t, params):
 					var enu = buildEnum(t.get(), params);

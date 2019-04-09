@@ -15,11 +15,16 @@ template `+`*(i:untyped, s:string): string =
 template `+`*(s1:string, s2:string): string =
     s1 & s2
 
+template toString*(this:untyped):untyped =
+    $this
+
 type
     StdStatic* = object
     LogStatic* = object
     HaxeBytesStatic* = object
     FileStatic* = object
+
+    Struct* = object of RootObj
 
     HaxeEnum* = ref object of RootObj
         index*:int

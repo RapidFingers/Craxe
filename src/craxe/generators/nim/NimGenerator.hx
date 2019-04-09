@@ -1,5 +1,6 @@
-package craxe.nim;
+package craxe.generators.nim;
 
+import craxe.common.ast.ArgumentInfo;
 import craxe.common.ast.PreprocessedTypes;
 import craxe.common.ast.EntryPointInfo;
 import craxe.common.ContextMacro;
@@ -7,12 +8,13 @@ import haxe.macro.Type;
 import haxe.io.Path;
 import sys.io.File;
 import sys.FileSystem;
-import craxe.common.ast.EnumInfo;
-import craxe.common.ast.ClassInfo;
-import craxe.common.ast.ArgumentInfo;
+import craxe.common.ast.type.*;
 import craxe.common.IndentStringBuilder;
 import craxe.common.generator.BaseGenerator;
-import craxe.nim.type.*;
+import craxe.generators.nim.type.*;
+import craxe.generators.nim.*;
+
+using craxe.common.ast.MetaHelper;
 
 /**
  * Builder for nim code
@@ -50,12 +52,12 @@ class NimGenerator extends BaseGenerator {
 		var libPath = ContextMacro.resolvePath(".");
 		for (lib in includeLibs) {
 			var lowLib = lib.toLowerCase();
-			var srcPath = Path.join([libPath, "craxe", "nim", lib]);
+			var srcPath = Path.join([libPath, "craxe", "generators", "nim", lib]);
 			var dstPath = Path.join([outPath, lowLib]);
 			File.copy(srcPath, dstPath);
 		}
 	}
-
+	
 	/**
 	 * Add code helpers to header
 	 */
@@ -68,15 +70,23 @@ class NimGenerator extends BaseGenerator {
 		sb.addNewLine();
 		sb.addNewLine(None, true);
 		sb.add('{.experimental: "codeReordering".}');
-		sb.addNewLine();
-		sb.addNewLine(None, true);
+		sb.addBreak();
 
 		for (lib in includeLibs) {
 			var name = Path.withoutExtension(lib).toLowerCase();
 			sb.add('import ${name}');
 			sb.addNewLine();
 		}
-		sb.addNewLine(None, true);
+
+		for (item in types.classes) {
+			var req = item.classType.meta.getMetaValue(":require");
+			trace(req);
+			if (req != null) {
+				sb.add('import ${req}');
+			}
+		}
+
+		sb.addBreak();
 	}
 
 	/**
@@ -230,7 +240,7 @@ class NimGenerator extends BaseGenerator {
 	 */
 	function buildInterfaces(sb:IndentStringBuilder) {
 		if (!typeContext.hasInterfaces)
-			return;		
+			return;
 
 		// Generate types for enums
 		sb.add("type ");
@@ -241,7 +251,7 @@ class NimGenerator extends BaseGenerator {
 			interGenerateor.generateInterfaceObject(sb, inter, typeResolver);
 		}
 
-		sb.addBreak();		
+		sb.addBreak();
 
 		for (cls in typeContext.classIterator()) {
 			for (inter in cls.classType.interfaces) {
@@ -267,7 +277,7 @@ class NimGenerator extends BaseGenerator {
 		sb.add(line);
 		sb.addNewLine(Same);
 
-		var instanceFields = cls.instanceFields;
+		var instanceFields = cls.fields;
 		var iargs = [];
 		for (ifield in instanceFields) {
 			switch (ifield.kind) {
@@ -301,7 +311,7 @@ class NimGenerator extends BaseGenerator {
 		if (staticFields.length < 1)
 			return;
 
-		var clsName = typeResolver.getFixedTypeName(cls.classType.name);		
+		var clsName = typeResolver.getFixedTypeName(cls.classType.name);
 		var hasStaticMethod = false;
 		for (field in staticFields) {
 			switch (field.kind) {
@@ -416,7 +426,7 @@ class NimGenerator extends BaseGenerator {
 	 * Build class methods and return entry point if found
 	 */
 	function generateClassMethods(sb:IndentStringBuilder, cls:ClassInfo) {
-		for (method in cls.instanceMethods) {
+		for (method in cls.methods) {
 			generateClassMethod(sb, cls, method, false);
 		}
 
@@ -505,7 +515,7 @@ class NimGenerator extends BaseGenerator {
 
 		var sb = new IndentStringBuilder();
 
-		addLibraries(outPath);
+		addLibraries(outPath);		
 		addCodeHelpers(sb);
 
 		buildEnums(sb, types.enums);

@@ -1,7 +1,9 @@
-package craxe.nim;
+package craxe.generators.nim;
 
+#if macro
 import haxe.macro.Context;
-import sys.FileSystem;
+#end
+
 import sys.io.Process;
 import craxe.common.compiler.BaseCompiler;
 
@@ -23,7 +25,7 @@ class NimCompiler extends BaseCompiler {
 		var out = haxe.macro.Context.getDefines().get("nim-out");
 		if (out == null)
 			Context.fatalError("Error: no output", Context.currentPos());
-		if (!FileSystem.exists(out))
+		if (!sys.FileSystem.exists(out))
 			Context.fatalError("Error: output file does not exists", Context.currentPos());
 		#end
 

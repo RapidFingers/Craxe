@@ -1,6 +1,6 @@
-package craxe.nim;
+package craxe.generators.nim;
 
-import craxe.common.ast.ClassInfo;
+import craxe.common.ast.type.*;
 import haxe.macro.Type;
 import haxe.macro.Type.EnumField;
 import haxe.macro.Expr.MetadataEntry;
@@ -14,8 +14,9 @@ import haxe.macro.Type.ClassType;
 import haxe.macro.Type.TypedExpr;
 import haxe.macro.Type.TypedExprDef;
 import craxe.common.IndentStringBuilder;
-import craxe.nim.type.*;
+import craxe.generators.nim.type.*;
 
+using craxe.common.ast.MetaHelper;
 using StringTools;
 
 /**
@@ -225,6 +226,28 @@ class ExpressionGenerator {
 	}
 
 	/**
+	 * Generate code for TField FStatic
+	 */
+	function generateTFieldFStatic(sb:IndentStringBuilder, classType:ClassType, classField:ClassField) {
+		var className = "";
+
+		if (classType.isExtern) {
+			className = classType.meta.getMetaValue(":native");
+			if (className == null)
+				className = classType.name;
+		} else {
+			typeResolver.getFixedTypeName(classType.name);
+			var name = typeResolver.getFixedTypeName(classType.name);
+			className = '${name}StaticInst';
+		}
+
+		sb.add('${className}.');
+
+		var fieldName = classField.name;
+		sb.add(fieldName);
+	}
+
+	/**
 	 * Generate code for TField
 	 */
 	function generateTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {
@@ -236,7 +259,7 @@ class ExpressionGenerator {
 		}
 
 		switch (access) {
-			case FInstance(c, params, cf):
+			case FInstance(c, _, cf):
 				var inst = c.get();
 				var field = cf.get();
 				var name = typeResolver.getFixedTypeName(field.name);
@@ -252,10 +275,7 @@ class ExpressionGenerator {
 					sb.add(name);
 				}
 			case FStatic(c, cf):
-				var name = typeResolver.getFixedTypeName(c.get().name);
-				sb.add('${name}StaticInst.');
-				var fieldName = cf.toString();
-				sb.add(fieldName);
+				generateTFieldFStatic(sb, c.get(), cf.get());
 			case FAnon(cf):
 			case FDynamic(s):
 			case FClosure(c, cf):

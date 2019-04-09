@@ -35,8 +35,8 @@ class Generator {
 		};
 
 		#if nim
-		builder = new craxe.nim.NimGenerator(processed);
-		compiler = new craxe.nim.NimCompiler();
+		builder = new craxe.generators.nim.NimGenerator(processed);
+		compiler = new craxe.generators.nim.NimCompiler();
 		#end		
 
 		if (builder == null)
