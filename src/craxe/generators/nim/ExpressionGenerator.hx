@@ -212,7 +212,12 @@ class ExpressionGenerator {
 	function generateTNew(sb:IndentStringBuilder, classType:ClassType, params:Array<Type>, elements:Array<TypedExpr>) {
 		var typeName = typeResolver.getFixedTypeName(classType.name);
 		var typeParams = typeResolver.resolveParameters(params);
-		var varTypeName = 'new${typeName}${typeParams}';
+
+		var varTypeName = if (classType.isExtern && classType.superClass != null && classType.superClass.t.get().name == "Distinct") {
+			typeName;
+		} else {
+			'new${typeName}${typeParams}';
+		}
 
 		sb.add(varTypeName);
 		sb.add("(");
@@ -230,9 +235,11 @@ class ExpressionGenerator {
 	 */
 	function generateTFieldFStatic(sb:IndentStringBuilder, classType:ClassType, classField:ClassField) {
 		var className = "";
+		var isTop = classField.meta.has(":topFunction");
 
 		if (classType.isExtern) {
 			className = classType.meta.getMetaValue(":native");
+			// Check it's top function
 			if (className == null)
 				className = classType.name;
 		} else {
@@ -241,10 +248,14 @@ class ExpressionGenerator {
 			className = '${name}StaticInst';
 		}
 
-		sb.add('${className}.');
-
-		var fieldName = classField.name;
-		sb.add(fieldName);
+		if (isTop) {
+			var topName = classField.meta.getMetaValue(":native");
+			sb.add(topName);
+		} else {
+			sb.add('${className}.');
+			var fieldName = classField.name;
+			sb.add(fieldName);
+		}
 	}
 
 	/**
