@@ -1,5 +1,6 @@
 package craxe.generators.nim;
 
+import haxe.ds.StringMap;
 import craxe.common.ast.ArgumentInfo;
 import craxe.common.ast.PreprocessedTypes;
 import craxe.common.ast.EntryPointInfo;
@@ -78,12 +79,15 @@ class NimGenerator extends BaseGenerator {
 			sb.addNewLine();
 		}
 
+		var reqHash = new StringMap<String>();
 		for (item in types.classes) {
 			var req = item.classType.meta.getMetaValue(":require");
-			trace(req);
-			if (req != null) {
-				sb.add('import ${req}');
-			}
+			if (req != null)
+				reqHash.set(req, req);
+		}
+		for (key => _ in reqHash) {
+			sb.add('import ${key}');
+			sb.addNewLine();
 		}
 
 		sb.addBreak();
@@ -264,7 +268,7 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
-	 * Generate code for instance fields	 
+	 * Generate code for instance fields
 	 */
 	function generateInstanceFields(sb:IndentStringBuilder, fields:Array<ClassField>) {
 		var iargs = [];
