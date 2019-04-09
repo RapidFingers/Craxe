@@ -17,6 +17,11 @@ typedef PreprocessedTypes = {
     var classes(default, null):Array<ClassInfo>;
 
     /**
+     * All found structures
+     */
+    var structures(default, null):Array<StructInfo>;
+
+    /**
      * All found enums
      */
     var enums(default, null):Array<EnumInfo>;

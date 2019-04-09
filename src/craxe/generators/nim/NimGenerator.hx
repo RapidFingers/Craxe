@@ -57,7 +57,7 @@ class NimGenerator extends BaseGenerator {
 			File.copy(srcPath, dstPath);
 		}
 	}
-	
+
 	/**
 	 * Add code helpers to header
 	 */
@@ -264,22 +264,11 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
-	 * Build class fields
+	 * Generate code for instance fields	 
 	 */
-	function generateClassInfo(sb:IndentStringBuilder, cls:ClassInfo) {
-		var clsName = cls.classType.name;
-		var superName = if (cls.classType.superClass != null) {
-			cls.classType.superClass.t.get().name;
-		} else {
-			"RootObj";
-		}
-		var line = '${clsName} = ref object of ${superName}';
-		sb.add(line);
-		sb.addNewLine(Same);
-
-		var instanceFields = cls.fields;
+	function generateInstanceFields(sb:IndentStringBuilder, fields:Array<ClassField>) {
 		var iargs = [];
-		for (ifield in instanceFields) {
+		for (ifield in fields) {
 			switch (ifield.kind) {
 				case FVar(read, write):
 					iargs.push({
@@ -294,13 +283,43 @@ class NimGenerator extends BaseGenerator {
 		generateTypeFields(sb, iargs);
 		sb.addNewLine(Dec);
 		sb.addNewLine(Same, true);
+	}
+
+	/**
+	 * Build class fields
+	 */
+	function generateClassInfo(sb:IndentStringBuilder, cls:ClassInfo) {
+		var clsName = cls.classType.name;
+		var superName = if (cls.classType.superClass != null) {
+			cls.classType.superClass.t.get().name;
+		} else {
+			"RootObj";
+		}
+		var line = '${clsName} = ref object of ${superName}';
+		sb.add(line);
+		sb.addNewLine(Same);
+
+		generateInstanceFields(sb, cls.fields);
 
 		var staticFields = cls.classType.statics.get();
 		if (staticFields.length > 0) {
 			var line = '${cls.classType.name}Static = ref object of RootObj';
 			sb.add(line);
-			sb.addNewLine();
+			sb.addNewLine(Same);
+			sb.addNewLine(Same, true);
 		}
+	}
+
+	/**
+	 * Generate structure info
+	 */
+	function generateStructureInfo(sb:IndentStringBuilder, cls:StructInfo) {
+		var structName = cls.classType.name;
+		var line = '${structName} = object of Struct';
+		sb.add(line);
+		sb.addNewLine(Same);
+
+		generateInstanceFields(sb, cls.fields);
 	}
 
 	/**
@@ -445,7 +464,7 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Build classes code
 	 */
-	function buildClasses(sb:IndentStringBuilder, classes:Array<ClassInfo>) {
+	function buildClassesAndStructures(sb:IndentStringBuilder, classes:Array<ClassInfo>) {
 		if (types.classes.length > 0) {
 			sb.add("type ");
 			sb.addNewLine(Inc);
@@ -457,6 +476,10 @@ class NimGenerator extends BaseGenerator {
 					generateClassInfo(sb, c);
 				}
 			}
+		}
+
+		for (c in types.structures) {
+			generateStructureInfo(sb, c);
 		}
 
 		sb.addNewLine(None, true);
@@ -515,12 +538,12 @@ class NimGenerator extends BaseGenerator {
 
 		var sb = new IndentStringBuilder();
 
-		addLibraries(outPath);		
+		addLibraries(outPath);
 		addCodeHelpers(sb);
 
 		buildEnums(sb, types.enums);
 		buildInterfaces(sb);
-		buildClasses(sb, types.classes);
+		buildClassesAndStructures(sb, types.classes);
 
 		if (types.entryPoint != null) {
 			sb.addNewLine();
