@@ -48,9 +48,6 @@ template trace*(this:LogStatic, v:untyped, e:varargs[string, `$`]):void =
     write(stdout, e[0] & " " & e[1] & ": ")
     echo v
 
-template string*(this:StdStatic, v:untyped): string =
-    $v
-
 # String
 template length*(this:string) : int =
     len(this)

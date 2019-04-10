@@ -100,7 +100,7 @@ class TypeResolver {
 						generateTAbstract(sb, t.get(), params);
 					case TEnum(t, params):
 						generateTEnum(sb, t.get(), params);
-					case v:
+					case v:						
 						throw 'Unsupported paramter ${v}';
 				}
 			}
