@@ -66,13 +66,14 @@ https://github.com/RapidFingers/CraxeExamples
 - [x] Inheritance
 - [x] Interfaces
 - [x] BrainF**k benchmark
-- [ ] Type checking (operator is)
+- [ ] Basic externs implementation
+- [ ] Closures
 - [ ] Map/Dictionary
+- [ ] Auto import nimble libs
+- [ ] Extern for nim httpbeast
+- [ ] Example of async http server
+- [ ] Type checking (operator is)
 - [ ] Generics
 - [ ] GADT
 - [ ] Abstracts
-- [ ] Closures
-- [ ] Externs
 - [ ] Some kind of std lib
-- [ ] Extern for nim asynchttp or httpbeast
-- [ ] Example of async http server
