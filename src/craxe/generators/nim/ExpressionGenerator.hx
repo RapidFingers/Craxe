@@ -486,8 +486,8 @@ class ExpressionGenerator {
 		sb.addNewLine(Inc);
 		sb.add("proc(");
 
-		if (func.args.length > 0) {
-			var args = func.args.map(x -> x.v.name).join(", ");
+		if (func.args.length > 0) {			
+			var args = func.args.map(x -> '${x.v.name}:${typeResolver.resolve(x.v.t)}').join(", ");
 			sb.add(args);
 		}
 

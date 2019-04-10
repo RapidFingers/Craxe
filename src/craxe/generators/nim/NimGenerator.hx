@@ -307,7 +307,7 @@ class NimGenerator extends BaseGenerator {
 
 		var staticFields = cls.classType.statics.get();
 		if (staticFields.length > 0) {
-			var line = '${cls.classType.name}Static = ref object of RootObj';
+			var line = '${cls.classType.name}Static = object of RootObj';
 			sb.add(line);
 			sb.addNewLine(Same);
 			sb.addNewLine(Same, true);
