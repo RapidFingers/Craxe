@@ -129,6 +129,7 @@ class ExpressionGenerator {
 	 * Generate code for TBlock
 	 */
 	function generateTBlock(sb:IndentStringBuilder, expressions:Array<TypedExpr>) {
+		trace('TBlock[len: ${expressions.length}]');
 		if (expressions.length > 0) {
 			for (expr in expressions) {
 				generateTypedAstExpression(sb, expr.expr);
@@ -185,6 +186,9 @@ class ExpressionGenerator {
 				var name = c.get().name;
 				sb.add('new${name}${ef.name}');
 				sb.add("(");
+			case TField(e, fa):				
+				generateTCallTField(sb, e, fa);
+				sb.add("(");
 			case TConst(TSuper):
 				if (classContext.classType.superClass != null) {
 					var superCls = classContext.classType.superClass.t.get();
@@ -231,9 +235,9 @@ class ExpressionGenerator {
 	}
 
 	/**
-	 * Generate code for TField FStatic
+	 * Generate code for static field call
 	 */
-	function generateTFieldFStatic(sb:IndentStringBuilder, classType:ClassType, classField:ClassField) {
+	function generateTCallTFieldFStatic(sb:IndentStringBuilder, classType:ClassType, classField:ClassField) {
 		var className = "";
 		var isTop = classField.meta.has(":topFunction");
 
@@ -249,7 +253,9 @@ class ExpressionGenerator {
 		}
 
 		if (isTop) {
-			var topName = classField.meta.getMetaValue(":native");
+			var topName = classField.meta.getMetaValue(":native");			
+			if (topName == null)
+				topName = classField.name;
 			sb.add(topName);
 		} else {
 			sb.add('${className}.');
@@ -259,9 +265,9 @@ class ExpressionGenerator {
 	}
 
 	/**
-	 * Generate code for instance fields
+	 * Generate code for instance field call
 	 */
-	function generateTFieldFInstance(sb:IndentStringBuilder, classType:ClassType, params:Array<Type>, classField:ClassField) {
+	function generateTCallTFieldFInstance(sb:IndentStringBuilder, classType:ClassType, params:Array<Type>, classField:ClassField) {
 		var name:String = null;
 
 		if (classType.isExtern) {
@@ -285,21 +291,53 @@ class ExpressionGenerator {
 	}
 
 	/**
-	 * Generate code for TField
+	 * Generate code for static field referrence
+	 */
+	function generateTFieldFStatic(sb:IndentStringBuilder, classType:ClassType, classField:ClassField) {
+
+	}
+
+	/**
+	 * Generate field of object
 	 */
 	function generateTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {
+		trace(expression);
+
 		switch (expression.expr) {
 			case TTypeExpr(v):
-				trace(v);
 			case _:
 				generateTypedAstExpression(sb, expression.expr);
 		}
 
 		switch (access) {
 			case FInstance(c, params, cf):
-				generateTFieldFInstance(sb, c.get(), params, cf.get());
+				//generateTFieldInstance();
 			case FStatic(c, cf):
 				generateTFieldFStatic(sb, c.get(), cf.get());
+			case FAnon(cf):
+			case FDynamic(s):
+			case FClosure(c, cf):
+			case FEnum(e, ef):
+				throw 'Unsupported ${e}';
+		}
+	}
+
+	/**
+	 * Generate code for calling field
+	 */
+	function generateTCallTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {
+		trace(expression);
+		switch (expression.expr) {
+			case TTypeExpr(_):
+			case _:
+				generateTypedAstExpression(sb, expression.expr);
+		}
+
+		switch (access) {
+			case FInstance(c, params, cf):
+				generateTCallTFieldFInstance(sb, c.get(), params, cf.get());
+			case FStatic(c, cf):
+				generateTCallTFieldFStatic(sb, c.get(), cf.get());
 			case FAnon(cf):
 			case FDynamic(s):
 			case FClosure(c, cf):
@@ -325,6 +363,8 @@ class ExpressionGenerator {
 	 * Generate code for TVar
 	 */
 	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {
+		trace('TVar[name: ${vr.name}, expr: ${expr.expr.getName()}]');
+
 		sb.add("var ");
 
 		var name = typeResolver.getFixedTypeName(vr.name);
@@ -342,6 +382,7 @@ class ExpressionGenerator {
 	 * Generate code for TConstant
 	 */
 	function generateTConst(sb:IndentStringBuilder, con:TConstant) {
+		trace('${con.getName()}${con.getParameters()}');
 		switch (con) {
 			case TInt(i):
 				sb.add(Std.string(i));
@@ -483,15 +524,20 @@ class ExpressionGenerator {
 	 * Generate TFunction
 	 */
 	function generateTFunction(sb:IndentStringBuilder, func:TFunc) {
+		var args = "";
+		if (func.args.length > 0) {
+			args = func.args.map(x -> '${x.v.name}:${typeResolver.resolve(x.v.t)}').join(", ");
+		}
+		trace('TFunction[${args}]');
+
 		sb.addNewLine(Inc);
 		sb.add("proc(");
 
-		if (func.args.length > 0) {			
-			var args = func.args.map(x -> '${x.v.name}:${typeResolver.resolve(x.v.t)}').join(", ");
-			sb.add(args);
-		}
+		sb.add(args);
 
-		sb.add(") = ");
+		sb.add("):");
+		sb.add(typeResolver.resolve(func.t));
+		sb.add(" = ");
 		sb.addNewLine(Inc);
 
 		generateTypedAstExpression(sb, func.expr.expr);
@@ -505,9 +551,16 @@ class ExpressionGenerator {
 	 */
 	function generateTReturn(sb:IndentStringBuilder, expression:TypedExpr) {
 		if (expression == null || expression.expr == null) {
-			sb.add("discard");
+			trace("TReturn[void]");
+			sb.add("return");
 		} else {
-			sb.add("return ");
+			trace('TReturn[${expression.expr.getName()}]');
+			switch (expression.expr) {
+				case TBlock(_):
+				case _:
+					sb.add("return ");
+			}
+
 			generateTypedAstExpression(sb, expression.expr);
 		}
 	}
