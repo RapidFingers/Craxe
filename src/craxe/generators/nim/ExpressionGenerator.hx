@@ -129,7 +129,6 @@ class ExpressionGenerator {
 	 * Generate code for TBlock
 	 */
 	function generateTBlock(sb:IndentStringBuilder, expressions:Array<TypedExpr>) {
-		trace('TBlock[len: ${expressions.length}]');
 		if (expressions.length > 0) {
 			for (expr in expressions) {
 				generateTypedAstExpression(sb, expr.expr);
@@ -181,7 +180,6 @@ class ExpressionGenerator {
 	 * Generate code for TCall
 	 */
 	function generateTCall(sb:IndentStringBuilder, expression:TypedExpr, expressions:Array<TypedExpr>) {
-		trace(expression.pos);
 		switch (expression.expr) {
 			case TField(_, FEnum(c, ef)):
 				var name = c.get().name;
@@ -426,9 +424,7 @@ class ExpressionGenerator {
 	/**
 	 * Generate code for TVar
 	 */
-	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {
-		trace('TVar[name: ${vr.name}, expr: ${expr.expr.getName()}]');
-
+	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {		
 		sb.add("var ");
 
 		var name = typeResolver.getFixedTypeName(vr.name);
@@ -445,8 +441,7 @@ class ExpressionGenerator {
 	/**
 	 * Generate code for TConstant
 	 */
-	function generateTConst(sb:IndentStringBuilder, con:TConstant) {
-		trace('${con.getName()}${con.getParameters()}');
+	function generateTConst(sb:IndentStringBuilder, con:TConstant) {		
 		switch (con) {
 			case TInt(i):
 				sb.add(Std.string(i));
@@ -591,8 +586,7 @@ class ExpressionGenerator {
 		var args = "";
 		if (func.args.length > 0) {
 			args = func.args.map(x -> '${x.v.name}:${typeResolver.resolve(x.v.t)}').join(", ");
-		}
-		trace('TFunction[${args}]');
+		}		
 
 		sb.addNewLine(Inc);
 		sb.add("proc(");
@@ -614,13 +608,12 @@ class ExpressionGenerator {
 	 * Generate code for TReturn
 	 */
 	function generateTReturn(sb:IndentStringBuilder, expression:TypedExpr) {
-		if (expression == null || expression.expr == null) {
-			trace("TReturn[void]");
+		if (expression == null || expression.expr == null) {			
 			sb.add("return");
 		} else {
-			trace('TReturn[${expression.expr.getName()}]');
 			switch (expression.expr) {
 				case TBlock(_):
+				case TReturn(_):
 				case _:
 					sb.add("return ");
 			}
@@ -665,8 +658,7 @@ class ExpressionGenerator {
 	/**
 	 * Generate common expression
 	 */
-	function generateTypedAstExpression(sb:IndentStringBuilder, expr:TypedExprDef) {
-		trace(expr.getName());
+	function generateTypedAstExpression(sb:IndentStringBuilder, expr:TypedExprDef) {		
 		switch (expr) {
 			case TConst(c):
 				generateTConst(sb, c);

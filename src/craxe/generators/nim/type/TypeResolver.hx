@@ -120,7 +120,7 @@ class TypeResolver {
 	 */
 	function generateTFun(sb:StringBuf, args:Array<ArgumentInfo>, ret:Type) {
 		sb.add("proc(");
-		sb.add(args.map(x-> resolve(x.t)).join(", "));
+		sb.add(args.map(x-> '${x.name}:${resolve(x.t)}').join(", "));
 		sb.add("):");
 		sb.add(resolve(ret));
 	}
