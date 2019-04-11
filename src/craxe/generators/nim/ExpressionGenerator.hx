@@ -181,12 +181,13 @@ class ExpressionGenerator {
 	 * Generate code for TCall
 	 */
 	function generateTCall(sb:IndentStringBuilder, expression:TypedExpr, expressions:Array<TypedExpr>) {
+		trace(expression.pos);
 		switch (expression.expr) {
 			case TField(_, FEnum(c, ef)):
 				var name = c.get().name;
 				sb.add('new${name}${ef.name}');
 				sb.add("(");
-			case TField(e, fa):				
+			case TField(e, fa):
 				generateTCallTField(sb, e, fa);
 				sb.add("(");
 			case TConst(TSuper):
@@ -235,74 +236,141 @@ class ExpressionGenerator {
 	}
 
 	/**
-	 * Generate code for static field call
+	 * Return proper type name and it's field
 	 */
-	function generateTCallTFieldFStatic(sb:IndentStringBuilder, classType:ClassType, classField:ClassField) {
+	function getStaticTFieldData(classType:ClassType, classField:ClassField):{
+		isTop:Bool,
+		className:String,
+		fieldName:String,
+		totalName:String
+	} {
 		var className = "";
-		var isTop = classField.meta.has(":topFunction");
+		var isTop = false;
 
 		if (classType.isExtern) {
+			isTop = classField.meta.has(":topFunction");
 			className = classType.meta.getMetaValue(":native");
 			// Check it's top function
-			if (className == null)
-				className = classType.name;
+			if (className == null) {
+				// TODO: make it better. Maybe getSystemFieldTotalName(classType, classField) ?
+				if (classType.module.indexOf("sys.io.") > -1) {
+					className = '${classType.name}StaticInst';
+				} else {
+					className = classType.name;
+				}
+			}
 		} else {
 			typeResolver.getFixedTypeName(classType.name);
 			var name = typeResolver.getFixedTypeName(classType.name);
 			className = '${name}StaticInst';
 		}
 
+		var fieldName = classField.name;
+
 		if (isTop) {
-			var topName = classField.meta.getMetaValue(":native");			
-			if (topName == null)
-				topName = classField.name;
-			sb.add(topName);
-		} else {
-			sb.add('${className}.');
-			var fieldName = classField.name;
-			sb.add(fieldName);
+			var topName = classField.meta.getMetaValue(":native");
+			if (topName != null)
+				fieldName = topName;
 		}
+
+		var totalName = if (isTop) {
+			fieldName;
+		} else {
+			'${className}.${fieldName}';
+		}
+
+		if (totalName == "Std.string")
+			totalName = "$";
+
+		return {
+			isTop: isTop,
+			className: className,
+			fieldName: fieldName,
+			totalName: totalName
+		}
+	}
+
+	/**
+	 * Get instance field data
+	 */
+	function getInstanceTFieldData(classType:ClassType, params:Array<Type>, classField:ClassField):{
+		className:String,
+		fieldName:String,
+		totalName:String
+	} {
+		var fieldName:String = null;
+		var className = typeResolver.getFixedTypeName(classType.name);
+
+		if (classType.isExtern) {
+			fieldName = classField.meta.getMetaValue(":native");
+		}
+
+		if (fieldName == null)
+			fieldName = typeResolver.getFixedTypeName(classField.name);
+
+		if (classType.isInterface) {
+			switch (classField.kind) {
+				case FVar(_, _):
+					fieldName = '${fieldName}[]';
+				case FMethod(_):
+			}
+		}
+
+		return {
+			className: className,
+			fieldName: fieldName,
+			totalName: '${className}.${fieldName}'
+		}
+	}
+
+	/**
+	 * Generate code for static field call
+	 */
+	function generateTCallTFieldFStatic(sb:IndentStringBuilder, classType:ClassType, classField:ClassField) {
+		var fieldData = getStaticTFieldData(classType, classField);		
+		sb.add(fieldData.totalName);
 	}
 
 	/**
 	 * Generate code for instance field call
 	 */
 	function generateTCallTFieldFInstance(sb:IndentStringBuilder, classType:ClassType, params:Array<Type>, classField:ClassField) {
-		var name:String = null;
-
-		if (classType.isExtern) {
-			name = classField.meta.getMetaValue(":native");
-		}
-
-		if (name == null)
-			name = typeResolver.getFixedTypeName(classField.name);
+		var fieldData = getInstanceTFieldData(classType, params, classField);
 
 		sb.add(".");
-		if (classType.isInterface) {
-			switch (classField.kind) {
-				case FVar(_, _):
-					sb.add('${name}[]');
-				case FMethod(_):
-					sb.add(name);
-			}
-		} else {
-			sb.add(name);
-		}
+		sb.add(fieldData.fieldName);
+	}
+
+	/**
+	 * Generate code for instance field referrence
+	 */
+	function generateTFieldFInstance(sb:IndentStringBuilder, classType:ClassType, params:Array<Type>, classField:ClassField) {
+		var fieldData = getInstanceTFieldData(classType, params, classField);
+
+		sb.add(".");
+		sb.add(fieldData.fieldName);
 	}
 
 	/**
 	 * Generate code for static field referrence
 	 */
 	function generateTFieldFStatic(sb:IndentStringBuilder, classType:ClassType, classField:ClassField) {
+		var fieldData = getStaticTFieldData(classType, classField);
+		switch (classField.type) {
+			case TFun(_, _):
+				sb.add(typeResolver.resolve(classField.type));
+				sb.add("=");
+			case v:
+				throw 'Unsupported ${v}';
+		}
 
+		sb.add(fieldData.totalName);
 	}
 
 	/**
 	 * Generate field of object
 	 */
 	function generateTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {
-		trace(expression);
-
 		switch (expression.expr) {
 			case TTypeExpr(v):
 			case _:
@@ -311,14 +379,15 @@ class ExpressionGenerator {
 
 		switch (access) {
 			case FInstance(c, params, cf):
-				//generateTFieldInstance();
+				generateTFieldFInstance(sb, c.get(), params, cf.get());
 			case FStatic(c, cf):
 				generateTFieldFStatic(sb, c.get(), cf.get());
 			case FAnon(cf):
 			case FDynamic(s):
 			case FClosure(c, cf):
 			case FEnum(e, ef):
-				throw 'Unsupported ${e}';
+				var name = typeResolver.getFixedTypeName(e.get().name);
+				sb.add('new${name}${ef.name}()');
 		}
 	}
 
@@ -326,7 +395,6 @@ class ExpressionGenerator {
 	 * Generate code for calling field
 	 */
 	function generateTCallTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {
-		trace(expression);
 		switch (expression.expr) {
 			case TTypeExpr(_):
 			case _:
@@ -338,12 +406,8 @@ class ExpressionGenerator {
 				generateTCallTFieldFInstance(sb, c.get(), params, cf.get());
 			case FStatic(c, cf):
 				generateTCallTFieldFStatic(sb, c.get(), cf.get());
-			case FAnon(cf):
-			case FDynamic(s):
-			case FClosure(c, cf):
-			case FEnum(e, ef):
-				var name = typeResolver.getFixedTypeName(e.get().name);
-				sb.add('new${name}${ef.name}()');
+			case v:
+				throw 'Unsupported ${v}';
 		}
 	}
 
