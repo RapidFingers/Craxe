@@ -39,9 +39,14 @@ class ExpressionGenerator {
 	var classContext:ClassInfo;
 
 	/**
+	 * Was var declaration
+	 */
+	var wasVar = false;
+
+	/**
 	 * Trace expression for debug
 	 */
-	function traceExpression(expr:TypedExpr) {		
+	function traceExpression(expr:TypedExpr) {
 		trace(expr.pos);
 		switch (expr.expr) {
 			case TConst(c):
@@ -59,17 +64,17 @@ class ExpressionGenerator {
 			case TObjectDecl(fields):
 			case TArrayDecl(el):
 			case TCall(e, el):
-				trace('TCall[expr: ${e.expr.getName()}, elements: ${el.map(x->x.expr.getName()).join(", ")}]');
+				trace('TCall[expr: ${e.expr.getName()}, elements: ${el.map(x -> x.expr.getName()).join(", ")}]');
 			case TNew(c, params, el):
-				trace('TNew[name: ${c.get().name}, params: ${params.map(x->x.getName()).join(", ")}, elements: ${el.map(x->x.expr.getName()).join(", ")}]');
+				trace('TNew[name: ${c.get().name}, params: ${params.map(x -> x.getName()).join(", ")}, elements: ${el.map(x -> x.expr.getName()).join(", ")}]');
 			case TUnop(op, postFix, e):
 				trace('TUnop[name: ${op.getName()}, postFix: ${postFix}, expr: ${e.expr.getName()}]');
 			case TFunction(tfunc):
-				trace('TFunction[args: ${tfunc.args.map(x->x.v.name).join(", ")}, ret: ${tfunc.t.getName()}, expr: ${tfunc.expr.expr.getName()}]');
+				trace('TFunction[args: ${tfunc.args.map(x -> x.v.name).join(", ")}, ret: ${tfunc.t.getName()}, expr: ${tfunc.expr.expr.getName()}]');
 			case TVar(v, expr):
 				trace('TVar[name: ${v.name}, expr: ${expr.expr.getName()}]');
 			case TBlock(el):
-				trace('TBlock[elements: ${el.map(x->x.expr.getName()).join(", ")}]');
+				trace('TBlock[elements: ${el.map(x -> x.expr.getName()).join(", ")}]');
 			case TFor(v, e1, e2):
 				trace('TFor[name: ${v.name}, e1: ${e1.expr.getName()}, e2: ${e2.expr.getName()}]');
 			case TIf(econd, eif, eelse):
@@ -100,7 +105,7 @@ class ExpressionGenerator {
 			case TCast(e, m):
 				trace('TCast[expr: ${e.expr.getName()}, type: ${m.getName()}]');
 			case TMeta(m, e1):
-				trace('TMeta[name: ${m.name}, params: ${m.params.map(x->x.expr.getName()).join(", ")}, expr: ${e1.expr.getName()}]');
+				trace('TMeta[name: ${m.name}, params: ${m.params.map(x -> x.expr.getName()).join(", ")}, expr: ${e1.expr.getName()}]');
 			case TEnumParameter(e1, ef, index):
 				trace('TEnumParameter[expr: ${e1.expr.getName()}, field: ${ef.name}, index: ${index}]');
 			case TEnumIndex(e1):
@@ -194,7 +199,6 @@ class ExpressionGenerator {
 			}
 			ifname = "elif ";
 		}
-		// generateAstExpression(sb, expression);
 	}
 
 	/**
@@ -258,6 +262,33 @@ class ExpressionGenerator {
 				sb.add('new${name}${ef.name}');
 				sb.add("(");
 			case TField(e, fa):
+				var cfield:ClassField = null;
+				switch (fa) {
+					case FInstance(c, params, cf):
+						cfield = cf.get();
+					case FStatic(c, cf):
+						cfield = cf.get();
+					case _:
+				}
+
+				var hasReturn = false;
+				switch (cfield.type) {
+					case TFun(args, ret):
+						trace(ret);
+						switch (ret) {
+							case TInst(t, _):
+								hasReturn = true;
+							case TAbstract(t, _):
+								if (t.get().name != "Void")
+									hasReturn = true;
+							case _:
+						}
+					case _:
+				}
+
+				if (!wasVar && hasReturn)
+					sb.add('discard ');
+
 				generateTCallTField(sb, e, fa);
 				sb.add("(");
 			case TConst(TSuper):
@@ -279,6 +310,8 @@ class ExpressionGenerator {
 		}
 
 		sb.add(")");
+
+		wasVar = false;
 	}
 
 	/**
@@ -397,7 +430,7 @@ class ExpressionGenerator {
 	 * Generate code for static field call
 	 */
 	function generateTCallTFieldFStatic(sb:IndentStringBuilder, classType:ClassType, classField:ClassField) {
-		var fieldData = getStaticTFieldData(classType, classField);		
+		var fieldData = getStaticTFieldData(classType, classField);
 		sb.add(fieldData.totalName);
 	}
 
@@ -496,7 +529,7 @@ class ExpressionGenerator {
 	/**
 	 * Generate code for TVar
 	 */
-	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {		
+	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {
 		sb.add("var ");
 
 		var name = typeResolver.getFixedTypeName(vr.name);
@@ -505,6 +538,7 @@ class ExpressionGenerator {
 		if (expr != null) {
 			sb.add(" = ");
 
+			wasVar = true;
 			if (!generateCustomEnumParameterCall(sb, expr.expr))
 				generateTypedAstExpression(sb, expr);
 		}
@@ -513,7 +547,7 @@ class ExpressionGenerator {
 	/**
 	 * Generate code for TConstant
 	 */
-	function generateTConst(sb:IndentStringBuilder, con:TConstant) {		
+	function generateTConst(sb:IndentStringBuilder, con:TConstant) {
 		switch (con) {
 			case TInt(i):
 				sb.add(Std.string(i));
@@ -658,7 +692,7 @@ class ExpressionGenerator {
 		var args = "";
 		if (func.args.length > 0) {
 			args = func.args.map(x -> '${x.v.name}:${typeResolver.resolve(x.v.t)}').join(", ");
-		}		
+		}
 
 		sb.addNewLine(Inc);
 		sb.add("proc(");
@@ -680,7 +714,7 @@ class ExpressionGenerator {
 	 * Generate code for TReturn
 	 */
 	function generateTReturn(sb:IndentStringBuilder, expression:TypedExpr) {
-		if (expression == null || expression.expr == null) {			
+		if (expression == null || expression.expr == null) {
 			sb.add("return");
 		} else {
 			switch (expression.expr) {
@@ -730,10 +764,10 @@ class ExpressionGenerator {
 	/**
 	 * Generate common expression
 	 */
-	function generateTypedAstExpression(sb:IndentStringBuilder, expr:TypedExpr) {		
-		//#if debug_gen
+	function generateTypedAstExpression(sb:IndentStringBuilder, expr:TypedExpr) {
+		#if debug_gen
 		traceExpression(expr);
-		//#end
+		#end
 		switch (expr.expr) {
 			case TConst(c):
 				generateTConst(sb, c);
