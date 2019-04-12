@@ -27,17 +27,22 @@ class Generator {
 
 		var processed = preprocessor.process(types);
 
-		Log.trace = (v:Dynamic, ?infos:PosInfos) -> {			
+		Log.trace = (v:Dynamic, ?infos:PosInfos) -> {
 			#if debug_gen
-				var str = Log.formatOutput(v, infos);
-				Sys.println(str);
+			var str = Std.string(v);
+			if (infos == null)
+				return;
+			var items = infos.className.split(".");
+			var pstr = items[items.length - 1] + ":" + infos.lineNumber;
+			var rest = pstr + " " + str;
+			Sys.println(rest);
 			#end
 		};
 
 		#if nim
 		builder = new craxe.generators.nim.NimGenerator(processed);
 		compiler = new craxe.generators.nim.NimCompiler();
-		#end		
+		#end
 
 		if (builder == null)
 			throw "Not supported builder type";

@@ -358,7 +358,7 @@ class NimGenerator extends BaseGenerator {
 	function generateMethodBody(sb:IndentStringBuilder, expression:TypedExprDef) {
 		switch (expression) {
 			case TFunction(tfunc):
-				expressionGenerator.generate(sb, tfunc.expr.expr);
+				expressionGenerator.generate(sb, tfunc.expr);
 			case v:
 				throw 'Unsupported paramter ${v}';
 		}

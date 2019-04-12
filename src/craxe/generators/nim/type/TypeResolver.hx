@@ -116,6 +116,16 @@ class TypeResolver {
 	}
 
 	/**
+	 * Generate TFun	 
+	 */
+	function generateTFun(sb:StringBuf, args:Array<ArgumentInfo>, ret:Type) {
+		sb.add("proc(");
+		sb.add(args.map(x-> '${x.name}:${resolve(x.t)}').join(", "));
+		sb.add("):");
+		sb.add(resolve(ret));
+	}
+
+	/**
 	 * Constructor
 	 */
 	public function new(context:TypeContext) {
@@ -183,6 +193,8 @@ class TypeResolver {
 				generateTAbstract(sb, t.get(), params);
 			case TType(t, params):
 				generateTType(sb, t.get(), params);
+			case TFun(args, ret):
+				generateTFun(sb, args, ret);
 			case v:
 				throw 'Unsupported type ${v}';
 		}
