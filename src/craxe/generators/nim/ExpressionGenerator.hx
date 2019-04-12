@@ -45,19 +45,23 @@ class ExpressionGenerator {
 		trace(expr.pos);
 		switch (expr.expr) {
 			case TConst(c):
-				trace(c);
+				trace('TConst[${c}]');
 			case TLocal(v):
-				trace('TLocal[${v.name}]');
+				trace('TLocal[name: ${v.name}]');
 			case TArray(e1, e2):
 			case TBinop(op, e1, e2):
+				trace('TBinop[name: ${op.getName()}, expr1: ${e1.expr.getName()}, expr2: ${e2.expr.getName()}]');
 			case TField(e, fa):
-				trace('TField[${e.t.getName()}]');
+				trace('TField[name: ${e.t.getName()}${e.t.getParameters()}, access: ${fa.getName()}${fa.getParameters()}]');
 			case TTypeExpr(m):
 			case TParenthesis(e):
+				trace('TParenthesis: ${e.expr.getName()}');
 			case TObjectDecl(fields):
 			case TArrayDecl(el):
 			case TCall(e, el):
+				trace('TCall[expr: ${e.expr.getName()}, elements: ${el.map(x->x.expr.getName()).join(", ")}]');
 			case TNew(c, params, el):
+				trace('TNew[name: ${c.get().name}, params: ${params.map(x->x.getName()).join(", ")}, elements: ${el.map(x->x.expr.getName()).join(", ")}]');
 			case TUnop(op, postFix, e):
 			case TFunction(tfunc):
 			case TVar(v, expr):
