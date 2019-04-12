@@ -73,15 +73,24 @@ class ExpressionGenerator {
 			case TFor(v, e1, e2):
 				trace('TFor[name: ${v.name}, e1: ${e1.expr.getName()}, e2: ${e2.expr.getName()}]');
 			case TIf(econd, eif, eelse):
-				trace('TWhile[econd: ${econd.expr.getName()}, eif: ${eif.expr.getName()}, eelse: ${eelse.expr.getName()}]');
+				var seelse = if (eelse != null) {
+					eelse.expr.getName();
+				} else "";
+				trace('TWhile[econd: ${econd.expr.getName()}, eif: ${eif.expr.getName()}, eelse: ${seelse}]');
 			case TWhile(econd, e, normalWhile):
 				trace('TWhile[econd: ${econd.expr.getName()}, expr: ${e.expr.getName()}, normal: ${normalWhile}]');
 			case TSwitch(e, cases, edef):
-				trace('TSwitch[expr: ${e.expr.getName()}, cases: ${cases}, edef: ${edef.expr.getName()}]');
+				var sedef = if (edef != null) {
+					edef.expr.getName();
+				} else "";
+				trace('TSwitch[expr: ${e.expr.getName()}, cases: ${cases}, edef: ${sedef}]');
 			case TTry(e, catches):
 				trace('TTry[expr: ${e.expr.getName()}, catches: ${catches}}]');
 			case TReturn(e):
-				trace('TReturn[expr: ${e.expr.getName()}]');
+				var exp = if (e != null) {
+					e.expr.getName();
+				} else "";
+				trace('TReturn[expr: ${exp}]');
 			case TBreak:
 				trace('TBreak');
 			case TContinue:
