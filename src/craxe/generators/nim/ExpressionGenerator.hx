@@ -63,23 +63,41 @@ class ExpressionGenerator {
 			case TNew(c, params, el):
 				trace('TNew[name: ${c.get().name}, params: ${params.map(x->x.getName()).join(", ")}, elements: ${el.map(x->x.expr.getName()).join(", ")}]');
 			case TUnop(op, postFix, e):
+				trace('TUnop[name: ${op.getName()}, postFix: ${postFix}, expr: ${e.expr.getName()}]');
 			case TFunction(tfunc):
+				trace('TFunction[args: ${tfunc.args.map(x->x.v.name).join(", ")}, ret: ${tfunc.t.getName()}, expr: ${tfunc.expr.expr.getName()}]');
 			case TVar(v, expr):
+				trace('TVar[name: ${v.name}, expr: ${expr.expr.getName()}]');
 			case TBlock(el):
+				trace('TBlock[elements: ${el.map(x->x.expr.getName()).join(", ")}]');
 			case TFor(v, e1, e2):
+				trace('TFor[name: ${v.name}, e1: ${e1.expr.getName()}, e2: ${e2.expr.getName()}]');
 			case TIf(econd, eif, eelse):
+				trace('TWhile[econd: ${econd.expr.getName()}, eif: ${eif.expr.getName()}, eelse: ${eelse.expr.getName()}]');
 			case TWhile(econd, e, normalWhile):
+				trace('TWhile[econd: ${econd.expr.getName()}, expr: ${e.expr.getName()}, normal: ${normalWhile}]');
 			case TSwitch(e, cases, edef):
+				trace('TSwitch[expr: ${e.expr.getName()}, cases: ${cases}, edef: ${edef.expr.getName()}]');
 			case TTry(e, catches):
+				trace('TTry[expr: ${e.expr.getName()}, catches: ${catches}}]');
 			case TReturn(e):
+				trace('TReturn[expr: ${e.expr.getName()}]');
 			case TBreak:
+				trace('TBreak');
 			case TContinue:
+				trace('TContinue');
 			case TThrow(e):
+				trace('TThrow[expr: ${e.expr.getName()}]');
 			case TCast(e, m):
+				trace('TCast[expr: ${e.expr.getName()}, type: ${m.getName()}]');
 			case TMeta(m, e1):
+				trace('TMeta[name: ${m.name}, params: ${m.params.map(x->x.expr.getName()).join(", ")}, expr: ${e1.expr.getName()}]');
 			case TEnumParameter(e1, ef, index):
+				trace('TEnumParameter[expr: ${e1.expr.getName()}, field: ${ef.name}, index: ${index}]');
 			case TEnumIndex(e1):
+				trace('TEnumIndex[expr: ${e1.expr.getName()}]');
 			case TIdent(s):
+				trace('TIdent[${s}]');
 		}
 	}
 
