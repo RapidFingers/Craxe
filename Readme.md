@@ -37,6 +37,9 @@ Because.
     - while
     - if
     - switch
+* Closures
+* Externs
+* Basic file reading by File.getContent
 * Stdin output by trace
 
 ## How to use it
@@ -66,8 +69,8 @@ https://github.com/RapidFingers/CraxeExamples
 - [x] Inheritance
 - [x] Interfaces
 - [x] BrainF**k benchmark
-- [ ] Basic externs implementation
-- [ ] Closures
+- [x] Basic externs implementation
+- [x] Closures
 - [ ] Map/Dictionary
 - [ ] Auto import nimble libs
 - [ ] Extern for nim httpbeast
