@@ -355,13 +355,8 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Generate method body
 	 */
-	function generateMethodBody(sb:IndentStringBuilder, expression:TypedExprDef) {
-		switch (expression) {
-			case TFunction(tfunc):
-				expressionGenerator.generate(sb, tfunc.expr);
-			case v:
-				throw 'Unsupported paramter ${v}';
-		}
+	function generateMethodBody(sb:IndentStringBuilder, expression:TypedExpr) {
+		expressionGenerator.generateMethodBody(sb, expression);
 
 		sb.addNewLine();
 		sb.addNewLine(None, true);
@@ -373,8 +368,9 @@ class NimGenerator extends BaseGenerator {
 	function generateClassConstructor(sb:IndentStringBuilder, cls:ClassInfo) {
 		if (cls.classType.constructor == null)
 			return;
-
+				
 		expressionGenerator.setClassContext(cls);
+
 		var constructor = cls.classType.constructor.get();
 		var className = cls.classType.name;
 		var superName:String = null;
@@ -389,7 +385,7 @@ class NimGenerator extends BaseGenerator {
 
 		switch (constructor.type) {
 			case TFun(args, _):
-				var constrExp = constructor.expr().expr;
+				var constrExp = constructor.expr();
 
 				// Generate init proc for haxe "super(params)"
 				sb.add('proc init${className}(this:${className}');
@@ -439,7 +435,7 @@ class NimGenerator extends BaseGenerator {
 				sb.add(" =");
 				sb.addNewLine(Inc);
 
-				generateMethodBody(sb, method.expr().expr);
+				generateMethodBody(sb, method.expr());
 			case v:
 				throw 'Unsupported paramter ${v}';
 		}

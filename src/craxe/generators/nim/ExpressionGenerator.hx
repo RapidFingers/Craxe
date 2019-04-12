@@ -39,14 +39,9 @@ class ExpressionGenerator {
 	var classContext:ClassInfo;
 
 	/**
-	 * Was var declaration
-	 */
-	var wasVar = false;
-
-	/**
 	 * Trace expression for debug
 	 */
-	function traceExpression(expr:TypedExpr) {
+	function traceExpressionInternal(expr:TypedExpr) {
 		trace(expr.pos);
 		switch (expr.expr) {
 			case TConst(c):
@@ -116,226 +111,19 @@ class ExpressionGenerator {
 	}
 
 	/**
+	 * Trace expression
+	 */
+	inline function traceExpression(expr:TypedExpr) {
+		#if debug_gen
+		traceExpressionInternal(expr);
+		#end
+	}
+
+	/**
 	 * Fix local var name
 	 */
 	inline function fixLocalVarName(name:String):String {
 		return name.replace("_", "loc");
-	}
-
-	/**
-	 * Generate custom code for getting enum values
-	 * cast[EnumType](enum).value
-	 * TODO: minimize casts
-	 * Return true if it was processed
-	 */
-	function generateCustomEnumParameterCall(sb:IndentStringBuilder, expr:TypedExprDef):Bool {
-		// Cast enum
-		switch (expr) {
-			case TEnumParameter(e1, ef, _):
-				switch (e1.expr) {
-					case TLocal(v):
-						switch (v.t) {
-							case TEnum(t, _):
-								var enumName = t.get().name;
-								var en = context.getEnumByName(enumName);
-								var instName = en.enumType.names[ef.index];
-								sb.add('cast[${enumName}${instName}](');
-								sb.add(v.name);
-								sb.add(')');
-								switch (ef.type) {
-									case TFun(args, _):
-										sb.add('.${args[0].name}');
-									case v:
-										var resolved = typeResolver.resolve(v);
-										sb.add(resolved);
-								}
-								return true;
-							default:
-						}
-					default:
-				}
-			default:
-		}
-
-		return false;
-	}
-
-	/**
-	 * Generate code for access Bytes data
-	 * Fixes inline access to seq[byte]	of HaxeBytes
-	 */
-	function generateCustomBytesAccess(sb:IndentStringBuilder, expression:TypedExprDef) {
-		switch expression {
-			case TField(e, _):
-				switch (e.t) {
-					case TInst(t, _):
-						if (t.get().name == "Bytes") {
-							generateTypedAstExpression(sb, e);
-							return true;
-						}
-					default:
-				}
-			default:
-		}
-
-		return false;
-	}
-
-	/**
-	 * Generate code for ESwitch
-	 */
-	function generateTSwitch(sb:IndentStringBuilder, expression:TypedExpr, cases:Array<{values:Array<TypedExpr>, expr:TypedExpr}>, edef:TypedExpr) {
-		var ifname = "if ";
-		for (cs in cases) {
-			for (val in cs.values) {
-				sb.add(ifname);
-				generateTypedAstExpression(sb, expression);
-				sb.add(" == ");
-				generateTypedAstExpression(sb, val);
-				sb.add(":");
-				sb.addNewLine(Inc);
-				generateTypedAstExpression(sb, cs.expr);
-				sb.addNewLine(Dec);
-			}
-			ifname = "elif ";
-		}
-	}
-
-	/**
-	 * Generate code for TBlock
-	 */
-	function generateTBlock(sb:IndentStringBuilder, expressions:Array<TypedExpr>) {
-		if (expressions.length > 0) {
-			for (expr in expressions) {
-				generateTypedAstExpression(sb, expr);
-				sb.addNewLine(Same);
-			}
-		} else {
-			sb.add("discard");
-		}
-	}
-
-	/**
-	 * Generate code for TIf
-	 */
-	function geterateTIf(sb:IndentStringBuilder, econd:TypedExpr, eif:TypedExpr, eelse:TypedExpr) {
-		sb.add("if ");
-		generateTypedAstExpression(sb, econd);
-		sb.add(":");
-		sb.addNewLine(Inc);
-
-		generateTypedAstExpression(sb, eif);
-		if (eelse != null) {
-			switch (eelse.expr) {
-				case TBlock(el):
-					if (el.length > 0) {
-						sb.addNewLine(Dec);
-						sb.add("else:");
-						generateTypedAstExpression(sb, eelse);
-					}
-				case _:
-					throw "Unsupported expression";
-			}
-		}
-		sb.addNewLine(Dec);
-	}
-
-	/**
-	 * Generate code for TWhile
-	 */
-	function generateTWhile(sb:IndentStringBuilder, econd:TypedExpr, whileExpression:TypedExpr, isNormal:Bool) {
-		sb.add("while ");
-		generateTypedAstExpression(sb, econd);
-		sb.add(":");
-		sb.addNewLine(Inc);
-		generateTypedAstExpression(sb, whileExpression);
-		sb.addNewLine(Dec, true);
-	}
-
-	/**
-	 * Generate code for TCall
-	 */
-	function generateTCall(sb:IndentStringBuilder, expression:TypedExpr, expressions:Array<TypedExpr>) {
-		switch (expression.expr) {
-			case TField(_, FEnum(c, ef)):
-				var name = c.get().name;
-				sb.add('new${name}${ef.name}');
-				sb.add("(");
-			case TField(e, fa):
-				var cfield:ClassField = null;
-				switch (fa) {
-					case FInstance(c, params, cf):
-						cfield = cf.get();
-					case FStatic(c, cf):
-						cfield = cf.get();
-					case _:
-				}
-
-				var hasReturn = false;
-				switch (cfield.type) {
-					case TFun(args, ret):
-						trace(ret);
-						switch (ret) {
-							case TInst(t, _):
-								hasReturn = true;
-							case TAbstract(t, _):
-								if (t.get().name != "Void")
-									hasReturn = true;
-							case _:
-						}
-					case _:
-				}
-
-				if (!wasVar && hasReturn)
-					sb.add('discard ');
-
-				generateTCallTField(sb, e, fa);
-				sb.add("(");
-			case TConst(TSuper):
-				if (classContext.classType.superClass != null) {
-					var superCls = classContext.classType.superClass.t.get();
-					var superName = superCls.name;
-					sb.add('init${superName}(this, ');
-				}
-			case _:
-				generateTypedAstExpression(sb, expression);
-				sb.add("(");
-		}
-
-		for (i in 0...expressions.length) {
-			var expr = expressions[i];
-			generateTypedAstExpression(sb, expr);
-			if (i + 1 < expressions.length)
-				sb.add(", ");
-		}
-
-		sb.add(")");
-
-		wasVar = false;
-	}
-
-	/**
-	 * Generate code for TNew
-	 */
-	function generateTNew(sb:IndentStringBuilder, classType:ClassType, params:Array<Type>, elements:Array<TypedExpr>) {
-		var typeName = typeResolver.getFixedTypeName(classType.name);
-		var typeParams = typeResolver.resolveParameters(params);
-
-		var varTypeName = if (classType.isExtern && classType.superClass != null && classType.superClass.t.get().name == "Distinct") {
-			typeName;
-		} else {
-			'new${typeName}${typeParams}';
-		}
-
-		sb.add(varTypeName);
-		sb.add("(");
-		for (i in 0...elements.length) {
-			var expr = elements[i];
-			generateTypedAstExpression(sb, expr);
-			if (i + 1 < elements.length)
-				sb.add(", ");
-		}
-		sb.add(")");
 	}
 
 	/**
@@ -427,124 +215,6 @@ class ExpressionGenerator {
 	}
 
 	/**
-	 * Generate code for static field call
-	 */
-	function generateTCallTFieldFStatic(sb:IndentStringBuilder, classType:ClassType, classField:ClassField) {
-		var fieldData = getStaticTFieldData(classType, classField);
-		sb.add(fieldData.totalName);
-	}
-
-	/**
-	 * Generate code for instance field call
-	 */
-	function generateTCallTFieldFInstance(sb:IndentStringBuilder, classType:ClassType, params:Array<Type>, classField:ClassField) {
-		var fieldData = getInstanceTFieldData(classType, params, classField);
-
-		sb.add(".");
-		sb.add(fieldData.fieldName);
-	}
-
-	/**
-	 * Generate code for instance field referrence
-	 */
-	function generateTFieldFInstance(sb:IndentStringBuilder, classType:ClassType, params:Array<Type>, classField:ClassField) {
-		var fieldData = getInstanceTFieldData(classType, params, classField);
-
-		sb.add(".");
-		sb.add(fieldData.fieldName);
-	}
-
-	/**
-	 * Generate code for static field referrence
-	 */
-	function generateTFieldFStatic(sb:IndentStringBuilder, classType:ClassType, classField:ClassField) {
-		var fieldData = getStaticTFieldData(classType, classField);
-		switch (classField.type) {
-			case TFun(_, _):
-				sb.add(typeResolver.resolve(classField.type));
-				sb.add("=");
-			case v:
-				throw 'Unsupported ${v}';
-		}
-
-		sb.add(fieldData.totalName);
-	}
-
-	/**
-	 * Generate field of object
-	 */
-	function generateTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {
-		switch (expression.expr) {
-			case TTypeExpr(v):
-			case _:
-				generateTypedAstExpression(sb, expression);
-		}
-
-		switch (access) {
-			case FInstance(c, params, cf):
-				generateTFieldFInstance(sb, c.get(), params, cf.get());
-			case FStatic(c, cf):
-				generateTFieldFStatic(sb, c.get(), cf.get());
-			case FAnon(cf):
-			case FDynamic(s):
-			case FClosure(c, cf):
-			case FEnum(e, ef):
-				var name = typeResolver.getFixedTypeName(e.get().name);
-				sb.add('new${name}${ef.name}()');
-		}
-	}
-
-	/**
-	 * Generate code for calling field
-	 */
-	function generateTCallTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {
-		switch (expression.expr) {
-			case TTypeExpr(_):
-			case _:
-				generateTypedAstExpression(sb, expression);
-		}
-
-		switch (access) {
-			case FInstance(c, params, cf):
-				generateTCallTFieldFInstance(sb, c.get(), params, cf.get());
-			case FStatic(c, cf):
-				generateTCallTFieldFStatic(sb, c.get(), cf.get());
-			case v:
-				throw 'Unsupported ${v}';
-		}
-	}
-
-	/**
-	 * Generate code for TTypeExpr
-	 */
-	function generateTTypeExpr(sb:IndentStringBuilder, module:ModuleType) {
-		switch module {
-			case TClassDecl(c):
-				sb.add(c.toString());
-			case v:
-				throw 'Unsupported simple type ${v}';
-		}
-	}
-
-	/**
-	 * Generate code for TVar
-	 */
-	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {
-		sb.add("var ");
-
-		var name = typeResolver.getFixedTypeName(vr.name);
-		name = fixLocalVarName(name);
-		sb.add(name);
-		if (expr != null) {
-			sb.add(" = ");
-
-			wasVar = true;
-			if (!generateCustomEnumParameterCall(sb, expr.expr))
-				generateTypedAstExpression(sb, expr);
-		}
-	}
-
-	/**
 	 * Generate code for TConstant
 	 */
 	function generateTConst(sb:IndentStringBuilder, con:TConstant) {
@@ -567,6 +237,65 @@ class ExpressionGenerator {
 	}
 
 	/**
+	 * Generate code for TVar
+	 */
+	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {
+		sb.add("var ");
+
+		var name = typeResolver.getFixedTypeName(vr.name);
+		name = fixLocalVarName(name);
+		sb.add(name);
+		if (expr != null) {
+			sb.add(" = ");
+
+			switch expr.expr {
+				case TNew(c, params, el):
+					generateTNew(sb, c.get(), params, el);
+				case TConst(c):
+					generateTConst(sb, c);
+				case v:
+					throw 'Unsupported ${v}';
+					// case TCall(e, el):
+					// 	generateTCall(sb, e, el, false);
+					// case _:
+					// 	if (!generateCustomEnumParameterCall(sb, expr.expr))
+					// 		generateTypedAstExpression(sb, expr);
+			}
+		}
+	}
+
+	/**
+	 * Generate code for TNew
+	 */
+	function generateTNew(sb:IndentStringBuilder, classType:ClassType, params:Array<Type>, elements:Array<TypedExpr>) {
+		var typeName = typeResolver.getFixedTypeName(classType.name);
+		var typeParams = typeResolver.resolveParameters(params);
+
+		var varTypeName = if (classType.isExtern && classType.superClass != null && classType.superClass.t.get().name == "Distinct") {
+			typeName;
+		} else {
+			'new${typeName}${typeParams}';
+		}
+
+		sb.add(varTypeName);
+		sb.add("(");
+		for (i in 0...elements.length) {
+			var expr = elements[i];
+
+			switch (expr.expr) {
+				case TConst(c):
+
+				case v:
+					throw 'Unsupported ${v}';
+			}
+
+			if (i + 1 < elements.length)
+				sb.add(", ");
+		}
+		sb.add(")");
+	}
+
+	/**
 	 * Generate code for TLocal
 	 */
 	function generateTLocal(sb:IndentStringBuilder, vr:TVar) {
@@ -575,38 +304,58 @@ class ExpressionGenerator {
 	}
 
 	/**
-	 * Generate code for TArray
-	 * Array access arr[it]
+	 * Generate code for TObjectDecl
 	 */
-	function generateTArray(sb:IndentStringBuilder, e1:TypedExpr, e2:TypedExpr) {
-		if (!generateCustomBytesAccess(sb, e1.expr))
-			generateTypedAstExpression(sb, e1);
-
-		sb.add("[");
-		generateTypedAstExpression(sb, e2);
-		sb.add("]");
+	function generateTObjectDecl(sb:IndentStringBuilder, fields:Array<{name:String, expr:TypedExpr}>) {
+		for (i in 0...fields.length) {
+			var field = fields[i];
+			switch field.expr.expr {
+				case TConst(c):
+					generateTConst(sb, c);
+				case v:
+					throw 'Unsupported ${v}';
+			}
+			if (i + 1 < fields.length)
+				sb.add(", ");
+		}
 	}
 
 	/**
-	 * Generate code for TArrayDecl
-	 * An array declaration `[el]`
+	 * Generate code for TReturn
 	 */
-	function generateTArrayDecl(sb:IndentStringBuilder, elements:Array<TypedExpr>) {
-		sb.add("@[");
-		for (i in 0...elements.length) {
-			var expr = elements[i];
-			generateTypedAstExpression(sb, expr);
-			if (i + 1 < elements.length)
-				sb.add(", ");
+	function generateTReturn(sb:IndentStringBuilder, expression:TypedExpr) {
+		if (expression == null || expression.expr == null) {
+			sb.add("return");
+		} else {
+			switch (expression.expr) {
+				case TBlock(e):
+					generateTBlock(sb, e);
+				case TReturn(e):
+					generateTReturn(sb, expression);
+				case TCall(e, el):
+					sb.add("return ");
+				// generateTCall(sb, e, el, false);
+				case TNew(c, params, el):
+					sb.add("return ");
+					generateTNew(sb, c.get(), params, el);
+				case TConst(c):
+					sb.add("return ");
+					generateTConst(sb, c);
+				case v:
+					throw 'Unsupported ${v}';
+			}
 		}
-		sb.add("]");
 	}
 
 	/**
 	 * Generate code for TBinop
 	 */
 	function generateTBinop(sb:IndentStringBuilder, op:Binop, e1:TypedExpr, e2:TypedExpr) {
-		generateTypedAstExpression(sb, e1);
+		switch e1.expr {
+			case v:
+				throw 'Unsupported ${v}';
+		}
+
 		sb.add(" ");
 		switch (op) {
 			case OpAdd:
@@ -661,165 +410,174 @@ class ExpressionGenerator {
 		}
 		sb.add(" ");
 
-		if (e2.expr != null)
-			generateTypedAstExpression(sb, e2);
-	}
-
-	/**
-	 * Generate code for TUnop
-	 */
-	function generateTUnop(sb:IndentStringBuilder, op:Unop, post:Bool, expr:TypedExpr) {
-		switch (op) {
-			case OpIncrement:
-				if (post) {
-					sb.add("apOperator(");
-				} else {
-					sb.add("bpOperator(");
-				}
-				generateTypedAstExpression(sb, expr);
-				sb.add(")");
-			case OpDecrement:
-			case OpNot:
-			case OpNeg:
-			case OpNegBits:
-		}
-	}
-
-	/**
-	 * Generate TFunction
-	 */
-	function generateTFunction(sb:IndentStringBuilder, func:TFunc) {
-		var args = "";
-		if (func.args.length > 0) {
-			args = func.args.map(x -> '${x.v.name}:${typeResolver.resolve(x.v.t)}').join(", ");
-		}
-
-		sb.addNewLine(Inc);
-		sb.add("proc(");
-
-		sb.add(args);
-
-		sb.add("):");
-		sb.add(typeResolver.resolve(func.t));
-		sb.add(" = ");
-		sb.addNewLine(Inc);
-
-		generateTypedAstExpression(sb, func.expr);
-
-		sb.addNewLine(Dec);
-		sb.addNewLine(Dec);
-	}
-
-	/**
-	 * Generate code for TReturn
-	 */
-	function generateTReturn(sb:IndentStringBuilder, expression:TypedExpr) {
-		if (expression == null || expression.expr == null) {
-			sb.add("return");
-		} else {
-			switch (expression.expr) {
-				case TBlock(_):
-				case TReturn(_):
-				case _:
-					sb.add("return ");
+		if (e2.expr != null) {
+			switch e2.expr {
+				case v:
+					throw 'Unsupported ${v}';
 			}
-
-			generateTypedAstExpression(sb, expression);
 		}
 	}
 
 	/**
-	 * Generate code for TMeta
+	 * Generate code for instance field referrence
 	 */
-	function generateTMeta(sb:IndentStringBuilder, meta:MetadataEntry, expression:TypedExpr) {
-		generateTypedAstExpression(sb, expression);
+	function generateTFieldFInstance(sb:IndentStringBuilder, classType:ClassType, params:Array<Type>, classField:ClassField) {
+		var fieldData = getInstanceTFieldData(classType, params, classField);
+
+		sb.add(".");
+		sb.add(fieldData.fieldName);
 	}
 
 	/**
-	 * Generate code for TEnumParameter
+	 * Generate code for static field call
 	 */
-	function generateTEnumParameter(sb:IndentStringBuilder, expression:TypedExpr, enumField:EnumField, index:Int) {
-		generateTypedAstExpression(sb, expression);
+	function generateTCallTFieldFStatic(sb:IndentStringBuilder, classType:ClassType, classField:ClassField) {
+		var fieldData = getStaticTFieldData(classType, classField);
+		sb.add(fieldData.totalName);
 	}
 
 	/**
-	 * Generate code for TMeta
+	 * Generate code for instance field call
 	 */
-	function generateTEnumIndex(sb:IndentStringBuilder, expression:TypedExpr) {
-		generateTypedAstExpression(sb, expression);
+	function generateTCallTFieldFInstance(sb:IndentStringBuilder, classType:ClassType, params:Array<Type>, classField:ClassField) {
+		var fieldData = getInstanceTFieldData(classType, params, classField);
+
+		sb.add(".");
+		sb.add(fieldData.fieldName);
 	}
 
 	/**
-	 * Generate code for TObjectDecl
+	 * Generate code for calling field
 	 */
-	function generateTObjectDecl(sb:IndentStringBuilder, fields:Array<{name:String, expr:TypedExpr}>) {
-		for (i in 0...fields.length) {
-			var field = fields[i];
-			generateTypedAstExpression(sb, field.expr);
-			if (i + 1 < fields.length)
-				sb.add(", ");
-		}
-	}
-
-	/**
-	 * Generate common expression
-	 */
-	function generateTypedAstExpression(sb:IndentStringBuilder, expr:TypedExpr) {
-		#if debug_gen
-		traceExpression(expr);
-		#end
-		switch (expr.expr) {
-			case TConst(c):
-				generateTConst(sb, c);
+	function generateTCallTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {
+		switch (expression.expr) {
+			case TTypeExpr(_):
+			case TCall(e, el):
+				generateCommonTCall(sb, e, el);
 			case TLocal(v):
 				generateTLocal(sb, v);
-			case TArray(e1, e2):
-				generateTArray(sb, e1, e2);
-			case TBinop(op, e1, e2):
-				generateTBinop(sb, op, e1, e2);
+			case v:
+				throw 'Unsupported ${v}';
+				// generateTypedAstExpression(sb, expression);
+		}
+
+		switch (access) {
+			case FInstance(c, params, cf):
+				generateTCallTFieldFInstance(sb, c.get(), params, cf.get());
+			case FStatic(c, cf):
+				generateTCallTFieldFStatic(sb, c.get(), cf.get());
+			case v:
+				throw 'Unsupported ${v}';
+		}
+	}
+
+	/**
+	 * Generate code for common TCall
+	 */
+	function generateCommonTCall(sb:IndentStringBuilder, expression:TypedExpr, expressions:Array<TypedExpr>) {
+		switch (expression.expr) {
+			case TField(_, FEnum(c, ef)):
+				var name = c.get().name;
+				sb.add('new${name}${ef.name}');
+				sb.add("(");
 			case TField(e, fa):
-				generateTField(sb, e, fa);
-			case TTypeExpr(m):
-				generateTTypeExpr(sb, m);
-			case TParenthesis(e):
-				generateTypedAstExpression(sb, e);
-			case TObjectDecl(fields):
-				generateTObjectDecl(sb, fields);
-			case TArrayDecl(el):
-				generateTArrayDecl(sb, el);
-			case TCall(e, el):
-				generateTCall(sb, e, el);
-			case TNew(c, params, el):
-				generateTNew(sb, c.get(), params, el);
-			case TUnop(op, postFix, e):
-				generateTUnop(sb, op, postFix, e);
-			case TFunction(tfunc):
-				generateTFunction(sb, tfunc);
-			case TVar(v, expr):
-				generateTVar(sb, v, expr);
-			case TBlock(el):
-				generateTBlock(sb, el);
-			case TFor(v, e1, e2):
-			case TIf(econd, eif, eelse):
-				geterateTIf(sb, econd, eif, eelse);
-			case TWhile(econd, e, normalWhile):
-				generateTWhile(sb, econd, e, normalWhile);
-			case TSwitch(e, cases, edef):
-				generateTSwitch(sb, e, cases, edef);
-			case TTry(e, catches):
-			case TReturn(e):
-				generateTReturn(sb, e);
-			case TBreak:
-			case TContinue:
-			case TThrow(e):
-			case TCast(e, m):
-			case TMeta(m, e1):
-				generateTMeta(sb, m, e1);
-			case TEnumParameter(e1, ef, index):
-				generateTEnumParameter(sb, e1, ef, index);
-			case TEnumIndex(e1):
-				generateTEnumIndex(sb, e1);
-			case TIdent(s):
+				generateTCallTField(sb, e, fa);
+				sb.add("(");
+			case TConst(TSuper):
+				if (classContext.classType.superClass != null) {
+					var superCls = classContext.classType.superClass.t.get();
+					var superName = superCls.name;
+					sb.add('init${superName}(this, ');
+				}
+			case v:
+				throw 'Unsupported ${v}';
+				// generateTypedAstExpression(sb, expression);
+				// sb.add("(");
+		}
+
+		for (i in 0...expressions.length) {
+			var expr = expressions[i];
+			switch (expr.expr) {
+				case TConst(c):
+					generateTConst(sb, c);
+				case TObjectDecl(e):
+					generateTObjectDecl(sb, e);
+				case v:
+					throw 'Unsupported ${v}';
+			}
+
+			// generateTypedAstExpression(sb, expr);
+			if (i + 1 < expressions.length)
+				sb.add(", ");
+		}
+
+		sb.add(")");
+	}
+
+	/**
+	 * Generate code for root TCall in block
+	 */
+	function generateBlockTCall(sb:IndentStringBuilder, expression:TypedExpr, expressions:Array<TypedExpr>) {
+		// Detect if need discard type
+		switch (expression.expr) {
+			case TField(_, fa):
+				var cfield:ClassField = null;
+				switch (fa) {
+					case FInstance(_, _, cf):
+						cfield = cf.get();
+					case FStatic(_, cf):
+						cfield = cf.get();
+					case _:
+				}
+
+				var hasReturn = false;
+				switch (cfield.type) {
+					case TFun(_, ret):
+						trace(ret);
+						switch (ret) {
+							case TInst(t, _):
+								hasReturn = true;
+							case TAbstract(t, _):
+								if (t.get().name != "Void")
+									hasReturn = true;
+							case _:
+						}
+					case _:
+				}
+
+				if (hasReturn) {
+					sb.add('discard ');
+				}
+			case _:
+		}
+
+		generateCommonTCall(sb, expression, expressions);
+	}
+
+	/**
+	 * Generate code for TBlock
+	 */
+	function generateTBlock(sb:IndentStringBuilder, expressions:Array<TypedExpr>) {
+		if (expressions.length > 0) {
+			for (expr in expressions) {
+				traceExpression(expr);
+				switch (expr.expr) {
+					case TVar(v, expr):
+						generateTVar(sb, v, expr);
+					case TCall(e, el):
+						generateBlockTCall(sb, e, el);
+					case TReturn(e):
+						generateTReturn(sb, e);
+					case TBinop(op, e1, e2):
+
+					case v:
+						throw 'Unsupported ${v}';
+				}
+
+				sb.addNewLine(Same);
+			}
+		} else {
+			sb.add("discard");
 		}
 	}
 
@@ -839,9 +597,20 @@ class ExpressionGenerator {
 	}
 
 	/**
-	 * Generate codes
+	 * Generate method body
 	 */
-	public function generate(sb:IndentStringBuilder, expression:TypedExpr) {
-		generateTypedAstExpression(sb, expression);
+	public function generateMethodBody(sb:IndentStringBuilder, expression:TypedExpr) {
+		traceExpression(expression);
+		switch (expression.expr) {
+			case TFunction(tfunc):
+				switch (tfunc.expr.expr) {
+					case TBlock(el):
+						generateTBlock(sb, el);
+					case v:
+						throw 'Unsupported paramter ${v}';
+				}
+			case v:
+				throw 'Unsupported paramter ${v}';
+		}
 	}
 }
