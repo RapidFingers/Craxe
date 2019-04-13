@@ -153,6 +153,38 @@ class MethodExpressionGenerator {
 	}
 
 	/**
+	 * Generate custom code for getting enum values
+	 * cast[EnumType](enum).value
+	 * TODO: minimize casts
+	 * Return true if it was processed
+	 */
+	function generateCustomEnumParameterCall(sb:IndentStringBuilder, e1:TypedExpr, ef:EnumField, index:Int):Bool {
+		switch (e1.expr) {
+			case TLocal(v):
+				switch (v.t) {
+					case TEnum(t, _):
+						var enumName = t.get().name;
+						var en = context.getEnumByName(enumName);
+						var instName = en.enumType.names[ef.index];
+						sb.add('cast[${enumName}${instName}](');
+						sb.add(v.name);
+						sb.add(')');
+						switch (ef.type) {
+							case TFun(args, _):
+								sb.add('.${args[0].name}');
+							case v:
+								var resolved = typeResolver.resolve(v);
+								sb.add(resolved);
+						}
+						return true;
+					default:
+				}
+			default:
+		}
+		return false;
+	}
+
+	/**
 	 * Generate code for TEnumParameter
 	 */
 	function generateTEnumParameter(sb:IndentStringBuilder, expression:TypedExpr, enumField:EnumField, index:Int) {
@@ -199,7 +231,7 @@ class MethodExpressionGenerator {
 
 				switch (cs.expr.expr) {
 					case TCall(e, el):
-						generateCommonTCall(sb, e, el);
+						generateBlockTCall(sb, e, el);
 					case TReturn(e):
 						generateTReturn(sb, e);
 					case TBlock(el):
@@ -338,6 +370,8 @@ class MethodExpressionGenerator {
 
 			traceExpression(expr);
 			switch expr.expr {
+				case TUnop(op, postFix, e):
+					generateTUnop(sb, op, postFix, e);
 				case TNew(c, params, el):
 					generateTNew(sb, c.get(), params, el);
 				case TConst(c):
@@ -346,17 +380,15 @@ class MethodExpressionGenerator {
 					generateCommonTCall(sb, e, el);
 				case TArray(e1, e2):
 					generateTArray(sb, e1, e2);
+				case TArrayDecl(el):
+					generateTArrayDecl(sb, el);
 				case TField(e, fa):
 					generateTField(sb, e, fa);
 				case TEnumParameter(e1, ef, index):
-					generateTEnumParameter(sb, e1, ef, index);
+					if (!generateCustomEnumParameterCall(sb, e1, ef, index))
+						generateTEnumParameter(sb, e1, ef, index);
 				case v:
 					throw 'Unsupported ${v}';
-					// case TCall(e, el):
-					// 	generateTCall(sb, e, el, false);
-					// case _:
-					// 	if (!generateCustomEnumParameterCall(sb, expr.expr))
-					// 		generateTypedAstExpression(sb, expr);
 			}
 		}
 	}
@@ -458,6 +490,30 @@ class MethodExpressionGenerator {
 	}
 
 	/**
+	 * Generate code for TArrayDecl
+	 * An array declaration `[el]`
+	 */
+	function generateTArrayDecl(sb:IndentStringBuilder, elements:Array<TypedExpr>) {
+		sb.add("@[");
+		for (i in 0...elements.length) {
+			var expr = elements[i];
+
+			switch (expr.expr) {
+				case TConst(c):
+					generateTConst(sb, c);
+				case TNew(c, params, el):
+					generateTNew(sb, c.get(), params, el);
+				case v:
+					throw 'Unsupported ${v}';
+			}
+
+			if (i + 1 < elements.length)
+				sb.add(", ");
+		}
+		sb.add("]");
+	}
+
+	/**
 	 * Generate code for TObjectDecl
 	 */
 	function generateTObjectDecl(sb:IndentStringBuilder, fields:Array<{name:String, expr:TypedExpr}>) {
@@ -515,7 +571,7 @@ class MethodExpressionGenerator {
 		} else {
 			traceExpression(expression);
 			switch (expression.expr) {
-				case TBlock(e):
+				case TBlock(e):					
 					generateTBlock(sb, e);
 				case TReturn(e):
 					generateTReturn(sb, e);
@@ -534,10 +590,15 @@ class MethodExpressionGenerator {
 				case TBinop(op, e1, e2):
 					sb.add("return ");
 					generateTBinop(sb, op, e1, e2);
+				case TUnop(op, postFix, e):
+					sb.add("return ");
+					generateTUnop(sb, op, postFix, e);
 				case TArray(e1, e2):
+					sb.add("return ");
 					generateTArray(sb, e1, e2);
 				case TLocal(v):
-					generateTLocal(sb, v);
+					sb.add("return ");
+					generateTLocal(sb, v);				
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -560,6 +621,8 @@ class MethodExpressionGenerator {
 				generateTLocal(sb, v);
 			case TArray(e1, e2):
 				generateTArray(sb, e1, e2);
+			case TCall(e, el):
+				generateCommonTCall(sb, e, el);
 			case v:
 				throw 'Unsupported ${v}';
 		}
@@ -652,6 +715,8 @@ class MethodExpressionGenerator {
 				switch (expr.expr) {
 					case TLocal(v):
 						generateTLocal(sb, v);
+					case TField(e, fa):
+						generateTField(sb, e, fa);
 					case v:
 						throw 'Unsupported ${v}';
 				}
