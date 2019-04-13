@@ -39,7 +39,7 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Code generator for expressions
 	 */
-	final expressionGenerator:ExpressionGenerator;
+	final expressionGenerator:MethodExpressionGenerator;
 
 	/**
 	 * Libs to include
@@ -518,7 +518,7 @@ class NimGenerator extends BaseGenerator {
 		super(processed);
 		typeContext = new TypeContext(processed);
 		typeResolver = new TypeResolver(typeContext);
-		expressionGenerator = new ExpressionGenerator(typeContext, typeResolver);
+		expressionGenerator = new MethodExpressionGenerator(typeContext, typeResolver);
 	}
 
 	/**
