@@ -98,7 +98,13 @@ class MethodExpressionGenerator {
 			case TThrow(e):
 				trace('TThrow[expr: ${e.expr.getName()}]');
 			case TCast(e, m):
-				trace('TCast[expr: ${e.expr.getName()}, type: ${m.getName()}]');
+				var exp = if (e != null) {
+					e.expr.getName();
+				} else ""; 
+				var tp = if (m != null) {
+					m.getName();
+				} else ""; 
+				trace('TCast[expr: ${exp}, type: ${tp}]');
 			case TMeta(m, e1):
 				trace('TMeta[name: ${m.name}, params: ${m.params.map(x -> x.expr.getName()).join(", ")}, expr: ${e1.expr.getName()}]');
 			case TEnumParameter(e1, ef, index):
@@ -532,6 +538,14 @@ class MethodExpressionGenerator {
 	}
 
 	/**
+	 * Genertate TCast	 
+	 */
+	function generateTCast(sb:IndentStringBuilder, expression:TypedExpr, module:ModuleType) {
+		trace(expression);
+		trace(module);
+	}
+
+	/**
 	 * Generate TFunction
 	 */
 	function generateTFunction(sb:IndentStringBuilder, func:TFunc) {
@@ -781,6 +795,8 @@ class MethodExpressionGenerator {
 			case TTypeExpr(_):
 			case TConst(c):
 				generateTConst(sb, c);
+			case TNew(c, params, el):
+				generateTNew(sb, c.get(), params, el);
 			case TCall(e, el):
 				generateCommonTCall(sb, e, el);
 			case TLocal(v):
@@ -879,6 +895,8 @@ class MethodExpressionGenerator {
 					generateCommonTCall(sb, e, el);
 				case TArray(e1, e2):
 					generateTArray(sb, e1, e2);
+				case TCast(e, m):
+					generateTCast(sb, e, m);
 				case v:
 					throw 'Unsupported ${v}';
 			}

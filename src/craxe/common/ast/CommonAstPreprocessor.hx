@@ -80,10 +80,18 @@ class CommonAstPreprocessor {
 			switch (ifield.kind) {
 				case FVar(_, _):
 					fields.push(ifield);
-				case FMethod(_):
-					methods.push(ifield);
+				case FMethod(m):
+					switch (m) {
+						case MethNormal:
+							methods.push(ifield);
+						case MethMacro:
+						case v:
+							throw 'Unsupported ${v}';
+					}
 			}
 		}
+
+		Sys.println(methods);
 
 		return {
 			fields: fields,
@@ -211,7 +219,7 @@ class CommonAstPreprocessor {
 				objectInfo: buildInterface(c, params)
 			}
 		} else {
-			if (isStruct(c)) {				
+			if (isStruct(c)) {
 				return {
 					objectInfo: buildStruct(c, params)
 				}
