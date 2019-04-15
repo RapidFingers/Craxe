@@ -373,8 +373,7 @@ class MethodExpressionGenerator {
 		sb.add(name);
 		if (expr != null) {
 			sb.add(" = ");
-
-			traceExpression(expr);
+			
 			switch expr.expr {
 				case TUnop(op, postFix, e):
 					generateTUnop(sb, op, postFix, e);
@@ -388,8 +387,10 @@ class MethodExpressionGenerator {
 					generateTArray(sb, e1, e2);
 				case TArrayDecl(el):
 					generateTArrayDecl(sb, el);
+				case TObjectDecl(fields):
+					generateTObjectDecl(sb, fields);
 				case TField(e, fa):
-					generateTField(sb, e, fa);
+					generateTField(sb, e, fa);					
 				case TEnumParameter(e1, ef, index):
 					if (!generateCustomEnumParameterCall(sb, e1, ef, index))
 						generateTEnumParameter(sb, e1, ef, index);
@@ -416,8 +417,7 @@ class MethodExpressionGenerator {
 		sb.add("(");
 		for (i in 0...elements.length) {
 			var expr = elements[i];
-
-			traceExpression(expr);
+			
 			switch (expr.expr) {
 				case TConst(c):
 					generateTConst(sb, c);
@@ -517,15 +517,14 @@ class MethodExpressionGenerator {
 				sb.add(", ");
 		}
 		sb.add("]");
-	}
+	}	
 
 	/**
 	 * Generate code for TObjectDecl
 	 */
 	function generateTObjectDecl(sb:IndentStringBuilder, fields:Array<{name:String, expr:TypedExpr}>) {
 		for (i in 0...fields.length) {
-			var field = fields[i];
-			traceExpression(field.expr);
+			var field = fields[i];			
 			switch field.expr.expr {
 				case TConst(c):
 					generateTConst(sb, c);
@@ -563,8 +562,7 @@ class MethodExpressionGenerator {
 		sb.add(typeResolver.resolve(func.t));
 		sb.add(" = ");
 		sb.addNewLine(Inc);
-
-		traceExpression(func.expr);
+		
 		switch (func.expr.expr) {
 			case TBlock(el):
 				generateTBlock(sb, el);
@@ -582,8 +580,7 @@ class MethodExpressionGenerator {
 	function generateTReturn(sb:IndentStringBuilder, expression:TypedExpr) {
 		if (expression == null || expression.expr == null) {
 			sb.add("return");
-		} else {
-			traceExpression(expression);
+		} else {			
 			switch (expression.expr) {
 				case TBlock(e):					
 					generateTBlock(sb, e);
@@ -869,13 +866,10 @@ class MethodExpressionGenerator {
 				sb.add("(");
 			case v:
 				throw 'Unsupported ${v}';
-				// generateTypedAstExpression(sb, expression);
-				// sb.add("(");
 		}
 
 		for (i in 0...expressions.length) {
-			var expr = expressions[i];
-			traceExpression(expr);
+			var expr = expressions[i];			
 			switch (expr.expr) {
 				case TConst(c):
 					generateTConst(sb, c);
@@ -927,8 +921,7 @@ class MethodExpressionGenerator {
 
 				var hasReturn = false;
 				switch (cfield.type) {
-					case TFun(_, ret):
-						trace(ret);
+					case TFun(_, ret):						
 						switch (ret) {
 							case TInst(t, _):
 								hasReturn = true;
@@ -954,8 +947,7 @@ class MethodExpressionGenerator {
 	 */
 	function generateTIf(sb:IndentStringBuilder, econd:TypedExpr, eif:TypedExpr, eelse:TypedExpr) {
 		sb.add("if ");
-
-		traceExpression(econd);
+		
 		switch (econd.expr) {
 			case TParenthesis(e):
 				switch e.expr {
@@ -970,8 +962,7 @@ class MethodExpressionGenerator {
 
 		sb.add(":");
 		sb.addNewLine(Inc);
-
-		traceExpression(eif);
+		
 		switch (eif.expr) {
 			case TReturn(e):
 				generateTReturn(sb, e);
@@ -980,7 +971,6 @@ class MethodExpressionGenerator {
 		}
 
 		if (eelse != null) {
-			traceExpression(eelse);
 			switch (eelse.expr) {
 				case TBlock(el):
 					if (el.length > 0) {
@@ -1036,8 +1026,7 @@ class MethodExpressionGenerator {
 	 */
 	function generateTBlock(sb:IndentStringBuilder, expressions:Array<TypedExpr>) {
 		if (expressions.length > 0) {
-			for (expr in expressions) {
-				traceExpression(expr);
+			for (expr in expressions) {				
 				switch (expr.expr) {
 					case TVar(v, expr):
 						generateTVar(sb, v, expr);
@@ -1086,8 +1075,7 @@ class MethodExpressionGenerator {
 	/**
 	 * Generate method body
 	 */
-	public function generateMethodBody(sb:IndentStringBuilder, expression:TypedExpr) {
-		traceExpression(expression);
+	public function generateMethodBody(sb:IndentStringBuilder, expression:TypedExpr) {		
 		switch (expression.expr) {
 			case TFunction(tfunc):
 				switch (tfunc.expr.expr) {

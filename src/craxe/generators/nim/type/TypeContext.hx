@@ -1,5 +1,6 @@
 package craxe.generators.nim.type;
 
+import haxe.macro.Type.AnonType;
 import haxe.ds.StringMap;
 import craxe.common.ast.*;
 import craxe.common.ast.type.*;
@@ -93,5 +94,12 @@ class TypeContext {
 	 */
 	public function getClassByName(name:String):ClassInfo {
 		return classes.get(name);
+	}
+
+	/**
+	 * Get anonymous info	 
+	 */
+	public function getAnonymousInfo(anon:AnonType):AnonInfo {
+		return null;
 	}
 }

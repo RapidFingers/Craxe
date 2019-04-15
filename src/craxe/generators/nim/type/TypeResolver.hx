@@ -112,7 +112,7 @@ class TypeResolver {
 	 * Generate TType
 	 */
 	function generateTType(sb:StringBuf, t:DefType, params:Array<Type>) {
-		throw "Not supported";
+		sb.add(t.name);
 	}
 
 	/**
@@ -123,6 +123,14 @@ class TypeResolver {
 		sb.add(args.map(x-> '${x.name}:${resolve(x.t)}').join(", "));
 		sb.add("):");
 		sb.add(resolve(ret));
+	}
+
+	/**
+	 * Generate TAnonymous
+	 */
+	function generateTAnonymous(sb:StringBuf, anon: AnonType) {
+		var anonInfo = context.getAnonymousInfo(anon);
+		sb.add(anonInfo.name);
 	}
 
 	/**
@@ -195,6 +203,8 @@ class TypeResolver {
 				generateTType(sb, t.get(), params);
 			case TFun(args, ret):
 				generateTFun(sb, args, ret);
+			case TAnonymous(a):
+				generateTAnonymous(sb, a.get());
 			case v:
 				throw 'Unsupported type ${v}';
 		}
