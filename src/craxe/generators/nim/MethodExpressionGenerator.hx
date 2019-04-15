@@ -350,7 +350,7 @@ class MethodExpressionGenerator {
 			case TFloat(s):
 				sb.add(Std.string(s));
 			case TString(s):
-				sb.add('"${Std.string(s)}"');
+				sb.add('"""${Std.string(s)}"""');
 			case TBool(b):
 				sb.add(Std.string(b));
 			case TNull:
