@@ -450,6 +450,7 @@ class NimGenerator extends BaseGenerator {
 		}
 
 		for (method in cls.staticMethods) {
+			trace(method.name);
 			generateClassMethod(sb, cls, method, true);
 		}
 
@@ -496,7 +497,7 @@ class NimGenerator extends BaseGenerator {
 		sb.addNewLine(None, true);
 		for (c in types.classes) {
 			if (c.classType.isExtern == false) {
-				if (!c.classType.isInterface) {
+				if (!c.classType.isInterface) {					
 					generateClassConstructor(sb, c);
 					generateClassMethods(sb, c);
 				}
