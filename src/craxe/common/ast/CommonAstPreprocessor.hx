@@ -45,9 +45,12 @@ class CommonAstPreprocessor {
 		if (excludedTypes.exists(name))
 			return true;
 
+		trace(module);
 		if (StringTools.startsWith(module, "haxe.") || 
 			StringTools.startsWith(module, "craxe.nim.") ||
-			StringTools.startsWith(module, "Xml"))
+			StringTools.startsWith(module, "Xml") ||
+			StringTools.startsWith(module, "StdTypes") ||
+			StringTools.startsWith(module, "Map"))
 			return true;
 
 		return false;
@@ -276,7 +279,10 @@ class CommonAstPreprocessor {
 					var enu = buildEnum(t.get(), params);
 					if (enu != null)
 						enums.push(enu);
-				case _:
+				case TType(t, params):
+					trace(t.get().module);
+				case v:
+					trace('Skip ${v}');
 			}
 		}
 
