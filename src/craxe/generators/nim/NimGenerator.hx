@@ -201,7 +201,8 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Generate code for enums
 	 */
-	function buildEnums(sb:IndentStringBuilder, enums:Array<EnumInfo>) {
+	function buildEnums(sb:IndentStringBuilder) {
+		var enums = types.enums;
 		if (enums.length < 1)
 			return;
 
@@ -261,6 +262,46 @@ class NimGenerator extends BaseGenerator {
 			for (inter in cls.classType.interfaces) {
 				var cinter = typeContext.getInterfaceByName(inter.t.get().name);
 				interGenerateor.generateInterfaceConverter(sb, cls, cinter, typeResolver);
+			}
+		}
+
+		sb.addBreak();
+	}
+
+	/**
+	 * Build typedefs
+	 */
+	function buildTypedefs(sb:IndentStringBuilder) {
+		sb.add("type ");
+		sb.addNewLine(Inc);
+
+		var typedefs = types.typedefs;
+		for (td in typedefs) {
+			switch (td.typedefInfo.type) {
+				case TInst(t, _):
+					sb.add('${td.typedefInfo.name} = ${t.get().name}');
+					sb.addNewLine(Same);
+				case TFun(_, _):
+					var tpname = typeResolver.resolve(td.typedefInfo.type);
+					sb.add('${td.typedefInfo.name} = ${tpname}');
+					sb.addNewLine(Same);
+				case TAnonymous(a):
+					var an = a.get();
+					sb.add('${td.typedefInfo.name} = tuple');
+					sb.addNewLine(Inc);					
+					for (fld in an.fields) {
+						var ftp = typeResolver.resolve(fld.type);
+						sb.add('${fld.name}:${ftp}');
+						sb.addNewLine(Same);
+					}
+					sb.addNewLine(Dec);
+					sb.addNewLine(Same, true);
+				case TAbstract(_, _):
+					var tpname = typeResolver.resolve(td.typedefInfo.type);
+					sb.add('${td.typedefInfo.name} = ${tpname}');
+					sb.addNewLine(Same);
+				case v:
+					throw 'Unsupported ${v}';
 			}
 		}
 
@@ -465,13 +506,16 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Build classes code
 	 */
-	function buildClassesAndStructures(sb:IndentStringBuilder, classes:Array<ClassInfo>) {
-		if (types.classes.length > 0) {
+	function buildClassesAndStructures(sb:IndentStringBuilder) {
+		var classes = types.classes;
+		var structures = types.structures;
+
+		if (classes.length > 0) {
 			sb.add("type ");
 			sb.addNewLine(Inc);
 		}
 
-		for (c in types.classes) {
+		for (c in classes) {
 			if (c.classType.isExtern == false) {
 				if (!c.classType.isInterface) {
 					generateClassInfo(sb, c);
@@ -479,14 +523,14 @@ class NimGenerator extends BaseGenerator {
 			}
 		}
 
-		for (c in types.structures) {
+		for (c in structures) {
 			generateStructureInfo(sb, c);
 		}
 
 		sb.addNewLine(None, true);
 
 		// Init static classes
-		for (c in types.classes) {
+		for (c in classes) {
 			if (c.classType.isExtern == false) {
 				if (!c.classType.isInterface) {
 					generateStaticClassInit(sb, c);
@@ -495,7 +539,7 @@ class NimGenerator extends BaseGenerator {
 		}
 
 		sb.addNewLine(None, true);
-		for (c in types.classes) {
+		for (c in classes) {
 			if (c.classType.isExtern == false) {
 				if (!c.classType.isInterface) {					
 					generateClassConstructor(sb, c);
@@ -542,9 +586,10 @@ class NimGenerator extends BaseGenerator {
 		addLibraries(outPath);
 		addCodeHelpers(sb);
 
-		buildEnums(sb, types.enums);
+		buildEnums(sb);
+		buildTypedefs(sb);
 		buildInterfaces(sb);
-		buildClassesAndStructures(sb, types.classes);
+		buildClassesAndStructures(sb);
 
 		if (types.entryPoint != null) {
 			sb.addNewLine();

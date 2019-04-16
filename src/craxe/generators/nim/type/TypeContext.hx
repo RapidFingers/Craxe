@@ -1,8 +1,5 @@
 package craxe.generators.nim.type;
 
-import haxe.io.Bytes;
-import haxe.crypto.Crc32;
-import haxe.macro.Type.AnonType;
 import haxe.ds.StringMap;
 import craxe.common.ast.*;
 import craxe.common.ast.type.*;
@@ -96,16 +93,5 @@ class TypeContext {
 	 */
 	public function getClassByName(name:String):ClassInfo {
 		return classes.get(name);
-	}
-
-	/**
-	 * Get anonymous info	 
-	 */
-	public function getAnonymousInfo(anon:AnonType):AnonInfo {		
-		var i = Math.abs(Crc32.make(Bytes.ofString(anon.fields.map(x->x.name).join(""))));
-		return {
-			name: 'Anon${i}',
-			anon: anon
-		};
 	}
 }

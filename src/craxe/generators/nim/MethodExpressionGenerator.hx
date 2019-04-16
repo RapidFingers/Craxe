@@ -485,6 +485,8 @@ class MethodExpressionGenerator {
 
 		sb.add("[");
 		switch (e2.expr) {
+			case TConst(c):
+				generateTConst(sb, c);
 			case TField(e, fa):
 				generateTField(sb, e, fa);
 			case TLocal(v):
@@ -619,8 +621,7 @@ class MethodExpressionGenerator {
 	/**
 	 * Generate code for TBinop
 	 */
-	function generateTBinop(sb:IndentStringBuilder, op:Binop, e1:TypedExpr, e2:TypedExpr) {
-		traceExpression(e1);
+	function generateTBinop(sb:IndentStringBuilder, op:Binop, e1:TypedExpr, e2:TypedExpr) {		
 		switch e1.expr {
 			case TConst(c):
 				generateTConst(sb, c);
@@ -692,8 +693,7 @@ class MethodExpressionGenerator {
 		}
 		sb.add(" ");
 
-		if (e2.expr != null) {
-			traceExpression(e2);
+		if (e2.expr != null) {			
 			switch e2.expr {
 				case TConst(c):
 					generateTConst(sb, c);
@@ -838,6 +838,8 @@ class MethodExpressionGenerator {
 			case FEnum(e, ef):
 				var name = typeResolver.getFixedTypeName(e.get().name);
 				sb.add('new${name}${ef.name}()');
+			case FAnon(cf):
+				sb.add('.${cf.get().name}');
 			case v:
 				throw 'Unsupported ${v}';
 		}

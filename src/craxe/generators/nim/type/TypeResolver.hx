@@ -45,10 +45,10 @@ class TypeResolver {
 		}
 
 		return false;
-	}	
+	}
 
 	/**
-	 * Generate code for pass modificator	 
+	 * Generate code for pass modificator
 	 */
 	function generatePassModificator(sb:StringBuf, t:AbstractType, params:Array<Type>):Bool {
 		if (t.name == "Var") {
@@ -100,7 +100,7 @@ class TypeResolver {
 						generateTAbstract(sb, t.get(), params);
 					case TEnum(t, params):
 						generateTEnum(sb, t.get(), params);
-					case v:						
+					case v:
 						throw 'Unsupported paramter ${v}';
 				}
 			}
@@ -116,11 +116,11 @@ class TypeResolver {
 	}
 
 	/**
-	 * Generate TFun	 
+	 * Generate TFun
 	 */
 	function generateTFun(sb:StringBuf, args:Array<ArgumentInfo>, ret:Type) {
 		sb.add("proc(");
-		sb.add(args.map(x-> '${x.name}:${resolve(x.t)}').join(", "));
+		sb.add(args.map(x -> '${x.name}:${resolve(x.t)}').join(", "));
 		sb.add("):");
 		sb.add(resolve(ret));
 	}
@@ -128,9 +128,11 @@ class TypeResolver {
 	/**
 	 * Generate TAnonymous
 	 */
-	function generateTAnonymous(sb:StringBuf, anon: AnonType) {
-		var anonInfo = context.getAnonymousInfo(anon);
-		sb.add(anonInfo.name);
+	function generateTAnonymous(sb:StringBuf, anon:AnonType) {
+		sb.add('tuple[');
+		var fld = anon.fields.map(x -> '${x.name}:${resolve(x.type)}').join(", ");
+		sb.add(fld);
+		sb.add(']');
 	}
 
 	/**

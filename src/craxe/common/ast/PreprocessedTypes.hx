@@ -17,6 +17,11 @@ typedef PreprocessedTypes = {
     var classes(default, null):Array<ClassInfo>;
 
     /**
+     * All found typedefs
+     */
+    var typedefs(default, null):Array<TypedefInfo>;
+
+    /**
      * All found structures
      */
     var structures(default, null):Array<StructInfo>;

@@ -39,19 +39,22 @@ class CommonAstPreprocessor {
 	];
 
 	/**
+	 * Excluded modules
+	 */
+	static final excludedModules:Array<String> = [
+		"haxe.", "craxe.nim.", "Xml", "StdTypes", "Map"
+	];
+
+	/**
 	 * Filter not needed type. Return true if filtered
 	 */
 	function filterTypeByName(name:String, module:String):Bool {
 		if (excludedTypes.exists(name))
 			return true;
 
-		trace(module);
-		if (StringTools.startsWith(module, "haxe.") || 
-			StringTools.startsWith(module, "craxe.nim.") ||
-			StringTools.startsWith(module, "Xml") ||
-			StringTools.startsWith(module, "StdTypes") ||
-			StringTools.startsWith(module, "Map"))
-			return true;
+		for (excl in excludedModules)
+			if (module.indexOf(excl) >= 0)
+				return true;
 
 		return false;
 	}
@@ -67,6 +70,11 @@ class CommonAstPreprocessor {
 			case TInst(t, _):
 				var ins = t.get();
 				return filterTypeByName(ins.name, ins.module);
+			case TAbstract(t, params):
+				return true;
+			case TType(t, _):
+				var tp = t.get();
+				return filterTypeByName(tp.name, tp.module);
 			case _:
 		}
 		return false;
@@ -214,6 +222,16 @@ class CommonAstPreprocessor {
 	}
 
 	/**
+	 * Build typedef info
+	 */
+	function buildTypedef(def:DefType, params:Array<Type>):TypedefInfo {
+		return {
+			typedefInfo: def,
+			params: params
+		}
+	}
+
+	/**
 	 * Constructor
 	 */
 	public function new() {}
@@ -253,13 +271,16 @@ class CommonAstPreprocessor {
 	public function process(types:Array<Type>):PreprocessedTypes {
 		var classes = new Array<ClassInfo>();
 		var structures = new Array<StructInfo>();
+		var typedefs = new Array<TypedefInfo>();
 		var interfaces = new Array<InterfaceInfo>();
 		var enums = new Array<EnumInfo>();
 		var entryPoint:EntryPointInfo = null;
 
 		for (t in types) {
 			if (filterType(t))
-				continue;
+				continue;			
+
+			trace('Generate ${t.getName()}${t.getParameters()}');
 
 			switch (t) {
 				case TInst(c, params):
@@ -280,15 +301,17 @@ class CommonAstPreprocessor {
 					if (enu != null)
 						enums.push(enu);
 				case TType(t, params):
-					trace(t.get().module);
-				case v:
-					trace('Skip ${v}');
+					var td = buildTypedef(t.get(), params);
+					if (td != null)
+						typedefs.push(td);
+				case _:
 			}
 		}
 
 		var types:PreprocessedTypes = {
 			interfaces: interfaces,
 			classes: classes,
+			typedefs: typedefs,
 			structures: structures,
 			enums: enums,
 			entryPoint: entryPoint
