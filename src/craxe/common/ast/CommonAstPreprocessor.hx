@@ -41,20 +41,18 @@ class CommonAstPreprocessor {
 	/**
 	 * Excluded modules
 	 */
-	static final excludedModules:Array<String> = [
-		"haxe.", "craxe.nim.", "Xml", "StdTypes", "Map"
-	];
+	static final excludedModules:Array<String> = ["haxe.", "craxe.nim.", "Xml", "StdTypes", "Map"];
 
 	/**
 	 * Filter not needed type. Return true if filtered
 	 */
 	function filterTypeByName(name:String, module:String):Bool {
-		if (excludedTypes.exists(name))
-			return true;
-
 		for (excl in excludedModules)
 			if (module.indexOf(excl) >= 0)
 				return true;
+
+		if (excludedTypes.exists(name))
+			return true;
 
 		return false;
 	}
@@ -278,7 +276,7 @@ class CommonAstPreprocessor {
 
 		for (t in types) {
 			if (filterType(t))
-				continue;			
+				continue;
 
 			trace('Generate ${t.getName()}${t.getParameters()}');
 
