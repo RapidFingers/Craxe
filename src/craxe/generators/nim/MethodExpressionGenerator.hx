@@ -397,7 +397,7 @@ class MethodExpressionGenerator {
 				case TArrayDecl(el):
 					generateTArrayDecl(sb, el);
 				case TObjectDecl(fields):
-					generateTObjectDecl(sb, fields);
+					generateTObjectDecl(sb, fields, vr.t);
 				case TField(e, fa):
 					generateTField(sb, e, fa);
 				case TEnumParameter(e1, ef, index):
@@ -533,9 +533,33 @@ class MethodExpressionGenerator {
 	/**
 	 * Generate code for TObjectDecl
 	 */
-	function generateTObjectDecl(sb:IndentStringBuilder, fields:Array<{name:String, expr:TypedExpr}>) {
-		for (i in 0...fields.length) {
+	function generateTObjectDecl(sb:IndentStringBuilder, fields:Array<{name:String, expr:TypedExpr}>, type:Type = null) {
+		var object = if (type != null) {
+			switch (type) {
+				case TType(t, _):
+					context.getObjectTypeByName(t.get().name);
+				case TAnonymous(a):
+					var flds = a.get().fields.map(x -> {
+						return {
+							name: x.name,
+							expr: x.expr()
+						};
+					});
+					context.getObjectTypeByFields(flds);
+				case v:
+					throw 'Unsupported ${v}';
+			}
+		} else {
+			context.getObjectTypeByFields(fields);
+		}
+
+		if (object != null)
+			trace(object);
+
+		sb.add('${object.name}(');		
+		for (i in 0...fields.length) {			
 			var field = fields[i];
+			sb.add('${field.name}:');
 			switch field.expr.expr {
 				case TConst(c):
 					generateTConst(sb, c);
@@ -545,6 +569,7 @@ class MethodExpressionGenerator {
 			if (i + 1 < fields.length)
 				sb.add(", ");
 		}
+		sb.add(")");		
 	}
 
 	/**
@@ -621,6 +646,8 @@ class MethodExpressionGenerator {
 				case TLocal(v):
 					sb.add("return ");
 					generateTLocal(sb, v);
+				case TObjectDecl(fields):
+					generateTObjectDecl(sb, fields);
 				case v:
 					throw 'Unsupported ${v}';
 			}

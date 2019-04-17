@@ -129,10 +129,13 @@ class TypeResolver {
 	 * Generate TAnonymous
 	 */
 	function generateTAnonymous(sb:StringBuf, anon:AnonType) {
-		sb.add('tuple[');
-		var fld = anon.fields.map(x -> '${x.name}:${resolve(x.type)}').join(", ");
-		sb.add(fld);
-		sb.add(']');
+		var an = context.getObjectTypeByFields(anon.fields.map(x-> {
+			return {
+				name: x.name,
+				expr: x.expr()
+			}
+		}));
+		sb.add('${an.name}');
 	}
 
 	/**

@@ -1,5 +1,8 @@
 package craxe.generators.nim.type;
 
+import haxe.io.Bytes;
+import haxe.crypto.Crc32;
+import haxe.macro.Type.TypedExpr;
 import haxe.ds.StringMap;
 import craxe.common.ast.*;
 import craxe.common.ast.type.*;
@@ -8,7 +11,7 @@ import craxe.common.ast.type.*;
  * Context with all types
  */
 class TypeContext {
-    /**
+	/**
 	 * Information about interfaces
 	 */
 	final interfaces = new StringMap<InterfaceInfo>();
@@ -18,10 +21,20 @@ class TypeContext {
 	 */
 	final classes = new StringMap<ClassInfo>();
 
-    /**
+	/**
 	 * Information about enums
 	 */
 	final enums = new StringMap<EnumInfo>();
+
+	/**
+	 * All anon objects like typedef anonimous by id
+	 */
+	final anonById = new StringMap<AnonTypedefInfo>();
+
+	/**
+	 * All anon objects like typedef by name
+	 */
+	final anonByName = new StringMap<AnonTypedefInfo>();
 
 	/**
 	 * Has interfaces
@@ -39,6 +52,19 @@ class TypeContext {
 	public final hasEnums:Bool;
 
 	/**
+	 * Generate anon ID
+	 */
+	function generateAnonId(fields:Array<{name:String, expr:TypedExpr}>):String {
+		fields.sort((x1, x2) -> {
+			var a = x1.name;
+			var b = x2.name;
+			return if ( a < b ) -1 else if ( a > b ) 1 else 0;
+		});
+		var str = fields.map(x -> x.name).join("");
+		return Std.string(Math.abs(Crc32.make(Bytes.ofString(str))));
+	}
+
+	/**
 	 * Constructor
 	 */
 	public function new(processed:PreprocessedTypes) {
@@ -46,12 +72,31 @@ class TypeContext {
 			classes.set(item.classType.name, item);
 		}
 
-        for (item in processed.interfaces) {
+		for (item in processed.interfaces) {
 			interfaces.set(item.classType.name, item);
 		}
 
-        for (item in processed.enums) {
+		for (item in processed.enums) {
 			enums.set(item.enumType.name, item);
+		}
+
+		for (obj in processed.typedefs) {
+			switch (obj.typedefInfo.type) {
+				case TAnonymous(a):
+					var an = a.get();
+					var fields = an.fields.map(x -> {
+						return {name: x.name, expr: x.expr()}
+					});
+					var ano:AnonTypedefInfo = {
+						id: generateAnonId(fields),
+						name: obj.typedefInfo.name,
+						fields: fields
+					}
+					anonById.set(ano.id, ano);
+					anonByName.set(ano.name, ano);
+				case v:
+					trace(v);
+			}
 		}
 
 		hasInterfaces = processed.interfaces.length > 0;
@@ -73,7 +118,6 @@ class TypeContext {
 		return interfaces.iterator();
 	}
 
-
 	/**
 	 * Return interface by name
 	 */
@@ -93,5 +137,29 @@ class TypeContext {
 	 */
 	public function getClassByName(name:String):ClassInfo {
 		return classes.get(name);
+	}
+
+	/**
+	 * Return object by typefields
+	 */
+	public function getObjectTypeByFields(fields:Array<{name:String, expr:TypedExpr}>):AnonTypedefInfo {
+		var id = generateAnonId(fields);
+		var anon = anonById.get(id);
+		if (anon == null) {
+			anon = {
+				id: id,
+				name: 'Anon${id}',
+				fields: fields
+			}
+			anonById.set(id, anon);
+		}
+		return anon;
+	}
+
+	/**
+	 * Return object by name
+	 */
+	public function getObjectTypeByName(name:String):AnonTypedefInfo {
+		return anonByName.get(name);
 	}
 }

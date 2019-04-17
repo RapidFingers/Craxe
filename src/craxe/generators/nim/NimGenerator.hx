@@ -287,7 +287,7 @@ class NimGenerator extends BaseGenerator {
 					sb.addNewLine(Same);
 				case TAnonymous(a):
 					var an = a.get();
-					sb.add('${td.typedefInfo.name} = tuple');
+					sb.add('${td.typedefInfo.name} = ref object of RootObj');					
 					sb.addNewLine(Inc);					
 					for (fld in an.fields) {
 						var ftp = typeResolver.resolve(fld.type);

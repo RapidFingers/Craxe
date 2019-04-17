@@ -223,10 +223,7 @@ class CommonAstPreprocessor {
 	 * Build typedef info
 	 */
 	function buildTypedef(def:DefType, params:Array<Type>):TypedefInfo {
-		return {
-			typedefInfo: def,
-			params: params
-		}
+		return new TypedefInfo(def, params);		
 	}
 
 	/**

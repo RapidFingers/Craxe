@@ -6,14 +6,22 @@ import haxe.macro.Type.DefType;
 /**
  * Info about typedef
  */
-typedef TypedefInfo = {
+class TypedefInfo {    
     /**
      * AST typedef info
      */
-    var typedefInfo:DefType;
+    public final typedefInfo:DefType;
 
     /**
      * Type parameters
      */
-    var params:Array<Type>;
+    public final params:Array<Type>;    
+
+    /**
+     * Constructor     
+     */
+    public function new(typedefInfo:DefType, params:Array<Type>) {
+        this.typedefInfo = typedefInfo;
+        this.params = params;
+    }
 }
