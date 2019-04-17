@@ -112,7 +112,7 @@ class TypeResolver {
 	 * Generate TType
 	 */
 	function generateTType(sb:StringBuf, t:DefType, params:Array<Type>) {
-		sb.add(t.name);
+		sb.add('${t.name}Anon');
 	}
 
 	/**

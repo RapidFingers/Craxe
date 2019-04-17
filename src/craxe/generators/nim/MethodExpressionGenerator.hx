@@ -553,9 +553,8 @@ class MethodExpressionGenerator {
 			context.getObjectTypeByFields(fields);
 		}
 
-		if (object != null)
-			trace(object);
-
+		var name = '${object.name}Anon';
+		sb.add('to${name}(');
 		sb.add('${object.name}(');		
 		for (i in 0...fields.length) {			
 			var field = fields[i];
@@ -568,8 +567,8 @@ class MethodExpressionGenerator {
 			}
 			if (i + 1 < fields.length)
 				sb.add(", ");
-		}
-		sb.add(")");		
+		}		
+		sb.add('))');
 	}
 
 	/**

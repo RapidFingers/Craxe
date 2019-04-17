@@ -267,7 +267,7 @@ class NimGenerator extends BaseGenerator {
 
 		sb.addBreak();
 	}
-
+	
 	/**
 	 * Build typedefs
 	 */
@@ -287,8 +287,8 @@ class NimGenerator extends BaseGenerator {
 					sb.addNewLine(Same);
 				case TAnonymous(a):
 					var an = a.get();
-					sb.add('${td.typedefInfo.name} = ref object of RootObj');					
-					sb.addNewLine(Inc);					
+					sb.add('${td.typedefInfo.name} = ref object of RootObj');
+					sb.addNewLine(Inc);
 					for (fld in an.fields) {
 						var ftp = typeResolver.resolve(fld.type);
 						sb.add('${fld.name}:${ftp}');
@@ -296,12 +296,51 @@ class NimGenerator extends BaseGenerator {
 					}
 					sb.addNewLine(Dec);
 					sb.addNewLine(Same, true);
+
+					sb.add('${td.typedefInfo.name}Anon = object');
+					sb.addNewLine(Inc);
+					sb.add("obj:ref RootObj");
+					sb.addNewLine(Same);
+					for (fld in an.fields) {
+						var ftp = typeResolver.resolve(fld.type);
+						sb.add('${fld.name}:ptr ${ftp}');
+						sb.addNewLine(Same);
+					}
+					sb.addNewLine(Dec);
 				case TAbstract(_, _):
 					var tpname = typeResolver.resolve(td.typedefInfo.type);
 					sb.add('${td.typedefInfo.name} = ${tpname}');
 					sb.addNewLine(Same);
 				case v:
 					throw 'Unsupported ${v}';
+			}
+		}
+
+		sb.addBreak();
+	}
+
+	/**
+	 * Generate anon converters for types
+	 */
+	function buildAnonConverters(sb:IndentStringBuilder) {
+		var typedefs = types.typedefs;
+
+		for (td in typedefs) {
+			switch (td.typedefInfo.type) {
+				case TAnonymous(a):
+					var an = a.get();
+					var name = td.typedefInfo.name;
+					var anonName = '${name}Anon';
+					sb.add('template to${anonName}(this:${name}):${anonName} =');
+					sb.addNewLine(Inc);
+					
+					sb.add('${anonName}(');
+					sb.add('obj:this');
+					var args = an.fields.map(x->'${x.name}:addr this.${x.name}').join(", ");
+					if (args.length > 0)
+						sb.add(', ${args}');
+					sb.add(')');
+				case _:
 			}
 		}
 
@@ -409,7 +448,7 @@ class NimGenerator extends BaseGenerator {
 	function generateClassConstructor(sb:IndentStringBuilder, cls:ClassInfo) {
 		if (cls.classType.constructor == null)
 			return;
-				
+
 		expressionGenerator.setClassContext(cls);
 
 		var constructor = cls.classType.constructor.get();
@@ -541,7 +580,7 @@ class NimGenerator extends BaseGenerator {
 		sb.addNewLine(None, true);
 		for (c in classes) {
 			if (c.classType.isExtern == false) {
-				if (!c.classType.isInterface) {					
+				if (!c.classType.isInterface) {
 					generateClassConstructor(sb, c);
 					generateClassMethods(sb, c);
 				}
@@ -588,6 +627,7 @@ class NimGenerator extends BaseGenerator {
 
 		buildEnums(sb);
 		buildTypedefs(sb);
+		buildAnonConverters(sb);
 		buildInterfaces(sb);
 		buildClassesAndStructures(sb);
 
