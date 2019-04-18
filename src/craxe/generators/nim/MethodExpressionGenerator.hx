@@ -432,6 +432,8 @@ class MethodExpressionGenerator {
 					generateTConst(sb, c);
 				case TLocal(v):
 					generateTLocal(sb, v);
+				case TBinop(op, e1, e2):
+					generateTBinop(sb, op, e1, e2);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -575,12 +577,14 @@ class MethodExpressionGenerator {
 		sb.add('${object.name}(');
 		for (i in 0...fields.length) {
 			var field = fields[i];
-			sb.add('${field.name}:');
+			sb.add('${field.name}: ');
 			switch field.expr.expr {
 				case TConst(c):
 					generateTConst(sb, c);
 				case TLocal(v):
 					generateTLocal(sb, v);
+				case TBinop(op, e1, e2):
+					generateTBinop(sb, op, e1, e2);
 				case v:
 					throw 'Unsupported ${v}';
 			}
