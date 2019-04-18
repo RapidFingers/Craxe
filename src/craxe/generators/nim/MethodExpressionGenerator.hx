@@ -531,6 +531,23 @@ class MethodExpressionGenerator {
 	}
 
 	/**
+	 * Generate code for TObjectDecl for trace
+	 */
+	function generateTObjectDeclTrace(sb:IndentStringBuilder, fields:Array<{name:String, expr:TypedExpr}>) {
+		for (i in 0...fields.length) {			
+			var field = fields[i];
+			switch field.expr.expr {
+				case TConst(c):
+					generateTConst(sb, c);
+				case v:
+					throw 'Unsupported ${v}';
+			}
+			if (i + 1 < fields.length)
+				sb.add(", ");
+		}	
+	}
+
+	/**
 	 * Generate code for TObjectDecl
 	 */
 	function generateTObjectDecl(sb:IndentStringBuilder, fields:Array<{name:String, expr:TypedExpr}>, type:Type = null) {
@@ -884,12 +901,24 @@ class MethodExpressionGenerator {
 	 * Generate code for common TCall
 	 */
 	function generateCommonTCall(sb:IndentStringBuilder, expression:TypedExpr, expressions:Array<TypedExpr>) {
+		var isTraceCall = false;
 		switch (expression.expr) {
 			case TField(_, FEnum(c, ef)):
 				var name = c.get().name;
 				sb.add('new${name}${ef.name}');
 				sb.add("(");
 			case TField(e, fa):
+				switch (e.expr) {					
+					case TTypeExpr(m):
+						switch (m) {
+							case TClassDecl(c):
+								if (c.get().name == "Log")
+									isTraceCall = true;
+							case _:
+						}
+					case _:
+				}
+
 				generateTCallTField(sb, e, fa);
 				sb.add("(");
 			case TConst(TSuper):
@@ -911,7 +940,9 @@ class MethodExpressionGenerator {
 				case TConst(c):
 					generateTConst(sb, c);
 				case TObjectDecl(e):
-					generateTObjectDecl(sb, e);
+					if (isTraceCall) {
+						generateTObjectDeclTrace(sb, e);
+					} else generateTObjectDecl(sb, e);
 				case TFunction(tfunc):
 					generateTFunction(sb, tfunc);
 				case TLocal(v):
@@ -920,7 +951,7 @@ class MethodExpressionGenerator {
 					generateTNew(sb, c.get(), params, el);
 				case TBinop(op, e1, e2):
 					generateTBinop(sb, op, e1, e2);
-				case TField(e, fa):
+				case TField(e, fa):					
 					generateTField(sb, e, fa);
 				case TCall(e, el):
 					generateCommonTCall(sb, e, el);
