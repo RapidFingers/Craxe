@@ -534,7 +534,7 @@ class MethodExpressionGenerator {
 	 * Generate code for TObjectDecl for trace
 	 */
 	function generateTObjectDeclTrace(sb:IndentStringBuilder, fields:Array<{name:String, expr:TypedExpr}>) {
-		for (i in 0...fields.length) {			
+		for (i in 0...fields.length) {
 			var field = fields[i];
 			switch field.expr.expr {
 				case TConst(c):
@@ -544,7 +544,7 @@ class MethodExpressionGenerator {
 			}
 			if (i + 1 < fields.length)
 				sb.add(", ");
-		}	
+		}
 	}
 
 	/**
@@ -572,8 +572,8 @@ class MethodExpressionGenerator {
 
 		var name = '${object.name}Anon';
 		sb.add('to${name}(');
-		sb.add('${object.name}(');		
-		for (i in 0...fields.length) {			
+		sb.add('${object.name}(');
+		for (i in 0...fields.length) {
 			var field = fields[i];
 			sb.add('${field.name}:');
 			switch field.expr.expr {
@@ -584,7 +584,7 @@ class MethodExpressionGenerator {
 			}
 			if (i + 1 < fields.length)
 				sb.add(", ");
-		}		
+		}
 		sb.add('))');
 	}
 
@@ -891,7 +891,7 @@ class MethodExpressionGenerator {
 				var name = typeResolver.getFixedTypeName(e.get().name);
 				sb.add('new${name}${ef.name}()');
 			case FAnon(cf):
-				sb.add('.${cf.get().name}');
+				sb.add('.${cf.get().name}[]');
 			case v:
 				throw 'Unsupported ${v}';
 		}
@@ -908,7 +908,7 @@ class MethodExpressionGenerator {
 				sb.add('new${name}${ef.name}');
 				sb.add("(");
 			case TField(e, fa):
-				switch (e.expr) {					
+				switch (e.expr) {
 					case TTypeExpr(m):
 						switch (m) {
 							case TClassDecl(c):
@@ -934,24 +934,58 @@ class MethodExpressionGenerator {
 				throw 'Unsupported ${v}';
 		}
 
+		var funArgs = switch (expression.t) {
+			case TFun(args, _):
+				args;
+			case _:
+				null;
+		}
+
+		var wasConverter = false;
 		for (i in 0...expressions.length) {
 			var expr = expressions[i];
+			var farg = if (funArgs != null) {
+				funArgs[i];
+			} else null;
+
 			switch (expr.expr) {
 				case TConst(c):
 					generateTConst(sb, c);
 				case TObjectDecl(e):
 					if (isTraceCall) {
 						generateTObjectDeclTrace(sb, e);
-					} else generateTObjectDecl(sb, e);
+					} else
+						generateTObjectDecl(sb, e);
 				case TFunction(tfunc):
 					generateTFunction(sb, tfunc);
 				case TLocal(v):
+					if (farg != null) {
+						switch v.t {
+							case TInst(t, params):
+								switch farg.t {
+									case TType(t, _):
+										var name = t.get().name;
+										sb.add('to${name}Anon(');
+										wasConverter = true;
+									case TAnonymous(a):
+										var an = a.get();
+										var obj = context.getObjectTypeByFields(an.fields.map(x -> {
+											name: x.name,
+											expr: x.expr()
+										}));
+										sb.add('to${obj.name}Anon(');
+										wasConverter = true;
+									case _:
+								}
+							case _:
+						}
+					}
 					generateTLocal(sb, v);
 				case TNew(c, params, el):
 					generateTNew(sb, c.get(), params, el);
 				case TBinop(op, e1, e2):
 					generateTBinop(sb, op, e1, e2);
-				case TField(e, fa):					
+				case TField(e, fa):
 					generateTField(sb, e, fa);
 				case TCall(e, el):
 					generateCommonTCall(sb, e, el);
@@ -969,6 +1003,8 @@ class MethodExpressionGenerator {
 		}
 
 		sb.add(")");
+		if (wasConverter)
+			sb.add(")");
 	}
 
 	/**

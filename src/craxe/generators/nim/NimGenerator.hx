@@ -331,7 +331,7 @@ class NimGenerator extends BaseGenerator {
 					var an = a.get();
 					var name = td.typedefInfo.name;
 					var anonName = '${name}Anon';
-					sb.add('template to${anonName}(this:${name}):${anonName} =');
+					sb.add('template to${anonName}[T](this:T):${anonName} =');
 					sb.addNewLine(Inc);
 					
 					sb.add('${anonName}(');

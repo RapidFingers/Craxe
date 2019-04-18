@@ -98,6 +98,8 @@ class TypeResolver {
 						generateTInst(sb, t.get(), params);
 					case TAbstract(t, params):
 						generateTAbstract(sb, t.get(), params);
+					case TType(t, params):
+						generateTType(sb, t.get(), params);
 					case TEnum(t, params):
 						generateTEnum(sb, t.get(), params);
 					case v:
@@ -135,7 +137,7 @@ class TypeResolver {
 				expr: x.expr()
 			}
 		}));
-		sb.add('${an.name}');
+		sb.add('${an.name}Anon');
 	}
 
 	/**
