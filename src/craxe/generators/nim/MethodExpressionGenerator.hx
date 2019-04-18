@@ -579,6 +579,8 @@ class MethodExpressionGenerator {
 			switch field.expr.expr {
 				case TConst(c):
 					generateTConst(sb, c);
+				case TLocal(v):
+					generateTLocal(sb, v);
 				case v:
 					throw 'Unsupported ${v}';
 			}
