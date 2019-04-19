@@ -45,10 +45,10 @@ class TypeResolver {
 		}
 
 		return false;
-	}	
+	}
 
 	/**
-	 * Generate code for pass modificator	 
+	 * Generate code for pass modificator
 	 */
 	function generatePassModificator(sb:StringBuf, t:AbstractType, params:Array<Type>):Bool {
 		if (t.name == "Var") {
@@ -98,9 +98,13 @@ class TypeResolver {
 						generateTInst(sb, t.get(), params);
 					case TAbstract(t, params):
 						generateTAbstract(sb, t.get(), params);
+					case TType(t, params):
+						generateTType(sb, t.get(), params);
 					case TEnum(t, params):
 						generateTEnum(sb, t.get(), params);
-					case v:						
+					case TAnonymous(a):
+						generateTAnonymous(sb, a.get());
+					case v:
 						throw 'Unsupported paramter ${v}';
 				}
 			}
@@ -112,17 +116,30 @@ class TypeResolver {
 	 * Generate TType
 	 */
 	function generateTType(sb:StringBuf, t:DefType, params:Array<Type>) {
-		throw "Not supported";
+		sb.add('${t.name}Anon');
 	}
 
 	/**
-	 * Generate TFun	 
+	 * Generate TFun
 	 */
 	function generateTFun(sb:StringBuf, args:Array<ArgumentInfo>, ret:Type) {
 		sb.add("proc(");
-		sb.add(args.map(x-> '${x.name}:${resolve(x.t)}').join(", "));
+		sb.add(args.map(x -> '${x.name}:${resolve(x.t)}').join(", "));
 		sb.add("):");
 		sb.add(resolve(ret));
+	}
+
+	/**
+	 * Generate TAnonymous
+	 */
+	function generateTAnonymous(sb:StringBuf, anon:AnonType) {
+		var an = context.getObjectTypeByFields(anon.fields.map(x-> {
+			return {
+				name: x.name,
+				type: x.type
+			}
+		}));
+		sb.add('${an.name}Anon');
 	}
 
 	/**
@@ -195,6 +212,8 @@ class TypeResolver {
 				generateTType(sb, t.get(), params);
 			case TFun(args, ret):
 				generateTFun(sb, args, ret);
+			case TAnonymous(a):
+				generateTAnonymous(sb, a.get());
 			case v:
 				throw 'Unsupported type ${v}';
 		}

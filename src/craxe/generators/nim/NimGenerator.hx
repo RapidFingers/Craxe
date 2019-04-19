@@ -201,7 +201,8 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Generate code for enums
 	 */
-	function buildEnums(sb:IndentStringBuilder, enums:Array<EnumInfo>) {
+	function buildEnums(sb:IndentStringBuilder) {
+		var enums = types.enums;
 		if (enums.length < 1)
 			return;
 
@@ -262,6 +263,90 @@ class NimGenerator extends BaseGenerator {
 				var cinter = typeContext.getInterfaceByName(inter.t.get().name);
 				interGenerateor.generateInterfaceConverter(sb, cls, cinter, typeResolver);
 			}
+		}
+
+		sb.addBreak();
+	}
+
+	/**
+	 * Build typedefs
+	 */
+	function buildTypedefs(sb:IndentStringBuilder) {
+		var typedefs = types.typedefs;
+		var anons = typeContext.allAnonymous();
+		if (typedefs.length < 1 && anons.length < 1)
+			return;
+
+		sb.add("type ");
+		sb.addNewLine(Inc);
+
+		for (td in typedefs) {
+			switch (td.typedefInfo.type) {
+				case TInst(t, _):
+					sb.add('${td.typedefInfo.name} = ${t.get().name}');
+					sb.addNewLine(Same);
+				case TFun(_, _):
+					var tpname = typeResolver.resolve(td.typedefInfo.type);
+					sb.add('${td.typedefInfo.name} = ${tpname}');
+					sb.addNewLine(Same);
+				case TAbstract(_, _):
+					var tpname = typeResolver.resolve(td.typedefInfo.type);
+					sb.add('${td.typedefInfo.name} = ${tpname}');
+					sb.addNewLine(Same);
+				case TAnonymous(a):
+				case v:
+					throw 'Unsupported ${v}';
+			}
+		}
+
+		for (an in anons) {
+			sb.add('${an.name} = ref object of RootObj');
+			sb.addNewLine(Inc);
+			for (fld in an.fields) {
+				var ftp = typeResolver.resolve(fld.type);
+				sb.add('${fld.name}:${ftp}');
+				sb.addNewLine(Same);
+			}
+			sb.addNewLine(Dec);
+			sb.addNewLine(Same, true);
+
+			sb.add('${an.name}Anon = object');
+			sb.addNewLine(Inc);
+			sb.add("obj:ref RootObj");
+			sb.addNewLine(Same);
+			for (fld in an.fields) {
+				var ftp = typeResolver.resolve(fld.type);
+				sb.add('${fld.name}:ptr ${ftp}');
+				sb.addNewLine(Same);
+			}
+			sb.addNewLine(Dec);
+			sb.addNewLine(Same, true);
+		}
+
+		sb.addNewLine();
+	}
+
+	/**
+	 * Generate anon converters for types
+	 */
+	function buildAnonConverters(sb:IndentStringBuilder) {
+		var anons = typeContext.allAnonymous();
+		if (anons.length < 1)
+			return;
+
+		for (an in anons) {
+			var name = an.name;
+			var anonName = '${name}Anon';
+			sb.add('proc to${anonName}[T](this:T):${anonName} {.inline.} =');
+			sb.addNewLine(Inc);
+
+			sb.add('${anonName}(');
+			sb.add('obj:this');
+			var args = an.fields.map(x -> '${x.name}:addr this.${x.name}').join(", ");
+			if (args.length > 0)
+				sb.add(', ${args}');
+			sb.add(')');
+			sb.addBreak();
 		}
 
 		sb.addBreak();
@@ -368,7 +453,7 @@ class NimGenerator extends BaseGenerator {
 	function generateClassConstructor(sb:IndentStringBuilder, cls:ClassInfo) {
 		if (cls.classType.constructor == null)
 			return;
-				
+
 		expressionGenerator.setClassContext(cls);
 
 		var constructor = cls.classType.constructor.get();
@@ -450,6 +535,7 @@ class NimGenerator extends BaseGenerator {
 		}
 
 		for (method in cls.staticMethods) {
+			trace(method.name);
 			generateClassMethod(sb, cls, method, true);
 		}
 
@@ -464,13 +550,16 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Build classes code
 	 */
-	function buildClassesAndStructures(sb:IndentStringBuilder, classes:Array<ClassInfo>) {
-		if (types.classes.length > 0) {
+	function buildClassesAndStructures(sb:IndentStringBuilder) {
+		var classes = types.classes;
+		var structures = types.structures;
+
+		if (classes.length > 0) {
 			sb.add("type ");
 			sb.addNewLine(Inc);
 		}
 
-		for (c in types.classes) {
+		for (c in classes) {
 			if (c.classType.isExtern == false) {
 				if (!c.classType.isInterface) {
 					generateClassInfo(sb, c);
@@ -478,14 +567,14 @@ class NimGenerator extends BaseGenerator {
 			}
 		}
 
-		for (c in types.structures) {
+		for (c in structures) {
 			generateStructureInfo(sb, c);
 		}
 
 		sb.addNewLine(None, true);
 
 		// Init static classes
-		for (c in types.classes) {
+		for (c in classes) {
 			if (c.classType.isExtern == false) {
 				if (!c.classType.isInterface) {
 					generateStaticClassInit(sb, c);
@@ -494,7 +583,7 @@ class NimGenerator extends BaseGenerator {
 		}
 
 		sb.addNewLine(None, true);
-		for (c in types.classes) {
+		for (c in classes) {
 			if (c.classType.isExtern == false) {
 				if (!c.classType.isInterface) {
 					generateClassConstructor(sb, c);
@@ -536,20 +625,28 @@ class NimGenerator extends BaseGenerator {
 		var outPath = Path.directory(filename);
 		FileSystem.createDirectory(outPath);
 
-		var sb = new IndentStringBuilder();
-
 		addLibraries(outPath);
-		addCodeHelpers(sb);
 
-		buildEnums(sb, types.enums);
-		buildInterfaces(sb);
-		buildClassesAndStructures(sb, types.classes);
+		var codeSb = new IndentStringBuilder();
+		buildClassesAndStructures(codeSb);
+
+		var headerSb = new IndentStringBuilder();
+
+		addCodeHelpers(headerSb);
+		buildEnums(headerSb);
+		buildTypedefs(headerSb);
+		buildAnonConverters(headerSb);
+		buildInterfaces(headerSb);
 
 		if (types.entryPoint != null) {
-			sb.addNewLine();
-			buildEntryPointMain(sb, types.entryPoint);
+			codeSb.addNewLine();
+			buildEntryPointMain(codeSb, types.entryPoint);
 		}
 
-		File.saveContent(filename, sb.toString());
+		var buff = new StringBuf();
+		buff.add(headerSb.toString());
+		buff.add(codeSb.toString());
+
+		File.saveContent(filename, buff.toString());
 	}
 }

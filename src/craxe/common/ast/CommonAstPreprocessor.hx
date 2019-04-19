@@ -39,13 +39,19 @@ class CommonAstPreprocessor {
 	];
 
 	/**
+	 * Excluded modules
+	 */
+	static final excludedModules:Array<String> = ["haxe.", "craxe.nim.", "Xml", "StdTypes", "Map"];
+
+	/**
 	 * Filter not needed type. Return true if filtered
 	 */
 	function filterTypeByName(name:String, module:String):Bool {
-		if (excludedTypes.exists(name))
-			return true;
+		for (excl in excludedModules)
+			if (module.indexOf(excl) >= 0)
+				return true;
 
-		if (StringTools.startsWith(module, "haxe.") || StringTools.startsWith(module, "craxe.nim."))
+		if (excludedTypes.exists(name))
 			return true;
 
 		return false;
@@ -62,6 +68,11 @@ class CommonAstPreprocessor {
 			case TInst(t, _):
 				var ins = t.get();
 				return filterTypeByName(ins.name, ins.module);
+			case TAbstract(t, params):
+				return true;
+			case TType(t, _):
+				var tp = t.get();
+				return filterTypeByName(tp.name, tp.module);
 			case _:
 		}
 		return false;
@@ -80,10 +91,18 @@ class CommonAstPreprocessor {
 			switch (ifield.kind) {
 				case FVar(_, _):
 					fields.push(ifield);
-				case FMethod(_):
-					methods.push(ifield);
+				case FMethod(m):
+					switch (m) {
+						case MethNormal:
+							methods.push(ifield);
+						case MethMacro:
+						case v:
+							throw 'Unsupported ${v}';
+					}
 			}
 		}
+
+		Sys.println(methods);
 
 		return {
 			fields: fields,
@@ -109,10 +128,16 @@ class CommonAstPreprocessor {
 			switch (ifield.kind) {
 				case FVar(_, _):
 					fields.push(ifield);
-				case FMethod(_):
-					methods.push(ifield);
-					if (ifield.name == MAIN_METHOD) {
-						entryMethod = ifield;
+				case FMethod(m):
+					switch (m) {
+						case MethNormal:
+							methods.push(ifield);
+							if (ifield.name == MAIN_METHOD) {
+								entryMethod = ifield;
+							}
+						case MethMacro:
+						case v:
+							throw 'Unsupported ${v}';
 					}
 			}
 		}
@@ -195,6 +220,13 @@ class CommonAstPreprocessor {
 	}
 
 	/**
+	 * Build typedef info
+	 */
+	function buildTypedef(def:DefType, params:Array<Type>):TypedefInfo {
+		return new TypedefInfo(def, params);		
+	}
+
+	/**
 	 * Constructor
 	 */
 	public function new() {}
@@ -211,7 +243,7 @@ class CommonAstPreprocessor {
 				objectInfo: buildInterface(c, params)
 			}
 		} else {
-			if (isStruct(c)) {				
+			if (isStruct(c)) {
 				return {
 					objectInfo: buildStruct(c, params)
 				}
@@ -234,6 +266,7 @@ class CommonAstPreprocessor {
 	public function process(types:Array<Type>):PreprocessedTypes {
 		var classes = new Array<ClassInfo>();
 		var structures = new Array<StructInfo>();
+		var typedefs = new Array<TypedefInfo>();
 		var interfaces = new Array<InterfaceInfo>();
 		var enums = new Array<EnumInfo>();
 		var entryPoint:EntryPointInfo = null;
@@ -241,6 +274,8 @@ class CommonAstPreprocessor {
 		for (t in types) {
 			if (filterType(t))
 				continue;
+
+			trace('Generate ${t.getName()}${t.getParameters()}');
 
 			switch (t) {
 				case TInst(c, params):
@@ -260,6 +295,10 @@ class CommonAstPreprocessor {
 					var enu = buildEnum(t.get(), params);
 					if (enu != null)
 						enums.push(enu);
+				case TType(t, params):
+					var td = buildTypedef(t.get(), params);
+					if (td != null)
+						typedefs.push(td);
 				case _:
 			}
 		}
@@ -267,6 +306,7 @@ class CommonAstPreprocessor {
 		var types:PreprocessedTypes = {
 			interfaces: interfaces,
 			classes: classes,
+			typedefs: typedefs,
 			structures: structures,
 			enums: enums,
 			entryPoint: entryPoint
