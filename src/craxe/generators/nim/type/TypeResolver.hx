@@ -76,9 +76,9 @@ class TypeResolver {
 			return;
 
 		if (generatePassModificator(sb, t, params))
-			return;
+			return;		
 
-		throw 'Unsupported ${t}';
+		sb.add('${t.name}Abstr');
 	}
 
 	/**

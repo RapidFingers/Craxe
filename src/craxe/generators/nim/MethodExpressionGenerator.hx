@@ -44,93 +44,6 @@ class MethodExpressionGenerator {
 	var classContext:ClassInfo;
 
 	/**
-	 * Trace expression for debug
-	 */
-	function traceExpressionInternal(expr:TypedExpr) {
-		trace(expr.pos);
-		switch (expr.expr) {
-			case TConst(c):
-				trace('TConst[${c}]');
-			case TLocal(v):
-				trace('TLocal[name: ${v.name}]');
-			case TArray(e1, e2):
-			case TBinop(op, e1, e2):
-				trace('TBinop[name: ${op.getName()}, expr1: ${e1.expr.getName()}, expr2: ${e2.expr.getName()}]');
-			case TField(e, fa):
-				trace('TField[name: ${e.t.getName()}${e.t.getParameters()}, access: ${fa.getName()}${fa.getParameters()}]');
-			case TTypeExpr(m):
-			case TParenthesis(e):
-				trace('TParenthesis: ${e.expr.getName()}');
-			case TObjectDecl(fields):
-			case TArrayDecl(el):
-			case TCall(e, el):
-				trace('TCall[expr: ${e.expr.getName()}, elements: ${el.map(x -> x.expr.getName()).join(", ")}]');
-			case TNew(c, params, el):
-				trace('TNew[name: ${c.get().name}, params: ${params.map(x -> x.getName()).join(", ")}, elements: ${el.map(x -> x.expr.getName()).join(", ")}]');
-			case TUnop(op, postFix, e):
-				trace('TUnop[name: ${op.getName()}, postFix: ${postFix}, expr: ${e.expr.getName()}]');
-			case TFunction(tfunc):
-				trace('TFunction[args: ${tfunc.args.map(x -> x.v.name).join(", ")}, ret: ${tfunc.t.getName()}, expr: ${tfunc.expr.expr.getName()}]');
-			case TVar(v, expr):
-				trace('TVar[name: ${v.name}, expr: ${expr.expr.getName()}]');
-			case TBlock(el):
-				trace('TBlock[elements: ${el.map(x -> x.expr.getName()).join(", ")}]');
-			case TFor(v, e1, e2):
-				trace('TFor[name: ${v.name}, e1: ${e1.expr.getName()}, e2: ${e2.expr.getName()}]');
-			case TIf(econd, eif, eelse):
-				var seelse = if (eelse != null) {
-					eelse.expr.getName();
-				} else "";
-				trace('TWhile[econd: ${econd.expr.getName()}, eif: ${eif.expr.getName()}, eelse: ${seelse}]');
-			case TWhile(econd, e, normalWhile):
-				trace('TWhile[econd: ${econd.expr.getName()}, expr: ${e.expr.getName()}, normal: ${normalWhile}]');
-			case TSwitch(e, cases, edef):
-				var sedef = if (edef != null) {
-					edef.expr.getName();
-				} else "";
-				trace('TSwitch[expr: ${e.expr.getName()}, cases: ${cases}, edef: ${sedef}]');
-			case TTry(e, catches):
-				trace('TTry[expr: ${e.expr.getName()}, catches: ${catches}}]');
-			case TReturn(e):
-				var exp = if (e != null) {
-					e.expr.getName();
-				} else "";
-				trace('TReturn[expr: ${exp}]');
-			case TBreak:
-				trace('TBreak');
-			case TContinue:
-				trace('TContinue');
-			case TThrow(e):
-				trace('TThrow[expr: ${e.expr.getName()}]');
-			case TCast(e, m):
-				var exp = if (e != null) {
-					e.expr.getName();
-				} else "";
-				var tp = if (m != null) {
-					m.getName();
-				} else "";
-				trace('TCast[expr: ${exp}, type: ${tp}]');
-			case TMeta(m, e1):
-				trace('TMeta[name: ${m.name}, params: ${m.params.map(x -> x.expr.getName()).join(", ")}, expr: ${e1.expr.getName()}]');
-			case TEnumParameter(e1, ef, index):
-				trace('TEnumParameter[expr: ${e1.expr.getName()}, field: ${ef.name}, index: ${index}]');
-			case TEnumIndex(e1):
-				trace('TEnumIndex[expr: ${e1.expr.getName()}]');
-			case TIdent(s):
-				trace('TIdent[${s}]');
-		}
-	}
-
-	/**
-	 * Trace expression
-	 */
-	inline function traceExpression(expr:TypedExpr) {
-		#if debug_gen
-		traceExpressionInternal(expr);
-		#end
-	}
-
-	/**
 	 * Fix local var name
 	 */
 	inline function fixLocalVarName(name:String):String {
@@ -146,6 +59,8 @@ class MethodExpressionGenerator {
 				generateTSwitch(sb, e, cases, edef);
 			case TEnumIndex(e1):
 				generateTEnumIndex(sb, e1);
+			case TCall(e, el):
+				generateCommonTCall(sb, e, el);
 			case v:
 				throw 'Unsupported ${v}';
 		}
@@ -261,16 +176,17 @@ class MethodExpressionGenerator {
 	 * Return proper type name and it's field
 	 */
 	function getStaticTFieldData(classType:ClassType, classField:ClassField):{
-		isTop:Bool,
 		className:String,
 		fieldName:String,
 		totalName:String
 	} {
 		var className = "";
-		var isTop = false;
+
+		var fieldName = classField.name;
+		var totalName = "";
 
 		if (classType.isExtern) {
-			isTop = classField.meta.has(":topFunction");
+			var isTop = classField.meta.has(":topFunction");
 			className = classType.meta.getMetaValue(":native");
 			// Check it's top function
 			if (className == null) {
@@ -281,31 +197,40 @@ class MethodExpressionGenerator {
 					className = classType.name;
 				}
 			}
+
+			if (isTop) {
+				var topName = classField.meta.getMetaValue(":native");
+				if (topName != null)
+					fieldName = topName;
+			}
+
+			totalName = if (isTop) {
+				fieldName;
+			} else {
+				'${className}.${fieldName}';
+			}
 		} else {
 			typeResolver.getFixedTypeName(classType.name);
 			var name = typeResolver.getFixedTypeName(classType.name);
-			className = '${name}StaticInst';
-		}
 
-		var fieldName = classField.name;
-
-		if (isTop) {
-			var topName = classField.meta.getMetaValue(":native");
-			if (topName != null)
-				fieldName = topName;
-		}
-
-		var totalName = if (isTop) {
-			fieldName;
-		} else {
-			'${className}.${fieldName}';
+			switch classType.kind {
+				case KNormal:
+					className = '${name}StaticInst';
+					totalName = '${className}.${fieldName}';
+				case KAbstractImpl(a):
+					var abstr = a.get();
+					className = '${abstr.name}Abstr';
+					fieldName = fieldName.replace("_", "");
+					totalName = '${fieldName}${className}';
+				case v:
+					throw 'Unsupported ${v}';
+			}
 		}
 
 		if (totalName == "Std.string")
 			totalName = "$";
 
 		return {
-			isTop: isTop,
 			className: className,
 			fieldName: fieldName,
 			totalName: totalName
@@ -375,8 +300,7 @@ class MethodExpressionGenerator {
 	 * Generate code for TVar
 	 */
 	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {
-		sb.add("var ");
-
+		sb.add("var ");		
 		var name = typeResolver.getFixedTypeName(vr.name);
 		name = fixLocalVarName(name);
 		sb.add(name);
@@ -405,9 +329,13 @@ class MethodExpressionGenerator {
 				case TEnumParameter(e1, ef, index):
 					if (!generateCustomEnumParameterCall(sb, e1, ef, index))
 						generateTEnumParameter(sb, e1, ef, index);
+				case TMeta(m, e1):
+					generateTMeta(sb, m, e1);
 				case v:
 					throw 'Unsupported ${v}';
 			}
+		} else {
+			sb.add(':${typeResolver.resolve(vr.t)}');
 		}
 	}
 
@@ -571,7 +499,7 @@ class MethodExpressionGenerator {
 					throw 'Unsupported ${v}';
 			}
 		} else {
-			context.getObjectTypeByFields(fields.map(x-> {
+			context.getObjectTypeByFields(fields.map(x -> {
 				name: x.name,
 				type: x.expr.t
 			}));
@@ -603,8 +531,14 @@ class MethodExpressionGenerator {
 	 * Genertate TCast
 	 */
 	function generateTCast(sb:IndentStringBuilder, expression:TypedExpr, module:ModuleType) {
-		trace(expression);
-		trace(module);
+		// TODO: normal cast
+		switch (expression.expr) {			
+			case TLocal(v):
+				if (v.name == "this1")
+					sb.add("this1");
+			case v:
+				throw 'Unsupported ${v}';
+		}
 	}
 
 	/**
@@ -675,6 +609,10 @@ class MethodExpressionGenerator {
 					generateTLocal(sb, v);
 				case TObjectDecl(fields):
 					generateTObjectDecl(sb, fields);
+				case TCast(e, m):
+					generateTCast(sb, e, m);
+				case TField(e, fa):
+					generateTField(sb, e, fa);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -768,6 +706,8 @@ class MethodExpressionGenerator {
 					generateCommonTCall(sb, e, el);
 				case TBinop(op, e1, e2):
 					generateTBinop(sb, op, e1, e2);
+				case TNew(c, params, el):
+					generateTNew(sb, c.get(), params, el);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -1081,23 +1021,29 @@ class MethodExpressionGenerator {
 		switch (eif.expr) {
 			case TReturn(e):
 				generateTReturn(sb, e);
+			case TBinop(op, e1, e2):
+				generateTBinop(sb, op, e1, e2);
 			case v:
 				throw 'Unsupported ${v}';
 		}
-
+		
 		if (eelse != null) {
+			sb.addNewLine(Dec);
+			sb.add("else:");
+			sb.addNewLine(Inc);
+
 			switch (eelse.expr) {
 				case TBlock(el):
 					if (el.length > 0) {
-						sb.addNewLine(Dec);
-						sb.add("else:");
 						switch (eelse.expr) {
 							case v:
 								throw 'Unsupported ${v}';
 						}
 					}
-				case _:
-					throw "Unsupported expression";
+				case TBinop(op, e1, e2):
+					generateTBinop(sb, op, e1, e2);
+				case v:
+					throw 'Unsupported ${v}';
 			}
 		}
 		sb.addNewLine(Dec);
