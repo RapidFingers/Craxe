@@ -83,4 +83,6 @@ https://github.com/RapidFingers/CraxeExamples
 - [ ] Type checking (operator is)
 - [ ] Generics
 - [ ] GADT
+- [ ] Dynamic
+- [ ] Reflection
 - [ ] Some kind of std lib
