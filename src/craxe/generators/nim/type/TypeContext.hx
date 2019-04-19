@@ -119,6 +119,18 @@ class TypeContext {
 	}
 
 	/**
+	 * Return iterator for all interfaces
+	 */
+	public function allAnonymous():Array<AnonTypedefInfo> {
+		var res = new Array<AnonTypedefInfo>();
+		for (item in anonById.iterator()) {
+			res.push(item);
+		}
+
+		return res;
+	}	
+
+	/**
 	 * Return interface by name
 	 */
 	public function getInterfaceByName(name:String):InterfaceInfo {

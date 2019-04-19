@@ -392,6 +392,8 @@ class MethodExpressionGenerator {
 					generateTConst(sb, c);
 				case TCall(e, el):
 					generateCommonTCall(sb, e, el);
+				case TLocal(v):
+					generateTLocal(sb, v);
 				case TArray(e1, e2):
 					generateTArray(sb, e1, e2);
 				case TArrayDecl(el):

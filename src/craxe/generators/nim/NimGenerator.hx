@@ -267,15 +267,18 @@ class NimGenerator extends BaseGenerator {
 
 		sb.addBreak();
 	}
-	
+
 	/**
 	 * Build typedefs
 	 */
 	function buildTypedefs(sb:IndentStringBuilder) {
+		var anons = typeContext.allAnonymous();		
+		if (anons.length < 1)
+			return;
+
 		sb.add("type ");
 		sb.addNewLine(Inc);
 
-		var typedefs = types.typedefs;
 		for (td in typedefs) {
 			switch (td.typedefInfo.type) {
 				case TInst(t, _):
@@ -324,6 +327,8 @@ class NimGenerator extends BaseGenerator {
 	 */
 	function buildAnonConverters(sb:IndentStringBuilder) {
 		var typedefs = types.typedefs;
+		if (typedefs.length < 1)
+			return;
 
 		for (td in typedefs) {
 			switch (td.typedefInfo.type) {
@@ -333,10 +338,10 @@ class NimGenerator extends BaseGenerator {
 					var anonName = '${name}Anon';
 					sb.add('proc to${anonName}[T](this:T):${anonName} {.inline.} =');
 					sb.addNewLine(Inc);
-					
+
 					sb.add('${anonName}(');
 					sb.add('obj:this');
-					var args = an.fields.map(x->'${x.name}:addr this.${x.name}').join(", ");
+					var args = an.fields.map(x -> '${x.name}:addr this.${x.name}').join(", ");
 					if (args.length > 0)
 						sb.add(', ${args}');
 					sb.add(')');
@@ -618,24 +623,30 @@ class NimGenerator extends BaseGenerator {
 
 		var filename = Path.normalize(nimOut);
 		var outPath = Path.directory(filename);
-		FileSystem.createDirectory(outPath);
-
-		var sb = new IndentStringBuilder();
+		FileSystem.createDirectory(outPath);		
 
 		addLibraries(outPath);
-		addCodeHelpers(sb);
+				
+		var codeSb = new IndentStringBuilder();
+		buildClassesAndStructures(codeSb);
 
-		buildEnums(sb);
-		buildTypedefs(sb);
-		buildAnonConverters(sb);
-		buildInterfaces(sb);
-		buildClassesAndStructures(sb);
+		var headerSb = new IndentStringBuilder();
+		
+		addCodeHelpers(headerSb);
+		buildEnums(headerSb);
+		buildTypedefs(headerSb);
+		buildAnonConverters(headerSb);
+		buildInterfaces(headerSb);
 
 		if (types.entryPoint != null) {
-			sb.addNewLine();
-			buildEntryPointMain(sb, types.entryPoint);
+			codeSb.addNewLine();
+			buildEntryPointMain(codeSb, types.entryPoint);
 		}
 
-		File.saveContent(filename, sb.toString());
+		var buff = new StringBuf();
+		buff.add(headerSb.toString());
+		buff.add(codeSb.toString());
+
+		File.saveContent(filename, buff.toString());
 	}
 }
