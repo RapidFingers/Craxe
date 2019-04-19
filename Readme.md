@@ -25,6 +25,8 @@ Because.
     - static and instance methods
     - instance fields
 * Interfaces
+* Typedefs
+* Anonymous
 * Basic types: 
     - Int
     - Float
@@ -71,12 +73,14 @@ https://github.com/RapidFingers/CraxeExamples
 - [x] BrainF**k benchmark
 - [x] Basic externs implementation
 - [x] Closures
-- [ ] Map/Dictionary
-- [ ] Auto import nimble libs
+- [x] Typedefs
+- [x] Anonymous
 - [ ] Extern for nim httpbeast
 - [ ] Example of async http server
+- [ ] Abstracts
+- [ ] Map/Dictionary
+- [ ] Auto import nimble libs
 - [ ] Type checking (operator is)
 - [ ] Generics
 - [ ] GADT
-- [ ] Abstracts
 - [ ] Some kind of std lib
