@@ -272,8 +272,9 @@ class NimGenerator extends BaseGenerator {
 	 * Build typedefs
 	 */
 	function buildTypedefs(sb:IndentStringBuilder) {
-		var anons = typeContext.allAnonymous();		
-		if (anons.length < 1)
+		var typedefs = types.typedefs;
+		var anons = typeContext.allAnonymous();
+		if (typedefs.length < 1 && anons.length < 1)
 			return;
 
 		sb.add("type ");
@@ -288,65 +289,64 @@ class NimGenerator extends BaseGenerator {
 					var tpname = typeResolver.resolve(td.typedefInfo.type);
 					sb.add('${td.typedefInfo.name} = ${tpname}');
 					sb.addNewLine(Same);
-				case TAnonymous(a):
-					var an = a.get();
-					sb.add('${td.typedefInfo.name} = ref object of RootObj');
-					sb.addNewLine(Inc);
-					for (fld in an.fields) {
-						var ftp = typeResolver.resolve(fld.type);
-						sb.add('${fld.name}:${ftp}');
-						sb.addNewLine(Same);
-					}
-					sb.addNewLine(Dec);
-					sb.addNewLine(Same, true);
-
-					sb.add('${td.typedefInfo.name}Anon = object');
-					sb.addNewLine(Inc);
-					sb.add("obj:ref RootObj");
-					sb.addNewLine(Same);
-					for (fld in an.fields) {
-						var ftp = typeResolver.resolve(fld.type);
-						sb.add('${fld.name}:ptr ${ftp}');
-						sb.addNewLine(Same);
-					}
-					sb.addNewLine(Dec);
 				case TAbstract(_, _):
 					var tpname = typeResolver.resolve(td.typedefInfo.type);
 					sb.add('${td.typedefInfo.name} = ${tpname}');
 					sb.addNewLine(Same);
+				case TAnonymous(a):
 				case v:
 					throw 'Unsupported ${v}';
 			}
 		}
 
-		sb.addBreak();
+		for (an in anons) {
+			sb.add('${an.name} = ref object of RootObj');
+			sb.addNewLine(Inc);
+			for (fld in an.fields) {
+				var ftp = typeResolver.resolve(fld.type);
+				sb.add('${fld.name}:${ftp}');
+				sb.addNewLine(Same);
+			}
+			sb.addNewLine(Dec);
+			sb.addNewLine(Same, true);
+
+			sb.add('${an.name}Anon = object');
+			sb.addNewLine(Inc);
+			sb.add("obj:ref RootObj");
+			sb.addNewLine(Same);
+			for (fld in an.fields) {
+				var ftp = typeResolver.resolve(fld.type);
+				sb.add('${fld.name}:ptr ${ftp}');
+				sb.addNewLine(Same);
+			}
+			sb.addNewLine(Dec);
+			sb.addNewLine(Same, true);
+		}
+
+		sb.addNewLine();
 	}
 
 	/**
 	 * Generate anon converters for types
 	 */
 	function buildAnonConverters(sb:IndentStringBuilder) {
-		var typedefs = types.typedefs;
-		if (typedefs.length < 1)
+		var anons = typeContext.allAnonymous();
+		if (anons.length < 1)
 			return;
 
-		for (td in typedefs) {
-			switch (td.typedefInfo.type) {
-				case TAnonymous(a):
-					var an = a.get();
-					var name = td.typedefInfo.name;
-					var anonName = '${name}Anon';
-					sb.add('proc to${anonName}[T](this:T):${anonName} {.inline.} =');
-					sb.addNewLine(Inc);
+		for (an in anons) {
+			var name = an.name;
+			var anonName = '${name}Anon';
+			sb.add('proc to${anonName}[T](this:T):${anonName} {.inline.} =');
+			sb.addNewLine(Inc);
 
-					sb.add('${anonName}(');
-					sb.add('obj:this');
-					var args = an.fields.map(x -> '${x.name}:addr this.${x.name}').join(", ");
-					if (args.length > 0)
-						sb.add(', ${args}');
-					sb.add(')');
-				case _:
-			}
+			sb.add('${anonName}(');
+			sb.add('obj:this');
+			var args = an.fields.map(x -> '${x.name}:addr this.${x.name}').join(", ");
+			if (args.length > 0)
+				sb.add(', ${args}');
+			sb.add(')');
+			sb.addBreak();
 		}
 
 		sb.addBreak();
@@ -623,15 +623,15 @@ class NimGenerator extends BaseGenerator {
 
 		var filename = Path.normalize(nimOut);
 		var outPath = Path.directory(filename);
-		FileSystem.createDirectory(outPath);		
+		FileSystem.createDirectory(outPath);
 
 		addLibraries(outPath);
-				
+
 		var codeSb = new IndentStringBuilder();
 		buildClassesAndStructures(codeSb);
 
 		var headerSb = new IndentStringBuilder();
-		
+
 		addCodeHelpers(headerSb);
 		buildEnums(headerSb);
 		buildTypedefs(headerSb);

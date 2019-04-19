@@ -1,5 +1,6 @@
 package craxe.generators.nim.type;
 
+import haxe.macro.Type;
 import haxe.io.Bytes;
 import haxe.crypto.Crc32;
 import haxe.macro.Type.TypedExpr;
@@ -54,7 +55,7 @@ class TypeContext {
 	/**
 	 * Generate anon ID
 	 */
-	function generateAnonId(fields:Array<{name:String, expr:TypedExpr}>):String {
+	function generateAnonId(fields:Array<{name:String, type:Type}>):String {
 		fields.sort((x1, x2) -> {
 			var a = x1.name;
 			var b = x2.name;
@@ -85,7 +86,7 @@ class TypeContext {
 				case TAnonymous(a):
 					var an = a.get();
 					var fields = an.fields.map(x -> {
-						return {name: x.name, expr: x.expr()}
+						return {name: x.name, type: x.type}
 					});
 					var ano:AnonTypedefInfo = {
 						id: generateAnonId(fields),
@@ -154,7 +155,7 @@ class TypeContext {
 	/**
 	 * Return object by typefields
 	 */
-	public function getObjectTypeByFields(fields:Array<{name:String, expr:TypedExpr}>):AnonTypedefInfo {
+	public function getObjectTypeByFields(fields:Array<{name:String, type:Type}>):AnonTypedefInfo {
 		var id = generateAnonId(fields);
 		var anon = anonById.get(id);
 		if (anon == null) {

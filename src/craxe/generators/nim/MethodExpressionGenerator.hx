@@ -563,7 +563,7 @@ class MethodExpressionGenerator {
 					var flds = a.get().fields.map(x -> {
 						return {
 							name: x.name,
-							expr: x.expr()
+							type: x.type
 						};
 					});
 					context.getObjectTypeByFields(flds);
@@ -571,7 +571,10 @@ class MethodExpressionGenerator {
 					throw 'Unsupported ${v}';
 			}
 		} else {
-			context.getObjectTypeByFields(fields);
+			context.getObjectTypeByFields(fields.map(x-> {
+				name: x.name,
+				type: x.expr.t
+			}));
 		}
 
 		var name = '${object.name}Anon';
@@ -979,7 +982,7 @@ class MethodExpressionGenerator {
 										var an = a.get();
 										var obj = context.getObjectTypeByFields(an.fields.map(x -> {
 											name: x.name,
-											expr: x.expr()
+											type: x.type
 										}));
 										sb.add('to${obj.name}Anon(');
 										wasConverter = true;

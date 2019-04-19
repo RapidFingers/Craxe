@@ -136,7 +136,7 @@ class TypeResolver {
 		var an = context.getObjectTypeByFields(anon.fields.map(x-> {
 			return {
 				name: x.name,
-				expr: x.expr()
+				type: x.type
 			}
 		}));
 		sb.add('${an.name}Anon');
