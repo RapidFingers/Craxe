@@ -84,7 +84,9 @@ https://github.com/RapidFingers/CraxeExamples
 - [ ] GADT
 - [ ] Map/Dictionary
 - [ ] Auto import nimble libs
-- [ ] Dynamic
+- [ ] Method override
+- [ ] Dynamic method
+- [ ] Dynamic type
 - [ ] Reflection
 - [ ] Type checking (operator is)
 - [ ] Some kind of std lib
