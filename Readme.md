@@ -34,6 +34,7 @@ Because.
     - Bool
     - Generic Array<T>
 * Enums and ADT
+* Abstracts and enum abstracts
 * Expressions: 
     - for
     - while
@@ -75,14 +76,15 @@ https://github.com/RapidFingers/CraxeExamples
 - [x] Closures
 - [x] Typedefs
 - [x] Anonymous
+- [x] Abstracts
+- [x] Enum abstracts
 - [ ] Extern for nim httpbeast
 - [ ] Example of async http server
-- [ ] Abstracts
-- [ ] Map/Dictionary
-- [ ] Auto import nimble libs
-- [ ] Type checking (operator is)
 - [ ] Generics
 - [ ] GADT
+- [ ] Map/Dictionary
+- [ ] Auto import nimble libs
 - [ ] Dynamic
 - [ ] Reflection
+- [ ] Type checking (operator is)
 - [ ] Some kind of std lib
