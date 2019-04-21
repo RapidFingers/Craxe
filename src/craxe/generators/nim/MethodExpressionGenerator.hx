@@ -55,6 +55,8 @@ class MethodExpressionGenerator {
 	 */
 	function generateTMeta(sb:IndentStringBuilder, meta:MetadataEntry, expression:TypedExpr) {
 		switch (expression.expr) {
+			case TLocal(v):
+				generateTLocal(sb, v);
 			case TSwitch(e, cases, edef):
 				generateTSwitch(sb, e, cases, edef);
 			case TEnumIndex(e1):
@@ -331,6 +333,8 @@ class MethodExpressionGenerator {
 						generateTEnumParameter(sb, e1, ef, index);
 				case TMeta(m, e1):
 					generateTMeta(sb, m, e1);
+				case TCast(e, m):
+					generateTCast(sb, e, m);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -536,6 +540,8 @@ class MethodExpressionGenerator {
 			case TLocal(v):
 				if (v.name == "this1")
 					sb.add("this1");
+			case TConst(c):
+				generateTConst(sb, c);
 			case v:
 				throw 'Unsupported ${v}';
 		}
@@ -608,10 +614,13 @@ class MethodExpressionGenerator {
 					sb.add("return ");
 					generateTLocal(sb, v);
 				case TObjectDecl(fields):
+					sb.add("return ");
 					generateTObjectDecl(sb, fields);
 				case TCast(e, m):
+					sb.add("return ");
 					generateTCast(sb, e, m);
 				case TField(e, fa):
+					sb.add("return ");
 					generateTField(sb, e, fa);
 				case v:
 					throw 'Unsupported ${v}';
