@@ -143,6 +143,13 @@ class TypeResolver {
 	}
 
 	/**
+	 * Generate TDynamic
+	 */
+	function generateTDynamic(sb:StringBuf, dyn:Type) {
+		sb.add("Dynamic");
+	}
+
+	/**
 	 * Constructor
 	 */
 	public function new(context:TypeContext) {
@@ -214,6 +221,8 @@ class TypeResolver {
 				generateTFun(sb, args, ret);
 			case TAnonymous(a):
 				generateTAnonymous(sb, a.get());
+			case TDynamic(t):
+				generateTDynamic(sb, t);
 			case v:
 				throw 'Unsupported type ${v}';
 		}

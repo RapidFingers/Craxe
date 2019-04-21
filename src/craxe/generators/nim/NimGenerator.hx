@@ -696,9 +696,6 @@ class NimGenerator extends BaseGenerator {
 	 * Build sources
 	 */
 	override function build() {
-		trace("Classes: " + types.classes.map(x -> x.classType.name).join("\n"));
-		trace("Enums " + types.enums.map(x -> x.enumType.name).join("\n"));
-
 		var nimOut = ContextMacro.getDefines().get("nim-out");
 		if (nimOut == null)
 			nimOut = DEFAULT_OUT;
