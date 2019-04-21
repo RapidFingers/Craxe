@@ -93,7 +93,7 @@ class CommonAstPreprocessor {
 					fields.push(ifield);
 				case FMethod(m):
 					switch (m) {
-						case MethNormal:
+						case MethNormal | MethInline:
 							methods.push(ifield);
 						case MethMacro:
 						case v:
@@ -101,8 +101,6 @@ class CommonAstPreprocessor {
 					}
 			}
 		}
-
-		Sys.println(methods);
 
 		return {
 			fields: fields,
@@ -274,8 +272,6 @@ class CommonAstPreprocessor {
 		for (t in types) {
 			if (filterType(t))
 				continue;
-
-			trace('Generate ${t.getName()}${t.getParameters()}');
 
 			switch (t) {
 				case TInst(c, params):

@@ -19,7 +19,7 @@ typedef PreprocessedTypes = {
     /**
      * All found typedefs
      */
-    var typedefs(default, null):Array<TypedefInfo>;
+    var typedefs(default, null):Array<TypedefInfo>;    
 
     /**
      * All found structures

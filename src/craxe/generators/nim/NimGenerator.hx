@@ -128,6 +128,28 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
+	 * Generate function arguments for Abstract type
+	 */
+	function generateFuncArgumentsAbstract(sb:IndentStringBuilder, abstr:AbstractType, args:Array<ArgumentInfo>) {
+		for (i in 0...args.length) {
+			var arg = args[i];			
+			if (arg.name.indexOf("this") >= 0) {				
+				sb.add('${arg.name}1');
+			} else {
+				sb.add(arg.name);
+			}
+			sb.add(":");
+			if (arg.name == "this") {
+				sb.add('${abstr.name}Abstr');
+			} else {
+				sb.add(typeResolver.resolve(arg.t));
+			}
+			if (i + 1 < args.length)
+				sb.add(", ");
+		}
+	}
+
+	/**
 	 * Generate types for enum
 	 */
 	function generateEnumFields(sb:IndentStringBuilder, type:Type):Void {
@@ -400,6 +422,17 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
+	 * Generate abstract impl code
+	 */
+	function generateAbstractImpl(sb:IndentStringBuilder, cls:ClassInfo, abstr:AbstractType) {
+		var name = abstr.name;
+		var typeName = typeResolver.resolve(abstr.type);
+		var line = '${name}Abstr = ${typeName}';
+		sb.add(line);
+		sb.addNewLine(Same);
+	}
+
+	/**
 	 * Generate structure info
 	 */
 	function generateStructureInfo(sb:IndentStringBuilder, cls:StructInfo) {
@@ -527,6 +560,30 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
+	 * Build class method for abstract
+	 */
+	function generateMethodAbstract(sb:IndentStringBuilder, cls:ClassInfo, abstr:AbstractType, method:ClassField, isStatic:Bool) {
+		switch (method.type) {
+			case TFun(args, ret):
+				var name = abstr.name;
+				var methname = StringTools.replace(method.name, "_", "");
+
+				sb.add('proc ${methname}${name}Abstr(');
+				if (args.length > 0) {
+					generateFuncArgumentsAbstract(sb, abstr, args);
+				}
+				sb.add(") : ");
+				sb.add(typeResolver.resolve(ret));
+				sb.add(" =");
+				sb.addNewLine(Inc);
+
+				generateMethodBody(sb, method.expr());
+			case v:
+				throw 'Unsupported paramter ${v}';
+		}
+	}
+
+	/**
 	 * Build class methods and return entry point if found
 	 */
 	function generateClassMethods(sb:IndentStringBuilder, cls:ClassInfo) {
@@ -535,16 +592,28 @@ class NimGenerator extends BaseGenerator {
 		}
 
 		for (method in cls.staticMethods) {
-			trace(method.name);
-			generateClassMethod(sb, cls, method, true);
+			switch (cls.classType.kind) {
+				case KNormal:
+					generateClassMethod(sb, cls, method, true);
+				case KAbstractImpl(a):
+					generateMethodAbstract(sb, cls, a.get(), method, true);
+				case v:
+					throw 'Unsupported ${v}';
+			}
 		}
 
 		// Generate heplers
-		var clsName = cls.classType.name;
-		sb.add('proc `$`(this:${clsName}) : string {.inline.} = ');
-		sb.addNewLine(Inc);
-		sb.add('result = "${clsName}"' + " & $this[]");
-		sb.addBreak();
+		switch cls.classType.kind {
+			case KNormal:
+				var clsName = cls.classType.name;
+				sb.add('proc `$`(this:${clsName}) : string {.inline.} = ');
+				sb.addNewLine(Inc);
+				sb.add('result = "${clsName}"' + " & $this[]");
+				sb.addBreak();
+			case KAbstractImpl(a):
+			case v:
+				throw 'Unsupported ${v}';
+		}
 	}
 
 	/**
@@ -562,7 +631,14 @@ class NimGenerator extends BaseGenerator {
 		for (c in classes) {
 			if (c.classType.isExtern == false) {
 				if (!c.classType.isInterface) {
-					generateClassInfo(sb, c);
+					switch (c.classType.kind) {
+						case KNormal:
+							generateClassInfo(sb, c);
+						case KAbstractImpl(a):
+							generateAbstractImpl(sb, c, a.get());
+						case v:
+							throw 'Unsupported ${v}';
+					}
 				}
 			}
 		}
@@ -577,7 +653,13 @@ class NimGenerator extends BaseGenerator {
 		for (c in classes) {
 			if (c.classType.isExtern == false) {
 				if (!c.classType.isInterface) {
-					generateStaticClassInit(sb, c);
+					switch (c.classType.kind) {
+						case KNormal:
+							generateStaticClassInit(sb, c);
+						case KAbstractImpl(_):
+						case v:
+							throw 'Unsupported ${v}';
+					}
 				}
 			}
 		}
@@ -614,9 +696,6 @@ class NimGenerator extends BaseGenerator {
 	 * Build sources
 	 */
 	override function build() {
-		trace("Classes: " + types.classes.map(x -> x.classType.name).join("\n"));
-		trace("Enums " + types.enums.map(x -> x.enumType.name).join("\n"));
-
 		var nimOut = ContextMacro.getDefines().get("nim-out");
 		if (nimOut == null)
 			nimOut = DEFAULT_OUT;

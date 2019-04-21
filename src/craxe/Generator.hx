@@ -27,8 +27,7 @@ class Generator {
 
 		var processed = preprocessor.process(types);
 
-		Log.trace = (v:Dynamic, ?infos:PosInfos) -> {
-			#if debug_gen
+		Log.trace = (v:Dynamic, ?infos:PosInfos) -> {			
 			var str = Std.string(v);
 			if (infos == null)
 				return;
@@ -36,7 +35,6 @@ class Generator {
 			var pstr = items[items.length - 1] + ":" + infos.lineNumber;
 			var rest = pstr + " " + str;
 			Sys.println(rest);
-			#end
 		};
 
 		#if nim

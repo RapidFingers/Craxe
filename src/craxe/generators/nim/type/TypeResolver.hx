@@ -76,9 +76,9 @@ class TypeResolver {
 			return;
 
 		if (generatePassModificator(sb, t, params))
-			return;
+			return;		
 
-		throw 'Unsupported ${t}';
+		sb.add('${t.name}Abstr');
 	}
 
 	/**
@@ -140,6 +140,13 @@ class TypeResolver {
 			}
 		}));
 		sb.add('${an.name}Anon');
+	}
+
+	/**
+	 * Generate TDynamic
+	 */
+	function generateTDynamic(sb:StringBuf, dyn:Type) {
+		sb.add("Dynamic");
 	}
 
 	/**
@@ -214,6 +221,8 @@ class TypeResolver {
 				generateTFun(sb, args, ret);
 			case TAnonymous(a):
 				generateTAnonymous(sb, a.get());
+			case TDynamic(t):
+				generateTDynamic(sb, t);
 			case v:
 				throw 'Unsupported type ${v}';
 		}
