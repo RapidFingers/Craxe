@@ -132,8 +132,8 @@ class NimGenerator extends BaseGenerator {
 	 */
 	function generateFuncArgumentsAbstract(sb:IndentStringBuilder, abstr:AbstractType, args:Array<ArgumentInfo>) {
 		for (i in 0...args.length) {
-			var arg = args[i];			
-			if (arg.name.indexOf("this") >= 0) {				
+			var arg = args[i];
+			if (arg.name.indexOf("this") >= 0) {
 				sb.add('${arg.name}1');
 			} else {
 				sb.add(arg.name);
@@ -180,16 +180,25 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Generate constructor block for enum
 	 */
-	function generateEnumConstructor(sb:IndentStringBuilder, index:Int, enumName:String, type:Type):Void {
-		sb.add('proc new${enumName}(');
-		generateEnumArguments(sb, type);
-		sb.add(') : ${enumName} {.inline.} =');
-		sb.addNewLine(Inc);
-		sb.add('${enumName}(index: ${index}');
+	function generateEnumConstructor(sb:IndentStringBuilder, enumInfo:EnumInfo, constr:EnumField):Void {
+		var index = constr.index;
+		var type = constr.type;
+		var enumName = '${enumInfo.enumType.name}${constr.name}';
+
 		switch (type) {
 			case TEnum(_, _):
-			// Ignore
+				sb.add('proc new${enumName}(');
+				sb.add(') : ${enumName} {.inline.} =');
+				sb.addNewLine(Inc);
+				sb.add('${enumName}(index: ${index}');
 			case TFun(args, _):
+				var params = typeResolver.resolveParameters(enumInfo.params);
+				sb.add('proc new${enumName}${params}(');
+				generateEnumArguments(sb, type);
+				sb.add(') : ${enumName}${params} {.inline.} =');
+				sb.addNewLine(Inc);
+				sb.add('${enumName}${params}(index: ${index}');
+
 				sb.add(", ");
 				for (i in 0...args.length) {
 					var arg = args[i];
@@ -208,7 +217,8 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Generate enum helpers
 	 */
-	function generateEnumHelpers(sb:IndentStringBuilder, enumName:String) {
+	function generateEnumHelpers(sb:IndentStringBuilder, enumInfo:EnumInfo, constr:EnumField) {
+		var enumName = '${enumInfo.enumType.name}${constr.name}';
 		sb.add('proc `$`(this: ${enumName}) : string {.inline.} =');
 		sb.addNewLine(Inc);
 		sb.add("result = $this[]");
@@ -237,13 +247,21 @@ class NimGenerator extends BaseGenerator {
 			sb.add('${enumName} = ref object of HaxeEnum');
 			sb.addNewLine(Same);
 			sb.addNewLine(Same, true);
+
+			var params = typeResolver.resolveParameters(en.params);
 			for (constr in en.enumType.constructs) {
-				sb.add('${enumName}${constr.name} = ref object of ${enumName}');
-				sb.addNewLine(Inc);
+				switch constr.type {
+					case TEnum(_, _):
+						sb.add('${enumName}${constr.name} = ref object of ${enumName}');
+					case TFun(_, _):
+						sb.add('${enumName}${constr.name}${params} = ref object of ${enumName}');
+						sb.addNewLine(Inc);
+						generateEnumFields(sb, constr.type);
+						sb.addNewLine(Dec);
+					case v:
+						throw 'Unsupported ${v}';
+				}
 
-				generateEnumFields(sb, constr.type);
-
-				sb.addNewLine(Dec);
 				sb.addNewLine(Same, true);
 			}
 		}
@@ -254,10 +272,8 @@ class NimGenerator extends BaseGenerator {
 		// Generate enums constructors
 		for (en in enums) {
 			for (constr in en.enumType.constructs) {
-				var enumName = '${en.enumType.name}${constr.name}';
-
-				generateEnumConstructor(sb, constr.index, enumName, constr.type);
-				generateEnumHelpers(sb, enumName);
+				generateEnumConstructor(sb, en, constr);
+				generateEnumHelpers(sb, en, constr);
 			}
 		}
 	}
@@ -401,7 +417,7 @@ class NimGenerator extends BaseGenerator {
 	 */
 	function generateClassInfo(sb:IndentStringBuilder, cls:ClassInfo) {
 		var clsName = cls.classType.name;
-		var params = typeResolver.resolveParameters(cls.params);		
+		var params = typeResolver.resolveParameters(cls.params);
 
 		var superName = if (cls.classType.superClass != null) {
 			var superType = cls.classType.superClass.t.get();
@@ -411,7 +427,7 @@ class NimGenerator extends BaseGenerator {
 		} else {
 			"RootObj";
 		}
-		
+
 		var line = '${clsName}${params} = ref object of ${superName}';
 		sb.add(line);
 		sb.addNewLine(Same);
