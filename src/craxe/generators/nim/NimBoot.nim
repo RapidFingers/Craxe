@@ -15,6 +15,18 @@ type
     # Haxe array
     HaxeArray*[T] = ref object of RootObj
         data*:seq[T]
+
+    HaxeMap*[K, V] = ref object of RootObj
+        data*:Table[K, V]
+
+    # Haxe String map
+    HaxeStringMap*[T] = HaxeMap[string, T]
+
+    # Haxe Int map
+    HaxeIntMap*[T] = HaxeMap[int, T]
+
+    # Haxe object map
+    HaxeObjectMap*[K, V] = HaxeMap[K, V]
     
     # Haxe bytes
     HaxeBytes* = ref object of RootObj
@@ -59,6 +71,9 @@ template `+`*(s1:string, s2:string): string =
 
 template toString*(this:untyped):untyped =
     $this
+
+template hash*(this:RootRef):int =
+    cast[int](this)
 
 # Log
 template trace*(this:LogStatic, v:byte, e:varargs[string, `$`]):void =
@@ -109,6 +124,28 @@ template length*[T](this:HaxeArray[T]): int =
 
 template `$`*[T](this:HaxeArray[T]) : string =
     $this.data
+
+# Haxe Map
+template set*[K, V](this:HaxeMap[K, V], key:K, value:V) =
+    this.data[key] = value
+
+template get*[K, V](this:HaxeMap[K, V], key:K):V =
+    this.data[key]
+
+template `$`*[K, V](this:HaxeMap[K, V]) : string =
+    $this.data
+
+proc newStringMap*[T]() : HaxeStringMap[T] =
+    result = HaxeStringMap[T]()
+    result.data = initTable[string, T]()
+
+proc newIntMap*[T]() : HaxeIntMap[T] =
+    result = HaxeIntMap[T]()
+    result.data = initTable[int, T]()
+
+proc newObjectMap*[K, V]() : HaxeObjectMap[K, V] =
+    result = HaxeObjectMap[K, V]()
+    result.data = initTable[K, V]()
 
 # Bytes
 template alloc*(this:HaxeBytesStatic, size:int) : HaxeBytes =

@@ -302,7 +302,7 @@ class MethodExpressionGenerator {
 	 * Generate code for TVar
 	 */
 	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {
-		sb.add("var ");		
+		sb.add("var ");
 		var name = typeResolver.getFixedTypeName(vr.name);
 		name = fixLocalVarName(name);
 		sb.add(name);
@@ -335,6 +335,8 @@ class MethodExpressionGenerator {
 					generateTMeta(sb, m, e1);
 				case TCast(e, m):
 					generateTCast(sb, e, m);
+				case TBinop(op, e1, e2):
+					generateTBinop(sb, op, e1, e2);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -348,7 +350,7 @@ class MethodExpressionGenerator {
 	 */
 	function generateTNew(sb:IndentStringBuilder, classType:ClassType, params:Array<Type>, elements:Array<TypedExpr>) {
 		var typeName = typeResolver.getFixedTypeName(classType.name);
-		var typeParams = typeResolver.resolveParameters(params);		
+		var typeParams = typeResolver.resolveParameters(params);
 
 		var varTypeName = if (classType.isExtern && classType.superClass != null && classType.superClass.t.get().name == "Distinct") {
 			typeName;
@@ -538,12 +540,16 @@ class MethodExpressionGenerator {
 	 */
 	function generateTCast(sb:IndentStringBuilder, expression:TypedExpr, module:ModuleType) {
 		// TODO: normal cast
-		switch (expression.expr) {			
+		switch (expression.expr) {
 			case TLocal(v):
 				if (v.name == "this1")
 					sb.add("this1");
 			case TConst(c):
 				generateTConst(sb, c);
+			case TBlock(el):
+				generateTBlock(sb, el);
+			case TCall(e, el):
+				generateCommonTCall(sb, e, el);
 			case v:
 				throw 'Unsupported ${v}';
 		}
@@ -647,6 +653,8 @@ class MethodExpressionGenerator {
 				generateTArray(sb, e1, e2);
 			case TCall(e, el):
 				generateCommonTCall(sb, e, el);
+			case TBlock(el):
+				generateTBlock(sb, el);
 			case v:
 				throw 'Unsupported ${v}';
 		}
@@ -719,6 +727,8 @@ class MethodExpressionGenerator {
 					generateTBinop(sb, op, e1, e2);
 				case TNew(c, params, el):
 					generateTNew(sb, c.get(), params, el);
+				case TBlock(el):
+					generateTBlock(sb, el);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -1037,7 +1047,7 @@ class MethodExpressionGenerator {
 			case v:
 				throw 'Unsupported ${v}';
 		}
-		
+
 		if (eelse != null) {
 			sb.addNewLine(Dec);
 			sb.add("else:");
@@ -1100,6 +1110,9 @@ class MethodExpressionGenerator {
 		if (expressions.length > 0) {
 			for (expr in expressions) {
 				switch (expr.expr) {
+					case TConst(c):
+					// TODO: handle THIS
+					// generateTConst(sb, c);
 					case TVar(v, expr):
 						generateTVar(sb, v, expr);
 					case TCall(e, el):
@@ -1118,6 +1131,8 @@ class MethodExpressionGenerator {
 						generateTMeta(sb, m, e1);
 					case TUnop(op, postFix, e):
 						generateTUnop(sb, op, postFix, e);
+					case TCast(e, m):
+						generateTCast(sb, e, m);
 					case v:
 						throw 'Unsupported ${v}';
 				}
