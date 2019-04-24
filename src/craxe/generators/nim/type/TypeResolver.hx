@@ -90,25 +90,8 @@ class TypeResolver {
 
 		var typeName = getFixedTypeName(t.name);
 		sb.add(typeName);
-		if (params != null && params.length > 0) {
-			sb.add("[");
-			for (par in params) {
-				switch (par) {
-					case TInst(t, params):
-						generateTInst(sb, t.get(), params);
-					case TAbstract(t, params):
-						generateTAbstract(sb, t.get(), params);
-					case TType(t, params):
-						generateTType(sb, t.get(), params);
-					case TEnum(t, params):
-						generateTEnum(sb, t.get(), params);
-					case TAnonymous(a):
-						generateTAnonymous(sb, a.get());
-					case v:
-						throw 'Unsupported paramter ${v}';
-				}
-			}
-			sb.add("]");
+		if (params != null && params.length > 0) {						
+			sb.add(resolveParameters(params));
 		}
 	}
 
@@ -179,9 +162,8 @@ class TypeResolver {
 			var sb = new StringBuf();
 
 			sb.add("[");
-			for (item in params) {
-				sb.add(resolve(item));
-			}
+			var parStr = params.map(x->resolve(x)).join(", ");
+			sb.add(parStr);			
 			sb.add("]");
 
 			return sb.toString();

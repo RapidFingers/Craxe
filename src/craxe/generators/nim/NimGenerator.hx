@@ -401,12 +401,18 @@ class NimGenerator extends BaseGenerator {
 	 */
 	function generateClassInfo(sb:IndentStringBuilder, cls:ClassInfo) {
 		var clsName = cls.classType.name;
+		var params = typeResolver.resolveParameters(cls.params);		
+
 		var superName = if (cls.classType.superClass != null) {
-			cls.classType.superClass.t.get().name;
+			var superType = cls.classType.superClass.t.get();
+			var spname = superType.name;
+			var spParams = typeResolver.resolveParameters(cls.classType.superClass.params);
+			'${spname}${spParams}';
 		} else {
 			"RootObj";
 		}
-		var line = '${clsName} = ref object of ${superName}';
+		
+		var line = '${clsName}${params} = ref object of ${superName}';
 		sb.add(line);
 		sb.addNewLine(Same);
 
@@ -504,9 +510,9 @@ class NimGenerator extends BaseGenerator {
 		switch (constructor.type) {
 			case TFun(args, _):
 				var constrExp = constructor.expr();
-
+				var params = typeResolver.resolveParameters(cls.params);
 				// Generate init proc for haxe "super(params)"
-				sb.add('proc init${className}(this:${className}');
+				sb.add('proc init${className}${params}(this:${className}${params}');
 				if (args.length > 0) {
 					sb.add(", ");
 					generateFuncArguments(sb, args);
@@ -518,11 +524,11 @@ class NimGenerator extends BaseGenerator {
 				sb.addNewLine(Dec);
 
 				// Generate constructor
-				sb.add('proc new${className}(');
+				sb.add('proc new${className}${params}(');
 				generateFuncArguments(sb, args);
-				sb.add(') : ${className} {.inline.} =');
+				sb.add(') : ${className}${params} {.inline.} =');
 				sb.addNewLine(Inc);
-				sb.add('result = ${className}()');
+				sb.add('result = ${className}${params}()');
 				sb.addNewLine(Same);
 				sb.add('init${className}(result');
 				if (args.length > 0) {
