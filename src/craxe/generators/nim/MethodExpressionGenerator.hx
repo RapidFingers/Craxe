@@ -348,7 +348,7 @@ class MethodExpressionGenerator {
 	 */
 	function generateTNew(sb:IndentStringBuilder, classType:ClassType, params:Array<Type>, elements:Array<TypedExpr>) {
 		var typeName = typeResolver.getFixedTypeName(classType.name);
-		var typeParams = typeResolver.resolveParameters(params);
+		var typeParams = typeResolver.resolveParameters(params);		
 
 		var varTypeName = if (classType.isExtern && classType.superClass != null && classType.superClass.t.get().name == "Distinct") {
 			typeName;
@@ -368,6 +368,8 @@ class MethodExpressionGenerator {
 					generateTLocal(sb, v);
 				case TBinop(op, e1, e2):
 					generateTBinop(sb, op, e1, e2);
+				case TNew(c, params, el):
+					generateTNew(sb, c.get(), params, el);
 				case v:
 					throw 'Unsupported ${v}';
 			}
