@@ -35,6 +35,8 @@ Because.
     - Generic Array<T>
 * Enums and ADT
 * Abstracts and enum abstracts
+* Generics
+* GADTs
 * Expressions: 
     - for
     - while
@@ -78,11 +80,11 @@ https://github.com/RapidFingers/CraxeExamples
 - [x] Anonymous
 - [x] Abstracts
 - [x] Enum abstracts
-- [ ] Extern for nim httpbeast
-- [ ] Example of async http server
-- [ ] Generics
-- [ ] GADT
+- [x] Generics
+- [x] GADT
 - [ ] Map/Dictionary
+- [ ] Extern for CraxeCore's http server
+- [ ] Benchmark of async http server
 - [ ] Auto import nimble libs
 - [ ] Method override
 - [ ] Dynamic method
