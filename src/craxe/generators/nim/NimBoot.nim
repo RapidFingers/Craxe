@@ -8,6 +8,13 @@ type
 
     Struct* = object of RootObj
 
+    # Main object for all referrence objects
+    HaxeObject* = object of RootObj
+
+    # Referrence object that can calculate hash
+    HaxeHashObject* = object of RootObj
+        hash*: proc():int
+
     # Haxe enum
     HaxeEnum* = ref object of RootObj
         index*:int
@@ -74,6 +81,9 @@ template toString*(this:untyped):untyped =
 
 template hash*(this:RootRef):int =
     cast[int](this)
+
+proc `==`*(v1:RootRef, v2:RootRef):bool =
+    v1.hash == v2.hash
 
 # Log
 template trace*(this:LogStatic, v:byte, e:varargs[string, `$`]):void =

@@ -338,7 +338,7 @@ class NimGenerator extends BaseGenerator {
 		}
 
 		for (an in anons) {
-			sb.add('${an.name} = ref object of RootObj');
+			sb.add('${an.name} = ref object of HaxeObject');
 			sb.addNewLine(Inc);
 			for (fld in an.fields) {
 				var ftp = typeResolver.resolve(fld.type);
@@ -350,7 +350,7 @@ class NimGenerator extends BaseGenerator {
 
 			sb.add('${an.name}Anon = object');
 			sb.addNewLine(Inc);
-			sb.add("obj:ref RootObj");
+			sb.add("obj:ref HaxeObject");
 			sb.addNewLine(Same);
 			for (fld in an.fields) {
 				var ftp = typeResolver.resolve(fld.type);
@@ -425,7 +425,7 @@ class NimGenerator extends BaseGenerator {
 			var spParams = typeResolver.resolveParameters(cls.classType.superClass.params);
 			'${spname}${spParams}';
 		} else {
-			"RootObj";
+			"HaxeObject";
 		}
 
 		var line = '${clsName}${params} = ref object of ${superName}';
@@ -436,7 +436,7 @@ class NimGenerator extends BaseGenerator {
 
 		var staticFields = cls.classType.statics.get();
 		if (staticFields.length > 0) {
-			var line = '${cls.classType.name}Static = object of RootObj';
+			var line = '${cls.classType.name}Static = object of HaxeObject';
 			sb.add(line);
 			sb.addNewLine(Same);
 			sb.addNewLine(Same, true);
