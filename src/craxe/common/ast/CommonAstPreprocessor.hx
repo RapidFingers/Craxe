@@ -48,7 +48,7 @@ class CommonAstPreprocessor {
 	 * Filter not needed type. Return true if filtered
 	 */
 	function filterTypeByName(name:String, module:String):Bool {
-		for (excl in excludedModules) {						
+		for (excl in excludedModules) {
 			if (module.indexOf(excl) >= 0)
 				return true;
 		}
@@ -83,11 +83,16 @@ class CommonAstPreprocessor {
 	/**
 	 * Get fields and methods of instance
 	 */
-	function getFieldsAndMethods(c:ClassType):{fields:Array<ClassField>, methods:Array<ClassField>} {
+	function getFieldsAndMethods(c:ClassType):{
+		fields:Array<ClassField>,
+		methods:Array<ClassField>,
+		isHashable:Bool
+	} {
 		var classFields = c.fields.get();
 
 		var fields = [];
 		var methods = [];
+		var isHashable = false;
 
 		for (ifield in classFields) {
 			switch (ifield.kind) {
@@ -96,6 +101,9 @@ class CommonAstPreprocessor {
 				case FMethod(m):
 					switch (m) {
 						case MethNormal | MethInline:
+							if (ifield.name == "hashCode") {
+								isHashable = true;
+							}
 							methods.push(ifield);
 						case MethMacro:
 						case v:
@@ -106,7 +114,8 @@ class CommonAstPreprocessor {
 
 		return {
 			fields: fields,
-			methods: methods
+			methods: methods,
+			isHashable: isHashable
 		}
 	}
 
@@ -130,7 +139,7 @@ class CommonAstPreprocessor {
 					fields.push(ifield);
 				case FMethod(m):
 					switch (m) {
-						case MethNormal:
+						case MethNormal | MethInline:
 							methods.push(ifield);
 							if (ifield.name == MAIN_METHOD) {
 								entryMethod = ifield;
@@ -194,7 +203,13 @@ class CommonAstPreprocessor {
 		var instanceRes = getFieldsAndMethods(c);
 		var staticRes = getStaticFieldsAndMethods(c);
 
-		var classInfo = new ClassInfo(c, params, instanceRes.fields, instanceRes.methods, staticRes.fields, staticRes.methods);
+		var classInfo = new ClassInfo(c, 
+							params, 
+							instanceRes.fields, 
+							instanceRes.methods, 
+							staticRes.fields, 
+							staticRes.methods,
+							instanceRes.isHashable);
 
 		var entryPoint:EntryPointInfo = if (staticRes.entryMethod != null) {
 			{
@@ -223,7 +238,7 @@ class CommonAstPreprocessor {
 	 * Build typedef info
 	 */
 	function buildTypedef(def:DefType, params:Array<Type>):TypedefInfo {
-		return new TypedefInfo(def, params);		
+		return new TypedefInfo(def, params);
 	}
 
 	/**

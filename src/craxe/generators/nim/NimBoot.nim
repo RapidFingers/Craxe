@@ -87,13 +87,13 @@ template hash*(this:Hashable):int =
     this.hash()
 
 proc `==`*(v1:Hashable, v2:Hashable):bool =
-    v1.hash == v2.hash
+    v1.hash() == v2.hash()
 
 template hash*(this:HaxeObjectRef):int =
     cast[int](this)
 
 proc `==`*(v1:HaxeObjectRef, v2:HaxeObjectRef):bool =
-    v1.hash == v2.hash
+    v1.hash() == v2.hash()
 
 # Log
 template trace*(this:LogStatic, v:byte, e:varargs[string, `$`]):void =

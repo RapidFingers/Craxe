@@ -29,12 +29,22 @@ class ObjectType {
 	public final methods:Array<ClassField>;
 
 	/**
+	 * Object has hashCode method
+	 */
+	public final isHashable:Bool;
+
+	/**
 	 * Constructor
 	 */
-	public function new(classType:ClassType, params:Array<Type>, fields:Array<ClassField>, methods:Array<ClassField>) {
+	public function new(classType:ClassType, 
+			params:Array<Type>, 
+			fields:Array<ClassField>, 
+			methods:Array<ClassField>,
+			isHashable = false) {
 		this.classType = classType;
 		this.params = params;
 		this.fields = fields;
 		this.methods = methods;
+		this.isHashable = isHashable;
 	}
 }

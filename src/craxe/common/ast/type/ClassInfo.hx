@@ -21,9 +21,14 @@ class ClassInfo extends ObjectType {
 	/**
 	 * Constructor
 	 */
-	public function new(classType:ClassType, params:Array<Type>, instanceFields:Array<ClassField>, instanceMethods:Array<ClassField>,
-			staticFields:Array<ClassField>, staticMethods:Array<ClassField>) {
-		super(classType, params, instanceFields, instanceMethods);
+	public function new(classType:ClassType, 
+					params:Array<Type>, 
+					instanceFields:Array<ClassField>, 
+					instanceMethods:Array<ClassField>,
+					staticFields:Array<ClassField>, 
+					staticMethods:Array<ClassField>,
+					isHashable:Bool) {
+		super(classType, params, instanceFields, instanceMethods, isHashable);
 		this.staticFields = staticFields;
 		this.staticMethods = staticMethods;
 	}

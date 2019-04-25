@@ -393,21 +393,24 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Generate code for instance fields
 	 */
-	function generateInstanceFields(sb:IndentStringBuilder, fields:Array<ClassField>) {
+	function generateInstanceFields(sb:IndentStringBuilder, fields:Array<ClassField>, isHashable:Bool) {
 		var iargs = [];
 		for (ifield in fields) {
 			switch (ifield.kind) {
-				case FVar(read, write):
+				case FVar(_, _):
 					iargs.push({
 						name: ifield.name,
 						opt: false,
 						t: ifield.type
 					});
-				case FMethod(k):
+				case v:
+					throw 'Unsupported ${v}';
 			}
 		}
 		sb.addNewLine(Inc);
 		generateTypeFields(sb, iargs);
+		if (isHashable)
+			sb.add("hash : proc():int");
 		sb.addNewLine(Dec);
 		sb.addNewLine(Same, true);
 	}
@@ -432,7 +435,7 @@ class NimGenerator extends BaseGenerator {
 		sb.add(line);
 		sb.addNewLine(Same);
 
-		generateInstanceFields(sb, cls.fields);
+		generateInstanceFields(sb, cls.fields, cls.isHashable);
 
 		var staticFields = cls.classType.statics.get();
 		if (staticFields.length > 0) {
@@ -463,7 +466,7 @@ class NimGenerator extends BaseGenerator {
 		sb.add(line);
 		sb.addNewLine(Same);
 
-		generateInstanceFields(sb, cls.fields);
+		generateInstanceFields(sb, cls.fields, cls.isHashable);
 	}
 
 	/**
@@ -535,6 +538,11 @@ class NimGenerator extends BaseGenerator {
 				}
 				sb.add(') {.inline.} =');
 				sb.addNewLine(Inc);
+
+				if (cls.isHashable) {
+					sb.add("this.hash = proc():int = this.hashCode()");
+					sb.addNewLine(Same);
+				}
 
 				generateMethodBody(sb, constrExp);
 				sb.addNewLine(Dec);
