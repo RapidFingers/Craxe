@@ -337,6 +337,8 @@ class MethodExpressionGenerator {
 					generateTCast(sb, e, m);
 				case TBinop(op, e1, e2):
 					generateTBinop(sb, op, e1, e2);
+				case TBlock(el):
+					generateTBlockInline(sb, el);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -1044,6 +1046,8 @@ class MethodExpressionGenerator {
 				generateTReturn(sb, e);
 			case TBinop(op, e1, e2):
 				generateTBinop(sb, op, e1, e2);
+			case TCall(e, el):
+				generateCommonTCall(sb, e, el);
 			case v:
 				throw 'Unsupported ${v}';
 		}
@@ -1063,6 +1067,8 @@ class MethodExpressionGenerator {
 					}
 				case TBinop(op, e1, e2):
 					generateTBinop(sb, op, e1, e2);
+				case TCall(e, el):
+					generateCommonTCall(sb, e, el);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -1169,6 +1175,8 @@ class MethodExpressionGenerator {
 					switch (expr.expr) {
 						case TCall(e, el):
 							generateBlockTCall(sb, e, el, false);
+						case TLocal(v):
+							generateTLocal(sb, v);
 						case v:
 							throw 'Unsupported ${v}';
 					}
