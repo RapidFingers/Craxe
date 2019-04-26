@@ -1,5 +1,7 @@
 import tables
 
+const TABLE_INIT_SIZE = 33554432
+
 type
     StdStatic* = object
     LogStatic* = object
@@ -196,15 +198,15 @@ template `$`*[K, V](this:HaxeMap[K, V]) : string =
 
 proc newStringMap*[T]() : HaxeStringMap[T] =
     result = HaxeStringMap[T]()
-    result.data = initTable[string, T]()
+    result.data = initTable[string, T](TABLE_INIT_SIZE)
 
 proc newIntMap*[T]() : HaxeIntMap[T] =
     result = HaxeIntMap[T]()
-    result.data = initTable[int, T]()
+    result.data = initTable[int, T](TABLE_INIT_SIZE)
 
 proc newObjectMap*[K, V]() : HaxeObjectMap[K, V] =
     result = HaxeObjectMap[K, V]()
-    result.data = initTable[K, V]()
+    result.data = initTable[K, V](TABLE_INIT_SIZE)
 
 # Bytes
 template alloc*(this:HaxeBytesStatic, size:int) : HaxeBytes =
