@@ -33,6 +33,7 @@ Because.
     - String
     - Bool
     - Generic Array<T>
+    - IntMap, StringMap, ObjectMap
 * Enums and ADT
 * Abstracts and enum abstracts
 * Generics
@@ -82,7 +83,7 @@ https://github.com/RapidFingers/CraxeExamples
 - [x] Enum abstracts
 - [x] Generics
 - [x] GADT
-- [ ] Map/Dictionary
+- [x] Map/Dictionary
 - [ ] Extern for CraxeCore's http server
 - [ ] Benchmark of async http server
 - [ ] Auto import nimble libs
