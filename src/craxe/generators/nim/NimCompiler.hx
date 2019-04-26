@@ -30,8 +30,12 @@ class NimCompiler extends BaseCompiler {
 		#end
 
 		var proc = new Process("nim", ["c", "-d:release", out]);
-		Sys.println(proc.stdout.readAll());
-		Sys.println(proc.stderr.readAll());
+		var errText = proc.stderr.readAll();
+		if (errText != null && errText.length > 0) {
+			trace(errText);
+		} else {
+			Sys.println(proc.stdout.readAll());
+		}
 		proc.close();
 	}
 }

@@ -6,19 +6,52 @@ type
     HaxeBytesStatic* = object
     FileStatic* = object
 
-    Struct* = object of RootObj
+    # Objects that can calculate self hash
+    Hashable = concept x
+        x.hash is proc():int
+
+    # Main object for all haxe objects
+    HaxeObject* = RootObj
+
+    # Main object for all haxe referrence objects
+    HaxeObjectRef* = ref HaxeObject
+
+    # Value object
+    Struct* = object of HaxeObject
 
     # Haxe enum
-    HaxeEnum* = ref object of RootObj
+    HaxeEnum* = ref object of HaxeObject
         index*:int
 
     # Haxe array
-    HaxeArray*[T] = ref object of RootObj
+    HaxeArray*[T] = ref object of HaxeObject
         data*:seq[T]
+
+    HaxeMap*[K, V] = ref object of HaxeObject
+        data*:Table[K, V]
+
+    # Haxe String map
+    HaxeStringMap*[T] = HaxeMap[string, T]
+
+    # Haxe Int map
+    HaxeIntMap*[T] = HaxeMap[int, T]
+
+    # Haxe object map
+    HaxeObjectMap*[K, V] = HaxeMap[K, V]
     
     # Haxe bytes
-    HaxeBytes* = ref object of RootObj
+    HaxeBytes* = ref object of HaxeObject
         b*:seq[byte]
+    
+        
+    ValueType = int | string | float | object
+
+    Null*[ValueType] = object
+        case has*:bool
+        of true:
+            value*:ValueType
+        of false:
+            discard 
 
     # Dynamic
     DynamicType* = enum
@@ -30,7 +63,7 @@ type
         of TInt: fint:int
         of TFloat: ffloat:float
         of TClass: 
-            fclass: RootRef
+            fclass: HaxeObjectRef
             fields:Table[string, Dynamic]
         of TPointer: fpointer: pointer
 
@@ -59,6 +92,38 @@ template `+`*(s1:string, s2:string): string =
 
 template toString*(this:untyped):untyped =
     $this
+
+template hash*(this:Hashable):int =
+    this.hash()
+
+proc `==`*(v1:Null[ValueType], v2:ValueType):bool =
+    if v1.has:
+        return v1.value == v2
+    return false
+
+converter toValue*[ValueType](value:Null[ValueType]):ValueType =
+    if value.has:
+        return value.value
+    raise newException(NilAccessError, "Null pointer exception")
+
+proc `$`*(this:Null[ValueType]):string =
+    if this.has:
+        return $this.value
+    return "nil"
+
+proc `==`*[T](v1:Null[T], v2:Null[T]):bool =
+    if v1.has and v2.has:
+        return v1.value == v2.value    
+    return false
+
+proc `==`*(v1:Hashable, v2:Hashable):bool =
+    v1.hash() == v2.hash()
+
+template hash*(this:HaxeObjectRef):int =
+    cast[int](this)
+
+proc `==`*(v1:HaxeObjectRef, v2:HaxeObjectRef):bool =
+    v1.hash() == v2.hash()
 
 # Log
 template trace*(this:LogStatic, v:byte, e:varargs[string, `$`]):void =
@@ -109,6 +174,37 @@ template length*[T](this:HaxeArray[T]): int =
 
 template `$`*[T](this:HaxeArray[T]) : string =
     $this.data
+
+# Haxe Map
+template set*[K, V](this:HaxeMap[K, V], key:K, value:V) =
+    this.data[key] = value
+
+proc get*[K](this:HaxeMap[K, ValueType], key:K):Null[ValueType] =    
+    if this.data.hasKey(key):
+        return Null[ValueType](has: true, value: this.data[key])
+    else:
+        return Null[ValueType](has: false)
+
+template get*[K, V](this:HaxeMap[K, V], key:K):V =
+    if this.data.hasKey(key):
+        this.data[key]
+    else:
+        nil
+
+template `$`*[K, V](this:HaxeMap[K, V]) : string =
+    $this.data
+
+proc newStringMap*[T]() : HaxeStringMap[T] =
+    result = HaxeStringMap[T]()
+    result.data = initTable[string, T]()
+
+proc newIntMap*[T]() : HaxeIntMap[T] =
+    result = HaxeIntMap[T]()
+    result.data = initTable[int, T]()
+
+proc newObjectMap*[K, V]() : HaxeObjectMap[K, V] =
+    result = HaxeObjectMap[K, V]()
+    result.data = initTable[K, V]()
 
 # Bytes
 template alloc*(this:HaxeBytesStatic, size:int) : HaxeBytes =
@@ -164,7 +260,7 @@ proc newDynamic*(value:int):Dynamic =
 proc newDynamic*(value:float):Dynamic =    
     return Dynamic(kind:TFloat, ffloat: value)
 
-proc newDynamic*(value:RootRef):Dynamic =    
+proc newDynamic*(value:HaxeObjectRef):Dynamic =    
     return Dynamic(kind:TClass, fclass: value)
 
 proc newDynamic*(value:pointer):Dynamic =    
@@ -179,7 +275,7 @@ proc setField*(this:Dynamic, name:string, value:int) =
 proc setField*(this:Dynamic, name:string, value:float) =
     this.fields[name] = Dynamic(kind: TFloat, ffloat: value)
 
-proc setField*(this:Dynamic, name:string, value:RootRef) =
+proc setField*(this:Dynamic, name:string, value:HaxeObjectRef) =
     this.fields[name] = Dynamic(kind: TClass, fclass: value)
 
 proc setField*(this:Dynamic, name:string, value:pointer) =

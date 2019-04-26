@@ -338,7 +338,7 @@ class NimGenerator extends BaseGenerator {
 		}
 
 		for (an in anons) {
-			sb.add('${an.name} = ref object of RootObj');
+			sb.add('${an.name} = ref object of HaxeObject');
 			sb.addNewLine(Inc);
 			for (fld in an.fields) {
 				var ftp = typeResolver.resolve(fld.type);
@@ -350,7 +350,7 @@ class NimGenerator extends BaseGenerator {
 
 			sb.add('${an.name}Anon = object');
 			sb.addNewLine(Inc);
-			sb.add("obj:ref RootObj");
+			sb.add("obj:ref HaxeObject");
 			sb.addNewLine(Same);
 			for (fld in an.fields) {
 				var ftp = typeResolver.resolve(fld.type);
@@ -393,21 +393,24 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Generate code for instance fields
 	 */
-	function generateInstanceFields(sb:IndentStringBuilder, fields:Array<ClassField>) {
+	function generateInstanceFields(sb:IndentStringBuilder, fields:Array<ClassField>, isHashable:Bool) {
 		var iargs = [];
 		for (ifield in fields) {
 			switch (ifield.kind) {
-				case FVar(read, write):
+				case FVar(_, _):
 					iargs.push({
 						name: ifield.name,
 						opt: false,
 						t: ifield.type
 					});
-				case FMethod(k):
+				case v:
+					throw 'Unsupported ${v}';
 			}
 		}
 		sb.addNewLine(Inc);
 		generateTypeFields(sb, iargs);
+		if (isHashable)
+			sb.add("hash : proc():int");
 		sb.addNewLine(Dec);
 		sb.addNewLine(Same, true);
 	}
@@ -425,18 +428,18 @@ class NimGenerator extends BaseGenerator {
 			var spParams = typeResolver.resolveParameters(cls.classType.superClass.params);
 			'${spname}${spParams}';
 		} else {
-			"RootObj";
+			"HaxeObject";
 		}
 
 		var line = '${clsName}${params} = ref object of ${superName}';
 		sb.add(line);
 		sb.addNewLine(Same);
 
-		generateInstanceFields(sb, cls.fields);
+		generateInstanceFields(sb, cls.fields, cls.isHashable);
 
 		var staticFields = cls.classType.statics.get();
 		if (staticFields.length > 0) {
-			var line = '${cls.classType.name}Static = object of RootObj';
+			var line = '${cls.classType.name}Static = object of HaxeObject';
 			sb.add(line);
 			sb.addNewLine(Same);
 			sb.addNewLine(Same, true);
@@ -463,7 +466,7 @@ class NimGenerator extends BaseGenerator {
 		sb.add(line);
 		sb.addNewLine(Same);
 
-		generateInstanceFields(sb, cls.fields);
+		generateInstanceFields(sb, cls.fields, cls.isHashable);
 	}
 
 	/**
@@ -535,6 +538,11 @@ class NimGenerator extends BaseGenerator {
 				}
 				sb.add(') {.inline.} =');
 				sb.addNewLine(Inc);
+
+				if (cls.isHashable) {
+					sb.add("this.hash = proc():int = this.hashCode()");
+					sb.addNewLine(Same);
+				}
 
 				generateMethodBody(sb, constrExp);
 				sb.addNewLine(Dec);

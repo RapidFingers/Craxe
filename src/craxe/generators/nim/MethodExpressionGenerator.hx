@@ -302,7 +302,7 @@ class MethodExpressionGenerator {
 	 * Generate code for TVar
 	 */
 	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {
-		sb.add("var ");		
+		sb.add("var ");
 		var name = typeResolver.getFixedTypeName(vr.name);
 		name = fixLocalVarName(name);
 		sb.add(name);
@@ -335,6 +335,10 @@ class MethodExpressionGenerator {
 					generateTMeta(sb, m, e1);
 				case TCast(e, m):
 					generateTCast(sb, e, m);
+				case TBinop(op, e1, e2):
+					generateTBinop(sb, op, e1, e2);
+				case TBlock(el):
+					generateTBlockInline(sb, el);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -348,7 +352,7 @@ class MethodExpressionGenerator {
 	 */
 	function generateTNew(sb:IndentStringBuilder, classType:ClassType, params:Array<Type>, elements:Array<TypedExpr>) {
 		var typeName = typeResolver.getFixedTypeName(classType.name);
-		var typeParams = typeResolver.resolveParameters(params);		
+		var typeParams = typeResolver.resolveParameters(params);
 
 		var varTypeName = if (classType.isExtern && classType.superClass != null && classType.superClass.t.get().name == "Distinct") {
 			typeName;
@@ -538,12 +542,16 @@ class MethodExpressionGenerator {
 	 */
 	function generateTCast(sb:IndentStringBuilder, expression:TypedExpr, module:ModuleType) {
 		// TODO: normal cast
-		switch (expression.expr) {			
+		switch (expression.expr) {
 			case TLocal(v):
 				if (v.name == "this1")
 					sb.add("this1");
 			case TConst(c):
 				generateTConst(sb, c);
+			case TBlock(el):
+				generateTBlock(sb, el);
+			case TCall(e, el):
+				generateCommonTCall(sb, e, el);
 			case v:
 				throw 'Unsupported ${v}';
 		}
@@ -647,6 +655,8 @@ class MethodExpressionGenerator {
 				generateTArray(sb, e1, e2);
 			case TCall(e, el):
 				generateCommonTCall(sb, e, el);
+			case TBlock(el):
+				generateTBlockInline(sb, el);
 			case v:
 				throw 'Unsupported ${v}';
 		}
@@ -719,6 +729,8 @@ class MethodExpressionGenerator {
 					generateTBinop(sb, op, e1, e2);
 				case TNew(c, params, el):
 					generateTNew(sb, c.get(), params, el);
+				case TBlock(el):
+					generateTBlockInline(sb, el);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -972,7 +984,7 @@ class MethodExpressionGenerator {
 	/**
 	 * Generate code for root TCall in block
 	 */
-	function generateBlockTCall(sb:IndentStringBuilder, expression:TypedExpr, expressions:Array<TypedExpr>) {
+	function generateBlockTCall(sb:IndentStringBuilder, expression:TypedExpr, expressions:Array<TypedExpr>, checkReturn = true) {
 		// Detect if need discard type
 		switch (expression.expr) {
 			case TField(_, fa):
@@ -999,7 +1011,7 @@ class MethodExpressionGenerator {
 					case _:
 				}
 
-				if (hasReturn) {
+				if (hasReturn && checkReturn) {
 					sb.add('discard ');
 				}
 			case _:
@@ -1034,10 +1046,12 @@ class MethodExpressionGenerator {
 				generateTReturn(sb, e);
 			case TBinop(op, e1, e2):
 				generateTBinop(sb, op, e1, e2);
+			case TCall(e, el):
+				generateCommonTCall(sb, e, el);
 			case v:
 				throw 'Unsupported ${v}';
 		}
-		
+
 		if (eelse != null) {
 			sb.addNewLine(Dec);
 			sb.add("else:");
@@ -1053,6 +1067,8 @@ class MethodExpressionGenerator {
 					}
 				case TBinop(op, e1, e2):
 					generateTBinop(sb, op, e1, e2);
+				case TCall(e, el):
+					generateCommonTCall(sb, e, el);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -1094,39 +1110,82 @@ class MethodExpressionGenerator {
 	}
 
 	/**
+	 * Generate single expression from TBlock
+	 */
+	function generateTBlockSingleExpression(sb:IndentStringBuilder, expr:TypedExpr) {
+		switch (expr.expr) {
+			case TConst(c):
+			// TODO: handle THIS
+			// generateTConst(sb, c);
+			case TVar(v, expr):
+				generateTVar(sb, v, expr);
+			case TCall(e, el):
+				generateBlockTCall(sb, e, el);
+			case TReturn(e):
+				generateTReturn(sb, e);
+			case TBinop(op, e1, e2):
+				generateTBinop(sb, op, e1, e2);
+			case TBlock(el):
+				generateTBlock(sb, el);
+			case TIf(econd, eif, eelse):
+				generateTIf(sb, econd, eif, eelse);
+			case TWhile(econd, e, normalWhile):
+				generateTWhile(sb, econd, e, normalWhile);
+			case TMeta(m, e1):
+				generateTMeta(sb, m, e1);
+			case TUnop(op, postFix, e):
+				generateTUnop(sb, op, postFix, e);
+			case TCast(e, m):
+				generateTCast(sb, e, m);
+			case v:
+				throw 'Unsupported ${v}';
+		}
+
+		sb.addNewLine(Same);
+	}
+
+	/**
 	 * Generate code for TBlock
 	 */
 	function generateTBlock(sb:IndentStringBuilder, expressions:Array<TypedExpr>) {
 		if (expressions.length > 0) {
 			for (expr in expressions) {
-				switch (expr.expr) {
-					case TVar(v, expr):
-						generateTVar(sb, v, expr);
-					case TCall(e, el):
-						generateBlockTCall(sb, e, el);
-					case TReturn(e):
-						generateTReturn(sb, e);
-					case TBinop(op, e1, e2):
-						generateTBinop(sb, op, e1, e2);
-					case TBlock(el):
-						generateTBlock(sb, el);
-					case TIf(econd, eif, eelse):
-						generateTIf(sb, econd, eif, eelse);
-					case TWhile(econd, e, normalWhile):
-						generateTWhile(sb, econd, e, normalWhile);
-					case TMeta(m, e1):
-						generateTMeta(sb, m, e1);
-					case TUnop(op, postFix, e):
-						generateTUnop(sb, op, postFix, e);
-					case v:
-						throw 'Unsupported ${v}';
-				}
-
-				sb.addNewLine(Same);
+				generateTBlockSingleExpression(sb, expr);
 			}
 		} else {
 			sb.add("discard");
 		}
+	}
+
+	/**
+	 * Generate inline block like
+	 * (block:
+	 * 		expressions
+	 * )
+	 */
+	function generateTBlockInline(sb:IndentStringBuilder, expressions:Array<TypedExpr>) {
+		sb.add("(block:");
+		sb.addNewLine(Inc);
+		if (expressions.length > 0) {
+			for (i in 0...expressions.length) {
+				var expr = expressions[i];
+				if (i + 1 < expressions.length) {
+					generateTBlockSingleExpression(sb, expr);
+				} else {
+					switch (expr.expr) {
+						case TCall(e, el):
+							generateBlockTCall(sb, e, el, false);
+						case TLocal(v):
+							generateTLocal(sb, v);
+						case v:
+							throw 'Unsupported ${v}';
+					}
+				}
+			}
+		}
+
+		sb.addNewLine(Dec);
+		sb.add(")");
 	}
 
 	/**
