@@ -42,6 +42,13 @@ type
     # Haxe bytes
     HaxeBytes* = ref object of HaxeObject
         b*:seq[byte]
+    
+    Null*[T] = object
+        case has*:bool
+        of true:
+            value*:T
+        of false:
+            discard 
 
     # Dynamic
     DynamicType* = enum
@@ -94,6 +101,14 @@ template hash*(this:HaxeObjectRef):int =
 
 proc `==`*(v1:HaxeObjectRef, v2:HaxeObjectRef):bool =
     v1.hash() == v2.hash()
+
+converter toNullInt*(v:int):Null[int] = 
+    Null[int](has: true, value: v)
+
+converter fromNullInt*(v:Null[int]):int = 
+    if v.has:
+        return v.value
+    raise newException(NilAccessError, "Null pointer exception")
 
 # Log
 template trace*(this:LogStatic, v:byte, e:varargs[string, `$`]):void =
@@ -149,8 +164,23 @@ template `$`*[T](this:HaxeArray[T]) : string =
 template set*[K, V](this:HaxeMap[K, V], key:K, value:V) =
     this.data[key] = value
 
+template get*[K](this:HaxeMap[K, int], key:K):Null[int] =    
+    if this.data.hasKey(key):
+        Null[int](has: true, value: this.data[key])
+    else:
+        Null[int](has: false)
+
+template get*[K](this:HaxeMap[K, string], key:K):Null[string] =    
+    if this.data.hasKey(key):
+        Null[string](has: true, value: this.data[key])
+    else:
+        Null[string](has: false)
+
 template get*[K, V](this:HaxeMap[K, V], key:K):V =
-    this.data[key]
+    if this.data.hasKey(key):
+        this.data[key]
+    else:
+        nil
 
 template `$`*[K, V](this:HaxeMap[K, V]) : string =
     $this.data
