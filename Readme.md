@@ -50,7 +50,11 @@ Because.
 
 ## How to use it
 
+* Install nim from http://nim-lang.org/
 * Install craxe by "haxelib git craxe https://github.com/RapidFingers/Craxe"
+* Go to the directory where craxe was installed. Then go to "core" directory and execute "nimble develop"
+It will install nim core types for craxe.
+I know it's annoying. And i am going to make some script to automate that process
 * Create project with "src" folder and Main.hx in it
 * Add build.hxml with following strings:\
 -cp src\
@@ -84,6 +88,7 @@ https://github.com/RapidFingers/CraxeExamples
 - [x] Generics
 - [x] GADT
 - [x] Map/Dictionary
+- [x] Place all nim code to nimble library
 - [ ] Extern for CraxeCore's http server
 - [ ] Benchmark of async http server
 - [ ] Auto import nimble libs
