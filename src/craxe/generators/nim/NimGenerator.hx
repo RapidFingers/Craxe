@@ -379,10 +379,22 @@ class NimGenerator extends BaseGenerator {
 			sb.addNewLine(Inc);
 
 			sb.add('${anonName}(');
-			sb.add('obj:this');
-			var args = an.fields.map(x -> '${x.name}:addr this.${x.name}').join(", ");
-			if (args.length > 0)
-				sb.add(', ${args}');
+			sb.addNewLine(Inc);
+			sb.add('obj:this');			
+			if (an.fields.length > 0) {
+				sb.add(',');
+				sb.addNewLine(Same);
+				for (i in 0...an.fields.length) {
+					var fld = an.fields[i];
+					var res = '${fld.name}:addr this.${fld.name}';
+					sb.add(res);
+					if (i + 1 < an.fields.length)
+						sb.add(", ");
+
+					sb.addNewLine(Same);
+				}											
+			}			
+			sb.addNewLine(Dec);
 			sb.add(')');
 			sb.addBreak();
 		}

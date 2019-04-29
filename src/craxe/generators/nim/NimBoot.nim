@@ -299,14 +299,14 @@ proc getPointerField*[T](this:Dynamic, name:string, tp:typedesc[T]):T =
     let fld = this.fields[name]
     return cast[T](fld.fpointer)
 
-converter fromString*(value:string):Dynamic =
-    newDynamic(value)
+# converter fromString*(value:string):Dynamic =
+#     newDynamic(value)
 
-converter fromInt*(value:int):Dynamic =
-    newDynamic(value)
+# converter fromInt*(value:int):Dynamic =
+#     newDynamic(value)
 
-converter fromFloat*(value:float):Dynamic =
-    newDynamic(value)
+# converter fromFloat*(value:float):Dynamic =
+#     newDynamic(value)
 
 proc call*(this:Dynamic, name:string, args:varargs[Dynamic]): Dynamic =
     nil
