@@ -1,4 +1,4 @@
-package craxe.nim;
+package craxe.nim.native;
 
 import haxe.io.Bytes;
 

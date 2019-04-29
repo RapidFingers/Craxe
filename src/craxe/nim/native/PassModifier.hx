@@ -1,4 +1,4 @@
-package craxe.nim;
+package craxe.nim.native;
 
 /**
  * Nim's "var" pass modificator to be possible modify value types

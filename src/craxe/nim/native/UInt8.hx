@@ -1,4 +1,4 @@
-package craxe.nim;
+package craxe.nim.native;
 
 /**
  * UInt8
