@@ -811,11 +811,26 @@ class MethodExpressionGenerator {
 	}
 
 	/**
+	 * Generate code for calling base class field
+	 */
+	function generateSuperCall(sb:IndentStringBuilder, classType:ClassType, classField:ClassField) {
+		var name = classType.name;
+		sb.add('cast[${name}](this)');
+	}
+
+	/**
 	 * Generate code for calling field
 	 */
 	function generateTCallTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {
 		switch (expression.expr) {
 			case TTypeExpr(_):
+			case TConst(TSuper):
+				switch (access) {
+					case FInstance(c, params, cf):
+						generateSuperCall(sb, c.get(), cf.get());
+					case v:
+						throw 'Unsupported ${v}';
+				}				
 			case TConst(c):
 				generateTConst(sb, c);
 			case TNew(c, params, el):
