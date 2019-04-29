@@ -42,24 +42,6 @@ class NimGenerator extends BaseGenerator {
 	final expressionGenerator:MethodExpressionGenerator;
 
 	/**
-	 * Libs to include
-	 */
-	final includeLibs = ["NimBoot.nim"];
-
-	/**
-	 * Add libraries to out path
-	 */
-	function addLibraries(outPath:String) {
-		var libPath = ContextMacro.resolvePath(".");
-		for (lib in includeLibs) {
-			var lowLib = lib.toLowerCase();
-			var srcPath = Path.join([libPath, "craxe", "generators", "nim", lib]);
-			var dstPath = Path.join([outPath, lowLib]);
-			File.copy(srcPath, dstPath);
-		}
-	}
-
-	/**
 	 * Add code helpers to header
 	 */
 	function addCodeHelpers(sb:IndentStringBuilder) {
@@ -73,11 +55,8 @@ class NimGenerator extends BaseGenerator {
 		sb.add('{.experimental: "codeReordering".}');
 		sb.addBreak();
 
-		for (lib in includeLibs) {
-			var name = Path.withoutExtension(lib).toLowerCase();
-			sb.add('import ${name}');
-			sb.addNewLine();
-		}
+		sb.add('import craxecore');
+		sb.addNewLine();
 
 		var reqHash = new StringMap<String>();
 		for (item in types.classes) {
@@ -745,8 +724,6 @@ class NimGenerator extends BaseGenerator {
 		var filename = Path.normalize(nimOut);
 		var outPath = Path.directory(filename);
 		FileSystem.createDirectory(outPath);
-
-		addLibraries(outPath);
 
 		var codeSb = new IndentStringBuilder();
 		buildClassesAndStructures(codeSb);
