@@ -22,8 +22,15 @@ extern class Request {
  */
 @:require("asynchttpserver")
 extern class AsyncHttpServer {
+	/**
+	 * Create new AsyncHttpServer	 
+	 */
     @:topFunction
 	@:native("newAsyncHttpServer")
 	public static function create():AsyncHttpServer;
+
+    /**
+     * Start server
+     */
     public function serve(port:Port, call:(Request)->Future<Void>):Future<Void>;
 }
