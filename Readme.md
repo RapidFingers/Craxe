@@ -91,6 +91,7 @@ https://github.com/RapidFingers/CraxeExamples
 - [x] Place all nim code to nimble library
 - [ ] Extern for CraxeCore's http server
 - [ ] Benchmark of async http server
+- [ ] Async/Await
 - [ ] Auto import nimble libs
 - [ ] Method override
 - [ ] Dynamic method
