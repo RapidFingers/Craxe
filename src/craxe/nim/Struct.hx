@@ -1,4 +1,4 @@
-package craxe.nim.native;
+package craxe.nim;
 
 /**
  * Structure is a value object:

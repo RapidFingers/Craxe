@@ -2,9 +2,9 @@ import asyncdispatch
 import craxecore
 
 let server = newHttpServer(26301)
-server.run(
+asyncCheck server.run(
     proc(req:HttpRequest) {.async.} =
-        discard
+        await req.sendOk("Hello wordl!")
 )
 
 runForever()

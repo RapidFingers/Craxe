@@ -1,4 +1,4 @@
-package craxe.nim.native;
+package craxe.nim;
 
 /**
  * Helper for nim's 

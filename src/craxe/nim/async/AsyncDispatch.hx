@@ -1,4 +1,4 @@
-package craxe.nim.native.async;
+package craxe.nim.async;
 
 /**
  * Port type

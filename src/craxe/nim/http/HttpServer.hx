@@ -1,20 +1,29 @@
 package craxe.nim.http;
 
+import craxe.nim.async.Future;
+
+/**
+ * Http request
+ */
+extern class HttpRequest {
+    /**
+     * Send data with 200 OK code
+     */
+    public function sendOk(content:String):Future<Void>;
+}
+
 /**
  * Async http server
  */
-class HttpServer {
+extern class HttpServer {
     /**
      * Constructor
      */
-    public function new(port:Int, address="") {
-        
-    }
+    @:native("newHttpServer")
+    public function new(port:Int, address:String = "");
 
     /**
      * Run server
      */
-    public function run() {
-        
-    }
+    public function run(call:(HttpRequest)->Future<Void>):Future<Void>;
 }
