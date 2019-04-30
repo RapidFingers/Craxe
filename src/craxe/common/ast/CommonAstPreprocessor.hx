@@ -42,7 +42,7 @@ class CommonAstPreprocessor {
 	/**
 	 * Excluded modules
 	 */
-	static final excludedModules:Array<String> = ["haxe.", "craxe.nim.", "StdTypes"];
+	static final excludedModules:Array<String> = ["haxe.", "StdTypes"];
 
 	/**
 	 * Filter not needed type. Return true if filtered
@@ -70,7 +70,7 @@ class CommonAstPreprocessor {
 			case TInst(t, _):
 				var ins = t.get();
 				return filterTypeByName(ins.name, ins.module);
-			case TAbstract(t, params):
+			case TAbstract(_, _):
 				return true;
 			case TType(t, _):
 				var tp = t.get();
