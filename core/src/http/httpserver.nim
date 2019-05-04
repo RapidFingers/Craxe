@@ -24,7 +24,7 @@ type
     HttpServer* = ref object
         socket:AsyncSocket
         port:Port
-        address:string        
+        address:string
 
     HttpClient* = ref object
 
