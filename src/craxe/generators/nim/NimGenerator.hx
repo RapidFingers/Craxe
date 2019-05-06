@@ -359,7 +359,7 @@ class NimGenerator extends BaseGenerator {
 
 			sb.add('${anonName}(');
 			sb.addNewLine(Inc);
-			sb.add('obj:this');			
+			sb.add('obj:this');
 			if (an.fields.length > 0) {
 				sb.add(',');
 				sb.addNewLine(Same);
@@ -371,8 +371,8 @@ class NimGenerator extends BaseGenerator {
 						sb.add(", ");
 
 					sb.addNewLine(Same);
-				}											
-			}			
+				}
+			}
 			sb.addNewLine(Dec);
 			sb.add(')');
 			sb.addBreak();
@@ -443,7 +443,9 @@ class NimGenerator extends BaseGenerator {
 	function generateAbstractImpl(sb:IndentStringBuilder, cls:ClassInfo, abstr:AbstractType) {
 		var name = abstr.name;
 		var typeName = typeResolver.resolve(abstr.type);
-		var line = '${name}Abstr = ${typeName}';
+		var params = typeResolver.resolveParameters(abstr.params.map(x -> x.t));
+
+		var line = '${name}Abstr${params} = ${typeName}';
 		sb.add(line);
 		sb.addNewLine(Same);
 	}
@@ -588,8 +590,9 @@ class NimGenerator extends BaseGenerator {
 			case TFun(args, ret):
 				var name = abstr.name;
 				var methname = StringTools.replace(method.name, "_", "");
+				var parstr = typeResolver.resolveParameters(abstr.params.map(x -> x.t));
 
-				sb.add('proc ${methname}${name}Abstr(');
+				sb.add('proc ${methname}${name}Abstr${parstr}(');
 				if (args.length > 0) {
 					generateFuncArgumentsAbstract(sb, abstr, args);
 				}
@@ -631,7 +634,7 @@ class NimGenerator extends BaseGenerator {
 				sb.addNewLine(Inc);
 				sb.add('result = "${clsName}"' + " & $this[]");
 				sb.addBreak();
-			case KAbstractImpl(a):
+			case KAbstractImpl(_):
 			case v:
 				throw 'Unsupported ${v}';
 		}

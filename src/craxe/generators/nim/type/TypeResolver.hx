@@ -7,6 +7,8 @@ import haxe.macro.Type.EnumType;
 import haxe.macro.Type.AbstractType;
 import haxe.macro.Type.ClassType;
 
+using craxe.common.ast.MetaHelper;
+
 /**
  * AST type resolver
  */
@@ -76,9 +78,19 @@ class TypeResolver {
 			return;
 
 		if (generatePassModificator(sb, t, params))
-			return;		
+			return;
 
-		sb.add('${t.name}Abstr');
+		var name = t.name;
+		var parstr = resolveParameters(params);
+
+		switch name {
+			case "Async":
+				name = 'Future${parstr} {.async.}';
+			default:
+				name = '${name}Abstr${parstr}';	
+		}
+
+		sb.add('${name}');
 	}
 
 	/**
@@ -88,7 +100,8 @@ class TypeResolver {
 		if (generateSimpleType(sb, t.name))
 			return;
 
-		var typeName = getFixedTypeName(t.name);
+		var nativeName = t.meta.getMetaValue(":native");
+		var typeName = nativeName != null ? nativeName : getFixedTypeName(t.name);
 		sb.add(typeName);
 		if (params != null && params.length > 0) {						
 			sb.add(resolveParameters(params));
