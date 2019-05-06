@@ -632,6 +632,14 @@ class MethodExpressionGenerator {
 				case TField(e, fa):
 					sb.add("return ");
 					generateTField(sb, e, fa);
+				case TMeta(m, e1):					
+					switch (e1.expr) {
+						case TCall(_, _):
+							generateTMeta(sb, m, e1);
+						default:
+							sb.add("return ");
+							generateTMeta(sb, m, e1);
+					}								
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -830,7 +838,7 @@ class MethodExpressionGenerator {
 						generateSuperCall(sb, c.get(), cf.get());
 					case v:
 						throw 'Unsupported ${v}';
-				}				
+				}
 			case TConst(c):
 				generateTConst(sb, c);
 			case TNew(c, params, el):
@@ -889,27 +897,35 @@ class MethodExpressionGenerator {
 	/**
 	 * Generate code for common TCall
 	 */
+	// TODO: refactor that
 	function generateCommonTCall(sb:IndentStringBuilder, expression:TypedExpr, expressions:Array<TypedExpr>) {
 		var isTraceCall = false;
+		var isAsync = false;
 		switch (expression.expr) {
 			case TField(_, FEnum(c, ef)):
 				var name = c.get().name;
 				sb.add('new${name}${ef.name}');
 				sb.add("(");
-			case TField(e, fa):
+			case TField(e, fa):				
 				switch (e.expr) {
-					case TTypeExpr(m):
+					case TTypeExpr(m):						
 						switch (m) {
 							case TClassDecl(c):
-								if (c.get().name == "Log")
-									isTraceCall = true;
+								switch c.get().name {
+									case "Log":
+										isTraceCall = true;	
+									case "Async_Impl_":
+										isAsync = true;
+								}
 							case _:
 						}
 					case _:
 				}
 
-				generateTCallTField(sb, e, fa);
-				sb.add("(");
+				if (!isAsync) {
+					generateTCallTField(sb, e, fa);
+					sb.add("(");
+				}
 			case TConst(TSuper):
 				if (classContext.classType.superClass != null) {
 					var superCls = classContext.classType.superClass.t.get();
@@ -991,7 +1007,9 @@ class MethodExpressionGenerator {
 				sb.add(", ");
 		}
 
-		sb.add(")");
+		if (!isAsync)
+			sb.add(")");
+
 		if (wasConverter)
 			sb.add(")");
 	}
