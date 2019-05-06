@@ -63,6 +63,8 @@ class MethodExpressionGenerator {
 				generateTEnumIndex(sb, e1);
 			case TCall(e, el):
 				generateCommonTCall(sb, e, el);
+			case TBlock(el):
+				generateTBlock(sb, el);
 			case v:
 				throw 'Unsupported ${v}';
 		}
@@ -998,6 +1000,8 @@ class MethodExpressionGenerator {
 					generateTArray(sb, e1, e2);
 				case TCast(e, m):
 					generateTCast(sb, e, m);
+				case TBlock(el):
+					generateTBlock(sb, el);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -1081,6 +1085,8 @@ class MethodExpressionGenerator {
 				generateTBinop(sb, op, e1, e2);
 			case TCall(e, el):
 				generateCommonTCall(sb, e, el);
+			case TMeta(m, e1):
+				generateTMeta(sb, m, e1);
 			case v:
 				throw 'Unsupported ${v}';
 		}
@@ -1102,6 +1108,8 @@ class MethodExpressionGenerator {
 					generateTBinop(sb, op, e1, e2);
 				case TCall(e, el):
 					generateCommonTCall(sb, e, el);
+				case TMeta(m, e1):
+					generateTMeta(sb, m, e1);
 				case v:
 					throw 'Unsupported ${v}';
 			}

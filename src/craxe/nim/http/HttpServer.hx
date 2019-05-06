@@ -2,15 +2,27 @@ package craxe.nim.http;
 
 import craxe.nim.async.Future;
 import craxe.nim.async.Async;
+import craxe.nim.http.HttpCommon;
+import craxe.nim.util.Url;
 
 /**
  * Http request
  */
 extern class HttpRequest {
 	/**
+	 * Http method
+	 */
+	public var httpMethod:HttpMethod;
+
+	/**
+	 * Url of request
+	 */
+	public var url:Url;
+
+	/**
 	 * Send data with 200 OK code
 	 */
-	public function sendOk(content:String):Void;
+	public function sendOk(content:String):Void;	
 }
 
 /**
