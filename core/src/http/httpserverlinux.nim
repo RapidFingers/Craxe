@@ -1,5 +1,6 @@
 import selectors, net, nativesockets, os, asyncdispatch, httpcore
 import times, strutils, parseutils, options
+import uri
 from deques import len
 
 type
@@ -31,6 +32,8 @@ type
         selectorData: ptr SelectorData
         clientFd: SocketHandle
         start:int
+        reqHttpMethod:HttpMethod
+        reqUrl:Uri
 
     HttpServer* = ref object
         socket:Socket
@@ -76,6 +79,26 @@ proc parseHttpMethod*(data: string, start: int): Option[HttpMethod] =
         discard
     
     return none(HttpMethod)
+
+proc parsePath*(data: string, start: int): Option[string] =
+    ## Parses the request path from the specified data.
+
+    # Find the first ' '.
+    # We can actually start ahead a little here. Since we know
+    # the shortest HTTP method: 'GET'/'PUT'.
+    var i = start+2
+    while data[i] notin {' ', '\0'}: i.inc()
+
+    if likely(data[i] == ' '):
+        # Find the second ' '.
+        i.inc() # Skip first ' '.
+        let start = i
+        while data[i] notin {' ', '\0'}: i.inc()
+
+        if likely(data[i] == ' '):
+            return some(data[start..<i])
+    else:
+        return none(string)
 
 proc parseHeaders*(data: string, start: int): Option[HttpHeaders] =
   var pairs: seq[(string, string)] = @[]
@@ -257,23 +280,11 @@ template send*(req: HttpRequest, body: string, code = Http200) =
 template sendOk*(req: HttpRequest, body: string) =
     req.send(body)
 
-proc httpMethod*(req: HttpRequest): Option[HttpMethod] {.inline.} =
-    ## Parses the request's data to find the request HttpMethod.
-    parseHttpMethod(req.selectorData.data, req.start)
+template httpMethod*(req: HttpRequest): HttpMethod =
+    req.reqHttpMethod
 
-proc validateRequest(req: HttpRequest): bool =
-    ## Handles protocol-mandated responses.
-    ##
-    ## Returns ``false`` when the request has been handled.
-    result = true
-
-    # From RFC7231: "When a request method is received
-    # that is unrecognized or not implemented by an origin server, the
-    # origin server SHOULD respond with the 501 (Not Implemented) status
-    # code."
-    if req.httpMethod().isNone():
-        req.send(Http501)
-        return false
+template url*(req: HttpRequest):Uri =
+    req.reqUrl
 
 # Process read client events
 template processReadClientEvents(this:HttpServer, fd:CommonHandle, selectorData:ptr SelectorData) =
@@ -306,7 +317,7 @@ template processReadClientEvents(this:HttpServer, fd:CommonHandle, selectorData:
 
         if fastHeadersCheck(selectorData) or slowHeadersCheck(selectorData):
             # First line and headers for request received.
-            selectorData.headersFinished = true
+            selectorData.headersFinished = true                                
 
             let waitingForBody = methodNeedsBody(selectorData) and bodyInTransit(selectorData)
             if likely(not waitingForBody):
@@ -314,23 +325,26 @@ template processReadClientEvents(this:HttpServer, fd:CommonHandle, selectorData:
                     # For pipelined requests, we need to reset this flag.
                     selectorData.headersFinished = true
                     
+                    let path = parsePath(selectorData.data, start)
+                    let url = parseUri(path.get())
+                    let meth = parseHttpMethod(selectorData.data, start)
+
                     var request = HttpRequest(
                         server:this,
                         selectorData: selectorData,
                         clientFd: fd.SocketHandle,
-                        start: start
-                    )
+                        start: start,
+                        reqHttpMethod: meth.get(),
+                        reqUrl: url
+                    )                    
                     
-                    if validateRequest(request):
-                        var fut = this.handler(request)
-                        if not fut.isNil:                            
-                            fut.callback =
-                                proc (theFut: Future[void]) =
-                                    if theFut.failed:
-                                        raise theFut.error
-                                    selectorData.headersFinished = false
-                    else:
-                        selectorData.headersFinished = false
+                    var fut = this.handler(request)
+                    if not fut.isNil:                            
+                        fut.callback =
+                            proc (theFut: Future[void]) =
+                                if theFut.failed:
+                                    raise theFut.error
+                                selectorData.headersFinished = false                    
 
         if ret != size:
             # Assume there is nothing else for us right now and break.
