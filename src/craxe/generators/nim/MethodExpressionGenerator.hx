@@ -1,5 +1,6 @@
 package craxe.generators.nim;
 
+import haxe.macro.Context;
 import craxe.common.ast.type.*;
 import haxe.macro.Type;
 import haxe.macro.Type.EnumField;
@@ -59,20 +60,20 @@ class MethodExpressionGenerator {
 				generateTConst(sb, c);
 			case TLocal(v):
 				generateTLocal(sb, v);
-			case TSwitch(e, cases, edef):				
-				generateTSwitch(sb, e, cases, edef);				
+			case TSwitch(e, cases, edef):
+				generateTSwitch(sb, e, cases, edef);
 			case TEnumIndex(e1):
 				generateTEnumIndex(sb, e1);
 			case TCall(e, el):
 				generateCommonTCall(sb, e, el);
 			case TIf(econd, eif, eelse):
 				generateTIf(sb, econd, eif, eelse);
-			case TBlock(el):				
+			case TBlock(el):
 				generateTBlock(sb, el);
 			case v:
 				throw 'Unsupported ${v}';
 		}
-	}	
+	}
 
 	/**
 	 * Generate code for TMeta
@@ -638,8 +639,8 @@ class MethodExpressionGenerator {
 				case TField(e, fa):
 					sb.add("return ");
 					generateTField(sb, e, fa);
-				case TMeta(m, e1):					
-					generateTMeta(sb, m, e1);						
+				case TMeta(m, e1):
+					generateTMeta(sb, m, e1);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -895,10 +896,56 @@ class MethodExpressionGenerator {
 	}
 
 	/**
+	 *	Generate code for Nim.code("some nim code")
+	 *	Return true if processed
+	 */
+	function generateRawCodeCall(sb:IndentStringBuilder, expression:TypedExpr, expressions:Array<TypedExpr>):Bool {
+		switch (expression.expr) {
+			case TField(_, fa):
+				switch (fa) {
+					case FStatic(c, cf):
+						var classType = c.get();
+						var classField = cf.get();
+						switch classType.name {
+							case "NimExtern":
+								switch classField.name {
+									case "rawCode":
+										var error = "Raw code must have one string parameter";
+										if (expressions.length != 1)
+											throw error;
+
+										switch expressions[0].expr {
+											case TConst(c):
+												switch c {
+													case TString(s):
+														sb.add(s);
+													case _:
+														throw error;
+												}
+											case _:
+												throw error;
+										}
+										return true;
+								}
+							case _:
+						}
+					case _:
+				}
+			case _:
+		}
+
+		return false;
+	}
+
+	/**
 	 * Generate code for common TCall
 	 */
 	// TODO: refactor that
 	function generateCommonTCall(sb:IndentStringBuilder, expression:TypedExpr, expressions:Array<TypedExpr>) {
+		// Check raw code paste
+		if (generateRawCodeCall(sb, expression, expressions))
+			return;
+
 		var isTraceCall = false;
 		var isAsync = false;
 		switch (expression.expr) {
@@ -906,14 +953,14 @@ class MethodExpressionGenerator {
 				var name = c.get().name;
 				sb.add('new${name}${ef.name}');
 				sb.add("(");
-			case TField(e, fa):				
+			case TField(e, fa):
 				switch (e.expr) {
-					case TTypeExpr(m):						
+					case TTypeExpr(m):
 						switch (m) {
 							case TClassDecl(c):
 								switch c.get().name {
 									case "Log":
-										isTraceCall = true;	
+										isTraceCall = true;
 									case "Async_Impl_":
 										isAsync = true;
 								}
@@ -1086,7 +1133,7 @@ class MethodExpressionGenerator {
 			case TCall(e, el):
 				generateCommonTCall(sb, e, el);
 			case TMeta(m, e1):
-				generateTMeta(sb, m, e1);			
+				generateTMeta(sb, m, e1);
 			case v:
 				throw 'Unsupported ${v}';
 		}
