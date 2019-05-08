@@ -95,6 +95,7 @@ https://github.com/RapidFingers/CraxeExamples
 - [x] Possibility to add raw nim code
 - [ ] Async/Await
 - [ ] Auto import nimble libs
+- [ ] Craxe console util for setup, create project, etc
 - [ ] Dynamic method
 - [ ] Dynamic type
 - [ ] Try/Catch
