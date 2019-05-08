@@ -78,14 +78,45 @@ proc getPointerField*[T](this:Dynamic, name:string, tp:typedesc[T]):T =
     let fld = this.fields[name]
     return cast[T](fld.fpointer)
 
-# converter fromString*(value:string):Dynamic =
-#     newDynamic(value)
+converter toInt*(this:Dynamic):int =
+    case this.kind
+    of TInt:
+        return this.fint
+    else:
+        raise newException(ValueError, "Dynamic wrong type")
 
-# converter fromInt*(value:int):Dynamic =
-#     newDynamic(value)
+converter toFloat*(this:Dynamic):float =
+    case this.kind
+    of TFloat:
+        return this.ffloat
+    else:
+        raise newException(ValueError, "Dynamic wrong type")
+    
+converter toString*(this:Dynamic):string =
+    case this.kind
+    of TString:
+        return this.fstring
+    else:
+        raise newException(ValueError, "Dynamic wrong type")
 
-# converter fromFloat*(value:float):Dynamic =
-#     newDynamic(value)
+converter toClass*[T](this:Dynamic):T =
+    case this.kind
+    of TClass:
+        return this.fclass
+    else:
+        raise newException(ValueError, "Dynamic wrong type")
+
+converter fromString*(value:string):Dynamic =
+    newDynamic(value)
+
+converter fromInt*(value:int):Dynamic =
+    newDynamic(value)
+
+converter fromFloat*(value:float):Dynamic =
+    newDynamic(value)
+
+converter fromClass*(value:HaxeObjectRef):Dynamic =
+    newDynamic(value)
 
 proc call*(this:Dynamic, name:string, args:varargs[Dynamic]): Dynamic =
     nil
