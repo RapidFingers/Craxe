@@ -97,6 +97,7 @@ https://github.com/RapidFingers/CraxeExamples
 - [ ] Auto import nimble libs
 - [ ] Dynamic method
 - [ ] Dynamic type
+- [ ] Try/Catch
 - [ ] Reflection
 - [ ] Type checking (operator is)
 - [ ] Some kind of std lib
