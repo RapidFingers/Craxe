@@ -90,9 +90,9 @@ https://github.com/RapidFingers/CraxeExamples
 - [x] Map/Dictionary
 - [x] Method override
 - [x] Place all nim code to nimble library
-- [ ] Extern for CraxeCore's http server
-- [ ] Benchmark of async http server
-- [ ] Possibility to add raw nim code
+- [x] Extern for CraxeCore's http server
+- [x] Benchmark of async http server
+- [x] Possibility to add raw nim code
 - [ ] Async/Await
 - [ ] Auto import nimble libs
 - [ ] Dynamic method
