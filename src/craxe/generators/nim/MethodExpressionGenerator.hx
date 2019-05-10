@@ -559,6 +559,8 @@ class MethodExpressionGenerator {
 				generateTBlock(sb, el);
 			case TCall(e, el):
 				generateCommonTCall(sb, e, el);
+			case TObjectDecl(fields):
+				generateTObjectDecl(sb, fields);
 			case v:
 				throw 'Unsupported ${v}';
 		}

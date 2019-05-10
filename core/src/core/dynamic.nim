@@ -2,18 +2,22 @@ import tables
 import core
 
 type
+    # Object that can be converted to Dynamic
+    IDynamicAble* = concept x
+        x.toDynamic = proc():Dynamic
+
     # Dynamic
     DynamicType* = enum
-        TString, TInt, TFloat, TClass, TPointer
+        TString, TInt, TFloat, TObject, TPointer
 
     Dynamic* = ref object
-        case kind: DynamicType
+        case kind*: DynamicType
         of TString: fstring:string
         of TInt: fint:int
         of TFloat: ffloat:float
-        of TClass: 
-            fclass: HaxeObjectRef
-            fields:Table[string, Dynamic]
+        of TObject: 
+            fobject*: HaxeObjectRef
+            fields*: Table[string, Dynamic]
         of TPointer: fpointer: pointer
 
 # Dynamic 
@@ -25,8 +29,8 @@ proc `$`*(this:Dynamic):string =
         return $this.fint
     of TFloat:
         return $this.ffloat
-    of TClass:
-        return $this.fclass[]
+    of TObject:
+        return $this.fobject[]
     of TPointer:
         return "Pointer"
     else:
@@ -41,11 +45,20 @@ proc newDynamic*(value:int):Dynamic =
 proc newDynamic*(value:float):Dynamic =    
     return Dynamic(kind:TFloat, ffloat: value)
 
-proc newDynamic*(value:HaxeObjectRef):Dynamic =    
-    return Dynamic(kind:TClass, fclass: value)
+proc newDynamicObject*(value:HaxeObjectRef):Dynamic =    
+    var res = Dynamic(kind:TObject, fobject: value)
+    res.fields = initTable[string, Dynamic]()
+    return res
 
 proc newDynamic*(value:pointer):Dynamic =    
     return Dynamic(kind:TPointer, fpointer: value)
+
+proc getFields*(this:Dynamic):Table[string, Dynamic] =
+    case this.kind
+    of TObject:
+        return this.fields
+    else:
+        raise newException(ValueError, "Dynamic wrong type")
 
 proc setField*(this:Dynamic, name:string, value:string) =
     this.fields[name] = Dynamic(kind: TString, fstring: value)
@@ -57,7 +70,7 @@ proc setField*(this:Dynamic, name:string, value:float) =
     this.fields[name] = Dynamic(kind: TFloat, ffloat: value)
 
 proc setField*(this:Dynamic, name:string, value:HaxeObjectRef) =
-    this.fields[name] = Dynamic(kind: TClass, fclass: value)
+    this.fields[name] = Dynamic(kind: TObject, fobject: value)
 
 proc setField*(this:Dynamic, name:string, value:pointer) =
     this.fields[name] = Dynamic(kind: TPointer, fpointer: value)
@@ -101,7 +114,7 @@ converter toString*(this:Dynamic):string =
 
 converter toClass*[T](this:Dynamic):T =
     case this.kind
-    of TClass:
+    of TObject:
         return this.fclass
     else:
         raise newException(ValueError, "Dynamic wrong type")
@@ -115,8 +128,8 @@ converter fromInt*(value:int):Dynamic =
 converter fromFloat*(value:float):Dynamic =
     newDynamic(value)
 
-converter fromClass*(value:HaxeObjectRef):Dynamic =
-    newDynamic(value)
+converter fromObject*(value:IDynamicAble):Dynamic =
+    value.toDynamic()
 
 proc call*(this:Dynamic, name:string, args:varargs[Dynamic]): Dynamic =
     nil
