@@ -15,8 +15,7 @@ type
         of TString: fstring:string
         of TInt: fint:int
         of TFloat: ffloat:float
-        of TObject: 
-            fobject*: HaxeObjectRef
+        of TObject:
             fields*: Table[string, Dynamic]
         of TPointer: fpointer: pointer
 
@@ -30,7 +29,7 @@ proc `$`*(this:Dynamic):string =
     of TFloat:
         return $this.ffloat
     of TObject:
-        return $this.fobject[]
+        return $this.fields
     of TPointer:
         return "Pointer"
     else:
@@ -45,8 +44,8 @@ proc newDynamic*(value:int):Dynamic =
 proc newDynamic*(value:float):Dynamic =    
     return Dynamic(kind:TFloat, ffloat: value)
 
-proc newDynamicObject*(value:HaxeObjectRef):Dynamic =    
-    var res = Dynamic(kind:TObject, fobject: value)
+proc newDynamicObject*():Dynamic =    
+    var res = Dynamic(kind:TObject)
     res.fields = initTable[string, Dynamic]()
     return res
 
@@ -69,8 +68,8 @@ proc setField*(this:Dynamic, name:string, value:int) =
 proc setField*(this:Dynamic, name:string, value:float) =
     this.fields[name] = Dynamic(kind: TFloat, ffloat: value)
 
-proc setField*(this:Dynamic, name:string, value:HaxeObjectRef) =
-    this.fields[name] = Dynamic(kind: TObject, fobject: value)
+proc setField*(this:Dynamic, name:string, value:IDynamicAble) =
+    this.fields[name] = value.toDynamic()
 
 proc setField*(this:Dynamic, name:string, value:pointer) =
     this.fields[name] = Dynamic(kind: TPointer, fpointer: value)
