@@ -16,6 +16,7 @@ import haxe.macro.Type.TypedExpr;
 import haxe.macro.Type.TypedExprDef;
 import craxe.common.IndentStringBuilder;
 import craxe.generators.nim.type.*;
+import craxe.common.ContextMacro;
 
 using craxe.common.ast.MetaHelper;
 using StringTools;
@@ -341,7 +342,7 @@ class MethodExpressionGenerator {
 				case TMeta(m, e1):
 					generateTMeta(sb, m, e1);
 				case TCast(e, m):
-					generateTCast(sb, e, m);
+					generateTCast(sb, expr, e, m);
 				case TBinop(op, e1, e2):
 					generateTBinop(sb, op, e1, e2);
 				case TBlock(el):
@@ -547,22 +548,45 @@ class MethodExpressionGenerator {
 	/**
 	 * Genertate TCast
 	 */
-	function generateTCast(sb:IndentStringBuilder, expression:TypedExpr, module:ModuleType) {
-		// TODO: normal cast
-		switch (expression.expr) {
-			case TLocal(v):
-				if (v.name == "this1")
-					sb.add("this1");
-			case TConst(c):
-				generateTConst(sb, c);
-			case TBlock(el):
-				generateTBlock(sb, el);
-			case TCall(e, el):
-				generateCommonTCall(sb, e, el);
-			case TObjectDecl(fields):
-				generateTObjectDecl(sb, fields);
-			case v:
-				throw 'Unsupported ${v}';
+	function generateTCast(sb:IndentStringBuilder, toExpr:TypedExpr, fromExpr:TypedExpr, module:ModuleType) {
+		inline function generateInnerExpr() {
+			switch (fromExpr.expr) {
+				case TLocal(v):
+					if (v.name == "this1")
+						sb.add("this1");
+				case TConst(c):
+					generateTConst(sb, c);
+				case TBlock(el):
+					generateTBlock(sb, el);
+				case TCall(e, el):
+					generateCommonTCall(sb, e, el);
+				case TObjectDecl(fields):
+					generateTObjectDecl(sb, fields);
+				case v:
+					throw 'Unsupported ${v}';
+			}
+		}
+
+		switch toExpr.t {
+			case TDynamic(_):
+				ContextMacro.ckeckDynamicSupport();
+				var name = switch fromExpr.t {
+					case TAnonymous(a):
+						context.getObjectTypeByFields(a.get().fields).name;
+					case _:
+						null;
+				}
+
+				if (name != null) {
+					context.addDynamicSupport(name);
+					sb.add("toDynamic(");
+					generateInnerExpr();
+					sb.add(")");
+				} else {
+					generateInnerExpr();
+				}
+			case _:
+				generateInnerExpr();
 		}
 	}
 
@@ -637,7 +661,7 @@ class MethodExpressionGenerator {
 					generateTObjectDecl(sb, fields);
 				case TCast(e, m):
 					sb.add("return ");
-					generateTCast(sb, e, m);
+					generateTCast(sb, expression, e, m);
 				case TField(e, fa):
 					sb.add("return ");
 					generateTField(sb, e, fa);
@@ -1046,7 +1070,7 @@ class MethodExpressionGenerator {
 				case TArray(e1, e2):
 					generateTArray(sb, e1, e2);
 				case TCast(e, m):
-					generateTCast(sb, e, m);
+					generateTCast(sb, expr, e, m);
 				case TBlock(el):
 					generateTBlock(sb, el);
 				case v:
@@ -1228,7 +1252,7 @@ class MethodExpressionGenerator {
 			case TUnop(op, postFix, e):
 				generateTUnop(sb, op, postFix, e);
 			case TCast(e, m):
-				generateTCast(sb, e, m);
+				generateTCast(sb, expr, e, m);
 			case v:
 				throw 'Unsupported ${v}';
 		}

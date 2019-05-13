@@ -38,6 +38,11 @@ class TypeContext {
 	final anonByName = new StringMap<AnonTypedefInfo>();
 
 	/**
+	 * Types for which need generate converters toDynamic
+	 */
+	final dynamicAllowed = new StringMap<Bool>();
+
+	/**
 	 * Has interfaces
 	 */
 	public final hasInterfaces:Bool;
@@ -165,6 +170,7 @@ class TypeContext {
 				fields: fields
 			}
 			anonById.set(id, anon);
+			anonByName.set(anon.name, anon);
 		}
 		return anon;
 	}
@@ -174,5 +180,19 @@ class TypeContext {
 	 */
 	public function getObjectTypeByName(name:String):AnonTypedefInfo {
 		return anonByName.get(name);
+	}
+
+	/**
+	 * Set dynamic support for type
+	 */
+	public function addDynamicSupport(name:String) {
+		dynamicAllowed.set(name, true);
+	}
+
+	/**
+	 * Return all types for which need build dynamic converters
+	 */
+	public function allDynamicConverters():Array<String> {
+		return [for (key => _ in dynamicAllowed) key];
 	}
 }

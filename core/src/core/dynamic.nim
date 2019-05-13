@@ -2,10 +2,6 @@ import tables
 import core
 
 type
-    # Object that can be converted to Dynamic
-    IDynamicAble* = concept x
-        x.toDynamic = proc():Dynamic
-
     # Dynamic
     DynamicType* = enum
         TString, TInt, TFloat, TObject, TPointer
@@ -68,11 +64,14 @@ proc setField*(this:Dynamic, name:string, value:int) =
 proc setField*(this:Dynamic, name:string, value:float) =
     this.fields[name] = Dynamic(kind: TFloat, ffloat: value)
 
-proc setField*(this:Dynamic, name:string, value:IDynamicAble) =
-    this.fields[name] = value.toDynamic()
+proc setField*(this:Dynamic, name:string, value:Dynamic) =
+    this.fields[name] = value
 
 proc setField*(this:Dynamic, name:string, value:pointer) =
     this.fields[name] = Dynamic(kind: TPointer, fpointer: value)
+
+proc getFieldValue*(this:Dynamic, name:string):Dynamic =
+    return this.fields[name]
 
 proc getIntField*(this:Dynamic, name:string):int =
     let fld = this.fields[name]
@@ -111,13 +110,6 @@ converter toString*(this:Dynamic):string =
     else:
         raise newException(ValueError, "Dynamic wrong type")
 
-converter toClass*[T](this:Dynamic):T =
-    case this.kind
-    of TObject:
-        return this.fclass
-    else:
-        raise newException(ValueError, "Dynamic wrong type")
-
 converter fromString*(value:string):Dynamic =
     newDynamic(value)
 
@@ -126,9 +118,6 @@ converter fromInt*(value:int):Dynamic =
 
 converter fromFloat*(value:float):Dynamic =
     newDynamic(value)
-
-converter fromObject*(value:IDynamicAble):Dynamic =
-    value.toDynamic()
 
 proc call*(this:Dynamic, name:string, args:varargs[Dynamic]): Dynamic =
     nil
