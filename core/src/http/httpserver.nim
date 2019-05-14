@@ -6,20 +6,22 @@ type
         httpMethod*: HttpMethod
         url*:Uri
 
+    HttpResponse* = ref object
+        request: Request
+        contentType*: string
+        code*: HttpCode
+
     HttpServer* = ref object
         server:AsyncHttpServer
         port:Port
         address:string
 
-    RequestHandler* = proc(req:HttpRequest):Future[void] {.gcsafe.}
+    RequestHandler* = proc(req:HttpRequest, resp:HttpResponse):Future[void] {.gcsafe.}
 
 # Send data
-proc send*(this:HttpRequest, code:HttpCode, content:string) =
-    asyncCheck this.request.respond(code, content)
-
-# Send data with ok code
-proc sendOk*(this:HttpRequest, content:string) =
-    this.send(Http200, content)
+proc send*(this:HttpResponse, content:string) =
+    var headers = newHttpHeaders([("Content-Type", this.contentType)])
+    asyncCheck this.request.respond(HttpCode(this.code), content, headers)
 
 # Create new http server
 proc newHttpServer*(port = 8080, address = ""):HttpServer =
@@ -36,6 +38,11 @@ proc run*(this:HttpServer, handler:RequestHandler) {.async.} =
                     request: req,
                     httpMethod: req.reqMethod,
                     url: req.url
+                ),
+                HttpResponse(
+                    request: req,
+                    contentType: "text/plain",
+                    code: Http200
                 )
             )
     )

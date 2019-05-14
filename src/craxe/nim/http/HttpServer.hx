@@ -17,12 +17,29 @@ extern class HttpRequest {
 	/**
 	 * Url of request
 	 */
-	public var url:Url;
+	public var url:Url;	
+}
+
+/**
+ * Extern to response
+ */
+extern class HttpResponse {
+	/**
+	 * Content type of response
+	 * By default plain/text
+	 */
+	public var contentType:String;
 
 	/**
-	 * Send data with 200 OK code
+	 * TODO HttpCode enum
+	 * By default OK (200)
 	 */
-	public function sendOk(content:String):Void;	
+	public var code:Int;	
+
+	/**
+	 * Send data	 
+	 */
+	public function send(content:String):Void;
 }
 
 /**
@@ -38,5 +55,5 @@ extern class HttpServer {
 	/**
 	 * Run server
 	 */
-	public function run(call:(HttpRequest) -> Async<Void>):Future<Void>;
+	public function run(call:(HttpRequest, HttpResponse) -> Async<Void>):Future<Void>;
 }

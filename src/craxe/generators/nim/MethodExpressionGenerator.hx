@@ -169,9 +169,11 @@ class MethodExpressionGenerator {
 					case TCall(e, el):
 						generateBlockTCall(sb, e, el);
 					case TReturn(e):
-						generateTReturn(sb, e);
+						generateTReturn(sb, e);					
 					case TBlock(el):
 						generateTBlock(sb, el);
+					case TMeta(m, e1):
+						generateTMeta(sb, m, e1);
 					case v:
 						throw 'Unsupported ${v}';
 				}
@@ -1251,6 +1253,8 @@ class MethodExpressionGenerator {
 				generateTMeta(sb, m, e1);
 			case TUnop(op, postFix, e):
 				generateTUnop(sb, op, postFix, e);
+			case TSwitch(e, cases, edef):
+				generateTSwitch(sb, e, cases, edef);
 			case TCast(e, m):
 				generateTCast(sb, expr, e, m);
 			case v:
