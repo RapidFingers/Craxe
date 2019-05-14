@@ -169,7 +169,7 @@ class MethodExpressionGenerator {
 					case TCall(e, el):
 						generateBlockTCall(sb, e, el);
 					case TReturn(e):
-						generateTReturn(sb, e);					
+						generateTReturn(sb, e);
 					case TBlock(el):
 						generateTBlock(sb, el);
 					case TMeta(m, e1):
@@ -918,6 +918,8 @@ class MethodExpressionGenerator {
 				sb.add('new${name}${ef.name}()');
 			case FAnon(cf):
 				sb.add('.${cf.get().name}[]');
+			case FDynamic(s):
+				sb.add('.getFieldValue("${s}")');
 			case v:
 				throw 'Unsupported ${v}';
 		}

@@ -71,7 +71,11 @@ proc setField*(this:Dynamic, name:string, value:pointer) =
     this.fields[name] = Dynamic(kind: TPointer, fpointer: value)
 
 proc getFieldValue*(this:Dynamic, name:string):Dynamic =
-    return this.fields[name]
+    case this.kind
+    of TObject:
+        return this.fields[name]
+    else:
+        raise newException(ValueError, "Dynamic wrong type")
 
 proc getIntField*(this:Dynamic, name:string):int =
     let fld = this.fields[name]
