@@ -35,6 +35,8 @@ type
         reqHttpMethod:HttpMethod
         reqUrl:Uri
 
+    HttpResponse* = ref object
+
     HttpServer* = ref object
         socket:Socket
         selector:Selector[SelectorData]
@@ -43,7 +45,7 @@ type
         address:string
         handler:RequestHandler
 
-    RequestHandler* = proc(req:HttpRequest):Future[void] {.gcsafe.}
+    RequestHandler* = proc(req:HttpRequest, resp:HttpResponse):Future[void] {.gcsafe.}
 
 proc parseHttpMethod*(data: string, start: int): Option[HttpMethod] =
     ## Parses the data to find the request HttpMethod.
@@ -336,9 +338,11 @@ template processReadClientEvents(this:HttpServer, fd:CommonHandle, selectorData:
                         start: start,
                         reqHttpMethod: meth.get(),
                         reqUrl: url
-                    )                    
+                    )       
+
+                    var response = HttpResponse()             
                     
-                    var fut = this.handler(request)
+                    var fut = this.handler(request, response)
                     if not fut.isNil:                            
                         fut.callback =
                             proc (theFut: Future[void]) =

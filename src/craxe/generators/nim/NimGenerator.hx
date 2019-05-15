@@ -378,7 +378,35 @@ class NimGenerator extends BaseGenerator {
 			sb.addBreak();
 		}
 
-		sb.addBreak();
+		sb.addNewLine();
+	}
+
+	/**
+	 * Build toDynamic converters
+	 */
+	function buildDynamicConverters(sb:IndentStringBuilder) {
+		var types = typeContext.allDynamicConverters();
+		for (name in types) {
+			var obj = typeContext.getObjectTypeByName(name);
+			if (obj != null) {
+				sb.add('proc toDynamic(this:${obj.name}):Dynamic =');
+				sb.addNewLine(Inc);
+				sb.add('result = newDynamicObject()');
+				sb.addNewLine(Same);
+				for (fld in obj.fields) {
+					sb.add('result.setField("${fld.name}", this.${fld.name})');
+					sb.addNewLine(Same);
+				}
+
+				sb.addBreak();
+
+				sb.add('template toDynamic(this:${obj.name}Anon):Dynamic =');
+				sb.addNewLine(Inc);
+				sb.add('toDynamic(cast[${obj.name}](this.obj))');
+
+				sb.addBreak();
+			}
+		}
 	}
 
 	/**
@@ -737,6 +765,7 @@ class NimGenerator extends BaseGenerator {
 		buildEnums(headerSb);
 		buildTypedefs(headerSb);
 		buildAnonConverters(headerSb);
+		buildDynamicConverters(headerSb);
 		buildInterfaces(headerSb);
 
 		if (types.entryPoint != null) {
