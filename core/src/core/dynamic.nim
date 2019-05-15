@@ -2,18 +2,37 @@ import tables
 import core
 
 type
+    # Haxe anonimous object
+    AnonObject* = ref object of HaxeObject
+        names*: seq[string]
+        values*: seq[Dynamic]
+
     # Dynamic
     DynamicType* = enum
-        TString, TInt, TFloat, TObject, TPointer
+        TString, TInt, TFloat, TAnonObject
 
     Dynamic* = ref object
         case kind*: DynamicType
-        of TString: fstring:string
-        of TInt: fint:int
-        of TFloat: ffloat:float
-        of TObject:
-            fields*: Table[string, Dynamic]
-        of TPointer: fpointer: pointer
+        of TString: fstring*:string
+        of TInt: fint*:int
+        of TFloat: ffloat*:float
+        of TAnonObject: fanon*: AnonObject
+
+# AnonObject
+proc newAnonObject*(names: seq[string]) : AnonObject =
+    AnonObject(
+        names: names,
+        values: newSeqOfCap[Dynamic](names.len)
+    )
+
+template setField*[T](this:AnonObject, pos:int, value:T) =
+    this.values[pos] = value
+
+template getField*[T](this:AnonObject, pos:int, tp:typedesc[T]):T =
+    this.values[pos]
+
+template getFields*(this:AnonObject):seq[string] =
+    this.names
 
 # Dynamic 
 proc `$`*(this:Dynamic):string =
@@ -24,74 +43,22 @@ proc `$`*(this:Dynamic):string =
         return $this.fint
     of TFloat:
         return $this.ffloat
-    of TObject:
-        return $this.fields
-    of TPointer:
-        return "Pointer"
+    of TAnonObject:
+        return $this[]
     else:
         return "Dynamic unknown"
 
-proc newDynamic*(value:string):Dynamic =    
-    return Dynamic(kind:TString, fstring: value)
+template newDynamic*(value:string):Dynamic =
+    Dynamic(kind:TString, fstring: value)
 
-proc newDynamic*(value:int):Dynamic =    
-    return Dynamic(kind:TInt, fint: value)
+template newDynamic*(value:int):Dynamic =
+    Dynamic(kind:TInt, fint: value)
 
-proc newDynamic*(value:float):Dynamic =    
-    return Dynamic(kind:TFloat, ffloat: value)
+template newDynamic*(value:float):Dynamic =
+    Dynamic(kind:TFloat, ffloat: value)
 
-proc newDynamicObject*():Dynamic =    
-    var res = Dynamic(kind:TObject)
-    res.fields = initTable[string, Dynamic]()
-    return res
-
-proc newDynamic*(value:pointer):Dynamic =    
-    return Dynamic(kind:TPointer, fpointer: value)
-
-proc getFields*(this:Dynamic):Table[string, Dynamic] =
-    case this.kind
-    of TObject:
-        return this.fields
-    else:
-        raise newException(ValueError, "Dynamic wrong type")
-
-proc setField*(this:Dynamic, name:string, value:string) =
-    this.fields[name] = Dynamic(kind: TString, fstring: value)
-
-proc setField*(this:Dynamic, name:string, value:int) =
-    this.fields[name] = Dynamic(kind: TInt, fint: value)
-
-proc setField*(this:Dynamic, name:string, value:float) =
-    this.fields[name] = Dynamic(kind: TFloat, ffloat: value)
-
-proc setField*(this:Dynamic, name:string, value:Dynamic) =
-    this.fields[name] = value
-
-proc setField*(this:Dynamic, name:string, value:pointer) =
-    this.fields[name] = Dynamic(kind: TPointer, fpointer: value)
-
-proc getFieldValue*(this:Dynamic, name:string):Dynamic =
-    case this.kind
-    of TObject:
-        return this.fields[name]
-    else:
-        raise newException(ValueError, "Dynamic wrong type")
-
-proc getIntField*(this:Dynamic, name:string):int =
-    let fld = this.fields[name]
-    return fld.fint
-
-proc getStringField*(this:Dynamic, name:string):string =
-    let fld = this.fields[name]
-    return fld.fstring
-
-proc getClassField*[T](this:Dynamic, name:string, tp:typedesc[T]):T =
-    let fld = this.fields[name]
-    return cast[T](fld.fref)
-
-proc getPointerField*[T](this:Dynamic, name:string, tp:typedesc[T]):T =
-    let fld = this.fields[name]
-    return cast[T](fld.fpointer)
+template newDynamic*(value:AnonObject):Dynamic =
+    Dynamic(kind:TAnonObject, fanon: value)
 
 converter toInt*(this:Dynamic):int =
     case this.kind
@@ -123,5 +90,5 @@ converter fromInt*(value:int):Dynamic =
 converter fromFloat*(value:float):Dynamic =
     newDynamic(value)
 
-proc call*(this:Dynamic, name:string, args:varargs[Dynamic]): Dynamic =
-    nil
+converter fromAnon*(value:AnonObject):Dynamic =
+    newDynamic(value)
