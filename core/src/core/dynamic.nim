@@ -1,38 +1,64 @@
-import tables
 import core
 
 type
+    AnonField* = ref object
+        name*:string
+        value*:Dynamic
+
     # Haxe anonimous object
-    AnonObject* = ref object of HaxeObject
-        names*: seq[string]
-        values*: seq[Dynamic]
+    AnonObject* = seq[AnonField]
+
+    DynamicHaxeObject* = object of HaxeObject
+        getFieldByName*: proc(name:string):Dynamic
+        setFieldByName*: proc(name:string, value:string):Dynamic
+
+    DynamicHaxeObjectRef* = ref DynamicHaxeObject
 
     # Dynamic
     DynamicType* = enum
-        TString, TInt, TFloat, TAnonObject
+        TString, TInt, TFloat, TAnonObject, TClass
 
     Dynamic* = ref object
         case kind*: DynamicType
-        of TString: fstring*:string
-        of TInt: fint*:int
-        of TFloat: ffloat*:float
-        of TAnonObject: fanon*: AnonObject
+        of TString: 
+            fstring*:string
+        of TInt: 
+            fint*:int
+        of TFloat: 
+            ffloat*:float
+        of TAnonObject: 
+            fanon*: AnonObject
+        of TClass: 
+            fclass*: DynamicHaxeObjectRef
 
 # AnonObject
 proc newAnonObject*(names: seq[string]) : AnonObject =
-    AnonObject(
-        names: names,
-        values: newSeqOfCap[Dynamic](names.len)
-    )
+    result = newSeqOfCap[AnonField](names.len)
+    for i in 0..<names.len:
+        result[0] = AnonField(name: names[i])
 
-template setField*[T](this:AnonObject, pos:int, value:T) =
-    this.values[pos] = value
+proc newAnonObject*(fields: seq[AnonField]) : AnonObject =
+    fields
 
-template getField*[T](this:AnonObject, pos:int, tp:typedesc[T]):T =
-    this.values[pos]
+proc setField*[T](this:AnonObject, pos:int, value:T) {.inline.} =
+    this[pos].value = value
 
-template getFields*(this:AnonObject):seq[string] =
-    this.names
+proc setField*[T](this:AnonObject, name:string, value:T) {.inline.} =
+    for fld in this:
+        if fld.name == name:
+            fld.value = value
+
+template getField*(this:AnonObject, pos:int):Dynamic =
+    this[pos].value
+
+proc getField*(this:AnonObject, name:string):Dynamic =
+    for fld in this:
+        if fld.name == name:
+            return fld.value
+
+proc getFields*(this:AnonObject):seq[string] =
+    for f in this:
+        result.add(f.name)
 
 # Dynamic 
 proc `$`*(this:Dynamic):string =
@@ -60,6 +86,18 @@ template newDynamic*(value:float):Dynamic =
 template newDynamic*(value:AnonObject):Dynamic =
     Dynamic(kind:TAnonObject, fanon: value)
 
+template newDynamic*(value:DynamicHaxeObjectRef):Dynamic =
+    Dynamic(kind:TClass, fclass: value)
+
+proc getField*(this:Dynamic, name:string):Dynamic =
+    case this.kind
+    of TAnonObject: 
+        return getField(this.fanon, name)
+    of TClass:
+        return this.fclass.getFieldByName(name)
+    else:
+        return nil
+
 converter toInt*(this:Dynamic):int =
     case this.kind
     of TInt:
@@ -81,14 +119,5 @@ converter toString*(this:Dynamic):string =
     else:
         raise newException(ValueError, "Dynamic wrong type")
 
-converter fromString*(value:string):Dynamic =
-    newDynamic(value)
-
-converter fromInt*(value:int):Dynamic =
-    newDynamic(value)
-
-converter fromFloat*(value:float):Dynamic =
-    newDynamic(value)
-
-converter fromAnon*(value:AnonObject):Dynamic =
-    newDynamic(value)
+converter toDynamic*[T](this: T):Dynamic =
+    newDynamic(this)
