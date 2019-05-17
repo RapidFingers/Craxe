@@ -16,7 +16,7 @@ type
 
     # Dynamic
     DynamicType* = enum
-        TString, TInt, TFloat, TAnonObject, TClass
+        TString, TInt, TFloat, TAnonObject, TClass, TPointer
 
     Dynamic* = ref object
         case kind*: DynamicType
@@ -30,7 +30,8 @@ type
             fanon*: AnonObject
         of TClass: 
             fclass*: DynamicHaxeObjectRef
-
+        of TPointer:
+            fpointer*: pointer
 # AnonObject
 proc newAnonObject*(names: seq[string]) : AnonObject =
     result = newSeqOfCap[AnonField](names.len)
@@ -89,14 +90,33 @@ template newDynamic*(value:AnonObject):Dynamic =
 template newDynamic*(value:DynamicHaxeObjectRef):Dynamic =
     Dynamic(kind:TClass, fclass: value)
 
+proc newDynamic*(value:pointer):Dynamic =
+    Dynamic(kind:TPointer, fpointer: value)
+
 proc getField*(this:Dynamic, name:string):Dynamic =
     case this.kind
-    of TAnonObject: 
+    of TAnonObject:
         return getField(this.fanon, name)
     of TClass:
         return this.fclass.getFieldByName(name)
     else:
         return nil
+
+template call*[T](this:Dynamic, tp:typedesc[T], args:varargs[untyped]):untyped =    
+    case this.kind
+    of TPointer:
+        var pr:T = cast[tp](this.fpointer)
+        pr(args)
+    else:
+        raise newException(ValueError, "Dynamic wrong type")
+
+template call*[T](this:Dynamic, name:string, tp:typedesc[T], args:varargs[untyped]):untyped =    
+    case this.kind:
+    of TAnonObject, TClass:
+        this.getField(name).call(tp, args)
+    else:
+        raise newException(ValueError, "Dynamic wrong type")
+    
 
 converter toInt*(this:Dynamic):int =
     case this.kind
