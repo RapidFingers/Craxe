@@ -4,16 +4,23 @@ import arrays
 type
     AnonField* = ref object
         name*:string
-        value*:Dynamic
+        value*:Dynamic    
 
     # Haxe anonimous object
     AnonObject* = seq[AnonField]
 
+    # Dynamic object with access to fields by name
     DynamicHaxeObject* = object of HaxeObject
         getFieldByName*: proc(name:string):Dynamic
         setFieldByName*: proc(name:string, value:string):Dynamic
 
     DynamicHaxeObjectRef* = ref DynamicHaxeObject
+
+    # Dynamic proxy for real object
+    DynamicHaxeObjectProxy*[T] = object of DynamicHaxeObject
+        obj*:T
+
+    DynamicHaxeObjectProxyRef*[T] = ref object of DynamicHaxeObjectProxy[T]
 
     # Dynamic
     DynamicType* = enum
@@ -33,14 +40,18 @@ type
             fclass*: DynamicHaxeObjectRef
         of TPointer:
             fpointer*: pointer
+
 # AnonObject
-proc newAnonObject*(names: seq[string]) : AnonObject =
+proc newAnonObject*(names: seq[string]) : AnonObject {.inline.}  =
     result = newSeqOfCap[AnonField](names.len)
     for i in 0..<names.len:
         result[0] = AnonField(name: names[i])
 
-proc newAnonObject*(fields: seq[AnonField]) : AnonObject =
+template newAnonObject*(fields: seq[AnonField]) : AnonObject =
     fields
+
+proc newAnonField*(name:string, value:Dynamic) : AnonField {.inline.} =
+    AnonField(name : name, value : value)
 
 proc setField*[T](this:AnonObject, pos:int, value:T) {.inline.} =
     this[pos].value = value
@@ -126,7 +137,6 @@ template call*[T](this:Dynamic, name:string, tp:typedesc[T], args:varargs[untype
     else:
         raise newException(ValueError, "Dynamic wrong type")
     
-
 converter toInt*(this:Dynamic):int =
     case this.kind
     of TInt:
