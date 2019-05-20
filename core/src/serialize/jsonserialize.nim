@@ -1,7 +1,7 @@
 import json
 import tables
 import sequtils
-import core/[core, dynamic]
+import core/[core, arrays, dynamic]
 
 type    
     JsonParser* = object
@@ -11,17 +11,19 @@ type
 
 let JsonPrinterStaticInst* = JsonPrinterStatic()
 
-proc printObject(anon:AnonObject):string =
-    if anon.names.len < 1:
+proc printObject(obj:Dynamic):string =
+    let fields = obj.getFieldNames()
+    if fields.isNil or fields.length < 1:    
         return "{}"
     
     result = "{"
-    for i in 0..<anon.names.len:
+    for i in 0..<fields.length:
         if result.len > 1: result.add(", ")
 
-        result.addQuoted(anon.names[i])
+        let fieldName = fields[i]
+        result.addQuoted(fieldName)
         result.add(": ")
-        let val = anon.values[i]
+        let val = obj.getField(fieldName)
         case val.kind
         of TString:
             result.add("\"" & $val & "\"")
@@ -58,7 +60,7 @@ proc doParse*(this:JsonParser):Dynamic =
 
 proc print*(this:JsonPrinterStatic, value:Dynamic, replacer:pointer = nil, space:pointer = nil):string =    
     case value.kind
-    of TAnonObject:
-        return printObject(value.fanon)
+    of TAnonObject, TClass:
+        return printObject(value)
     else:
         raise newException(ValueError, "Unsupported Dynamic type")

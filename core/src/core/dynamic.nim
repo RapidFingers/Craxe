@@ -1,4 +1,5 @@
 import core
+import arrays
 
 type
     AnonField* = ref object
@@ -57,9 +58,10 @@ proc getField*(this:AnonObject, name:string):Dynamic =
         if fld.name == name:
             return fld.value
 
-proc getFields*(this:AnonObject):seq[string] =
+proc getFields*(this:AnonObject):HaxeArray[string] =
+    result = newHaxeArray[string]()
     for f in this:
-        result.add(f.name)
+        discard result.push(f.name)
 
 # Dynamic 
 proc `$`*(this:Dynamic):string =
@@ -99,6 +101,13 @@ proc getField*(this:Dynamic, name:string):Dynamic =
         return getField(this.fanon, name)
     of TClass:
         return this.fclass.getFieldByName(name)
+    else:
+        return nil
+
+proc getFieldNames*(this:Dynamic):HaxeArray[string] =
+    case this.kind
+    of TAnonObject:
+        return this.fanon.getFields()
     else:
         return nil
 
