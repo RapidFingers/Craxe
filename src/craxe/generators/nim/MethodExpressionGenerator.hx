@@ -524,9 +524,8 @@ class MethodExpressionGenerator {
 				type: x.expr.t
 			}));
 		}
-
-		var name = '${object.name}Anon';
-		sb.add('to${name}(');
+		
+		sb.add('makeDynamic(');
 		sb.add('${object.name}(');
 		for (i in 0...fields.length) {
 			var field = fields[i];
@@ -917,9 +916,10 @@ class MethodExpressionGenerator {
 				var name = typeResolver.getFixedTypeName(e.get().name);
 				sb.add('new${name}${ef.name}()');
 			case FAnon(cf):
-				sb.add('.${cf.get().name}[]');
+				var name = cf.get().name;
+				sb.add('.getField("${name}")');
 			case FDynamic(s):
-				sb.add('.getFieldValue("${s}")');
+				sb.add('.getField("${s}")');
 			case v:
 				throw 'Unsupported ${v}';
 		}
@@ -1044,18 +1044,10 @@ class MethodExpressionGenerator {
 					if (farg != null) {
 						switch v.t {
 							case TInst(t, params):
+								trace(v);
 								switch farg.t {
-									case TType(t, _):
-										var name = t.get().name;
-										sb.add('to${name}Anon(');
-										wasConverter = true;
-									case TAnonymous(a):
-										var an = a.get();
-										var obj = context.getObjectTypeByFields(an.fields.map(x -> {
-											name: x.name,
-											type: x.type
-										}));
-										sb.add('to${obj.name}Anon(');
+									case TType(_, _) | TAnonymous(_) | TDynamic(_):
+										sb.add('makeDynamic(');
 										wasConverter = true;
 									case _:
 								}

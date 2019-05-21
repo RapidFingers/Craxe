@@ -294,6 +294,8 @@ class NimGenerator extends BaseGenerator {
 		if (typedefs.length < 1 && anons.length < 1)
 			return;
 
+		sb.add("### Typedefs");
+		sb.addNewLine();
 		sb.add("type ");
 		sb.addNewLine(Inc);
 
@@ -317,23 +319,11 @@ class NimGenerator extends BaseGenerator {
 		}
 
 		for (an in anons) {
-			sb.add('${an.name} = ref object of HaxeObject');
+			sb.add('${an.name} = ref object of DynamicHaxeObject');
 			sb.addNewLine(Inc);
 			for (fld in an.fields) {
 				var ftp = typeResolver.resolve(fld.type);
 				sb.add('${fld.name}:${ftp}');
-				sb.addNewLine(Same);
-			}
-			sb.addNewLine(Dec);
-			sb.addNewLine(Same, true);
-
-			sb.add('${an.name}Anon = object');
-			sb.addNewLine(Inc);
-			sb.add("obj:ref HaxeObject");
-			sb.addNewLine(Same);
-			for (fld in an.fields) {
-				var ftp = typeResolver.resolve(fld.type);
-				sb.add('${fld.name}:ptr ${ftp}');
 				sb.addNewLine(Same);
 			}
 			sb.addNewLine(Dec);
@@ -344,37 +334,36 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
-	 * Generate anon converters for types
+	 * Generate anon converters to dynamic
 	 */
-	function buildAnonConverters(sb:IndentStringBuilder) {
+	function buildAnonMakeDynamic(sb:IndentStringBuilder) {
 		var anons = typeContext.allAnonymous();
 		if (anons.length < 1)
 			return;
 
 		for (an in anons) {
-			var name = an.name;
-			var anonName = '${name}Anon';
-			sb.add('proc to${anonName}[T](this:T):${anonName} {.inline.} =');
-			sb.addNewLine(Inc);
+			var anonName = an.name;
 
-			sb.add('${anonName}(');
+			sb.add('proc getFieldByNameInternal(this:${anonName}, name:string):Dynamic =');
 			sb.addNewLine(Inc);
-			sb.add('obj:this');
 			if (an.fields.length > 0) {
-				sb.add(',');
+				sb.add("case name");						
 				sb.addNewLine(Same);
 				for (i in 0...an.fields.length) {
 					var fld = an.fields[i];
-					var res = '${fld.name}:addr this.${fld.name}';
-					sb.add(res);
-					if (i + 1 < an.fields.length)
-						sb.add(", ");
-
+					sb.add('of "${fld.name}": return this.${fld.name}');
 					sb.addNewLine(Same);
 				}
 			}
-			sb.addNewLine(Dec);
-			sb.add(')');
+
+			sb.addBreak();
+
+			sb.add('proc makeDynamic(this:${anonName}):Dynamic {.inline.} =');
+			sb.addNewLine(Inc);
+
+			sb.add("this.getFieldByName = proc(name:string):Dynamic = getFieldByNameInternal(this, name)");
+			sb.addNewLine(Same);
+			sb.add("return this");
 			sb.addBreak();
 		}
 
@@ -676,6 +665,8 @@ class NimGenerator extends BaseGenerator {
 		var structures = types.structures;
 
 		if (classes.length > 0) {
+			sb.add("### Classes and structures");
+			sb.addNewLine();
 			sb.add("type ");
 			sb.addNewLine(Inc);
 		}
@@ -764,7 +755,7 @@ class NimGenerator extends BaseGenerator {
 		addCodeHelpers(headerSb);
 		buildEnums(headerSb);
 		buildTypedefs(headerSb);
-		buildAnonConverters(headerSb);
+		buildAnonMakeDynamic(headerSb);
 		buildDynamicConverters(headerSb);
 		buildInterfaces(headerSb);
 
