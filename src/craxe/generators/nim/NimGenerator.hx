@@ -547,7 +547,7 @@ class NimGenerator extends BaseGenerator {
 				// Generate procedures for dynamic support
 				if (typeContext.isDynamicSupported(className)) {
 					var fields = cls.classType.fields.get();
-					sb.add('proc getFieldByNameInternal(this:${className}${params}, name:string):Dynamic =');
+					sb.add('proc getFieldByNameInternal${params}(this:${className}${params}, name:string):Dynamic =');
 					sb.addNewLine(Inc);
 					if (fields.length > 0) {
 						sb.add("case name");
@@ -562,7 +562,7 @@ class NimGenerator extends BaseGenerator {
 					}
 					sb.addBreak();
 
-					sb.add('converter fromDynamic(this:Dynamic):${className}${params} =');
+					sb.add('converter fromDynamic${params}(this:Dynamic):${className}${params} =');
 					sb.addNewLine(Inc);
 					sb.add('cast[${className}${params}](this.fclass)');
 					sb.addBreak();

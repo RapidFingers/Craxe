@@ -570,7 +570,6 @@ class MethodExpressionGenerator {
 
 		switch toExpr.t {
 			case TDynamic(_):
-				ContextMacro.ckeckDynamicSupport();
 				var name = switch fromExpr.t {
 					case TAnonymous(a):
 						context.getObjectTypeByFields(a.get().fields).name;

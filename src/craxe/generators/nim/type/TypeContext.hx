@@ -7,6 +7,7 @@ import haxe.macro.Type.TypedExpr;
 import haxe.ds.StringMap;
 import craxe.common.ast.*;
 import craxe.common.ast.type.*;
+import craxe.common.ContextMacro;
 
 /**
  * Context with all types
@@ -185,8 +186,15 @@ class TypeContext {
 	/**
 	 * Set dynamic support for type
 	 */
-	public function addDynamicSupport(name:String) {
-		dynamicAllowed.set(name, true);
+	public function addDynamicSupport(name:String) {		
+		ContextMacro.ckeckDynamicSupport();
+		var cls = getClassByName(name);
+		if (cls != null) {
+			var root = cls.getRootClassType();
+			dynamicAllowed.set(root.name, true);
+		} else {
+			dynamicAllowed.set(name, true);
+		}		
 	}
 
 	/**
