@@ -195,4 +195,11 @@ class TypeContext {
 	public function allDynamicConverters():Array<String> {
 		return [for (key => _ in dynamicAllowed) key];
 	}
+
+	/**
+	 * Check if type has dynamic support
+	 */
+	public function isDynamicSupported(name:String):Bool {
+		return dynamicAllowed.exists(name);
+	}
 }

@@ -35,9 +35,9 @@ proc printObject(obj:Dynamic):string =
 proc parseNode(node:JsonNode):Dynamic =
     case node.kind
     of JObject:
-        var keys = toSeq(node.fields.keys)
+        var keys = toSeq(node.fields.keys)        
         var res = newAnonObject(keys)
-        var i = 0
+        var i = 0        
         for key, val in node.fields.pairs():
             res.setField(i, parseNode(val))
             inc(i)

@@ -579,10 +579,8 @@ class MethodExpressionGenerator {
 				}
 
 				if (name != null) {
-					context.addDynamicSupport(name);
-					sb.add("toDynamic(");
+					context.addDynamicSupport(name);					
 					generateInnerExpr();
-					sb.add(")");
 				} else {
 					generateInnerExpr();
 				}
@@ -1044,11 +1042,10 @@ class MethodExpressionGenerator {
 					if (farg != null) {
 						switch v.t {
 							case TInst(t, params):
-								trace(v);
 								switch farg.t {
 									case TType(_, _) | TAnonymous(_) | TDynamic(_):
-										sb.add('makeDynamic(');
-										wasConverter = true;
+										var name = t.get().name;
+										context.addDynamicSupport(name);
 									case _:
 								}
 							case _:
