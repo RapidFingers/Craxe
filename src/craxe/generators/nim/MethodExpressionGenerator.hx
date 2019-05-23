@@ -524,7 +524,7 @@ class MethodExpressionGenerator {
 				type: x.expr.t
 			}));
 		}
-		
+
 		sb.add('makeDynamic(');
 		sb.add('${object.name}(');
 		for (i in 0...fields.length) {
@@ -578,7 +578,7 @@ class MethodExpressionGenerator {
 				}
 
 				if (name != null) {
-					context.addDynamicSupport(name);					
+					context.addDynamicSupport(name);
 					generateInnerExpr();
 				} else {
 					generateInnerExpr();
@@ -892,31 +892,50 @@ class MethodExpressionGenerator {
 	 * Generate field of object
 	 */
 	function generateTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {
-		switch (expression.expr) {
-			case TTypeExpr(_):
-			case TConst(c):
-				generateTConst(sb, c);
-			case TLocal(v):
-				generateTLocal(sb, v);
-			case TField(e, fa):
-				generateTField(sb, e, fa);
-			case v:
-				throw 'Unsupported ${v}';
+		function genAccess() {
+			switch (access) {
+				case FInstance(c, params, cf):
+					generateTFieldFInstance(sb, c.get(), params, cf.get());
+				case FStatic(c, cf):
+					generateTFieldFStatic(sb, c.get(), cf.get());
+				case FEnum(e, ef):
+					var name = typeResolver.getFixedTypeName(e.get().name);
+					sb.add('new${name}${ef.name}()');
+				case FAnon(cf):
+					var name = cf.get().name;
+					sb.add('.getField("${name}")');
+				case FDynamic(s):
+					sb.add('.getField("${s}")');
+				case v:
+					throw 'Unsupported ${v}';
+			}
 		}
 
-		switch (access) {
-			case FInstance(c, params, cf):
-				generateTFieldFInstance(sb, c.get(), params, cf.get());
-			case FStatic(c, cf):
-				generateTFieldFStatic(sb, c.get(), cf.get());
-			case FEnum(e, ef):
-				var name = typeResolver.getFixedTypeName(e.get().name);
-				sb.add('new${name}${ef.name}()');
-			case FAnon(cf):
-				var name = cf.get().name;
-				sb.add('.getField("${name}")');
-			case FDynamic(s):
-				sb.add('.getField("${s}")');
+		switch (expression.expr) {
+			case TTypeExpr(_):
+				genAccess();
+			case TConst(c):				
+				generateTConst(sb, c);
+				genAccess();
+			case TLocal(v):
+				switch access {
+					case FInstance(c, params, cf):
+						if (c.get().isInterface) {
+							var tp = typeResolver.resolve(cf.get().type);
+							sb.add('cast[${tp}](');
+							generateTLocal(sb, v);
+							generateTFieldFInstance(sb, c.get(), params, cf.get());
+							sb.add(")");
+						} else {
+							generateTLocal(sb, v);
+							generateTFieldFInstance(sb, c.get(), params, cf.get());
+						}
+					case _:
+						generateTLocal(sb, v);
+				}
+			case TField(e, fa):				
+				generateTField(sb, e, fa);
+				genAccess();
 			case v:
 				throw 'Unsupported ${v}';
 		}

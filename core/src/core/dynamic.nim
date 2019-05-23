@@ -166,5 +166,5 @@ converter toString*(this:Dynamic):string =
     else:
         raise newException(ValueError, "Dynamic wrong type")
 
-converter toDynamic*[T](this: T):Dynamic =
+converter toDynamic*[T](this: T):Dynamic =    
     newDynamic(this)
