@@ -294,6 +294,8 @@ class NimGenerator extends BaseGenerator {
 		if (typedefs.length < 1 && anons.length < 1)
 			return;
 
+		sb.add("### Typedefs");
+		sb.addNewLine();
 		sb.add("type ");
 		sb.addNewLine(Inc);
 
@@ -317,7 +319,7 @@ class NimGenerator extends BaseGenerator {
 		}
 
 		for (an in anons) {
-			sb.add('${an.name} = ref object of HaxeObject');
+			sb.add('${an.name} = ref object of DynamicHaxeObject');
 			sb.addNewLine(Inc);
 			for (fld in an.fields) {
 				var ftp = typeResolver.resolve(fld.type);
@@ -326,87 +328,71 @@ class NimGenerator extends BaseGenerator {
 			}
 			sb.addNewLine(Dec);
 			sb.addNewLine(Same, true);
-
-			sb.add('${an.name}Anon = object');
-			sb.addNewLine(Inc);
-			sb.add("obj:ref HaxeObject");
-			sb.addNewLine(Same);
-			for (fld in an.fields) {
-				var ftp = typeResolver.resolve(fld.type);
-				sb.add('${fld.name}:ptr ${ftp}');
-				sb.addNewLine(Same);
-			}
-			sb.addNewLine(Dec);
-			sb.addNewLine(Same, true);
 		}
 
 		sb.addNewLine();
 	}
 
 	/**
-	 * Generate anon converters for types
+	 * Generate anon converters to dynamic
 	 */
-	function buildAnonConverters(sb:IndentStringBuilder) {
+	function buildAnonMakeDynamic(sb:IndentStringBuilder) {
 		var anons = typeContext.allAnonymous();
 		if (anons.length < 1)
 			return;
 
 		for (an in anons) {
-			var name = an.name;
-			var anonName = '${name}Anon';
-			sb.add('proc to${anonName}[T](this:T):${anonName} {.inline.} =');
-			sb.addNewLine(Inc);
+			var anonName = an.name;
 
-			sb.add('${anonName}(');
+			sb.add('proc getFields(this:${anonName}):HaxeArray[string] {.inline.} =');
 			sb.addNewLine(Inc);
-			sb.add('obj:this');
+			var fldNames = an.fields.map(x-> '"${x.name}"').join(", ");
+			sb.add('return newHaxeArray[string](@[${fldNames}])');
+
+			sb.addBreak();
+
+			sb.add('proc getFieldByNameInternal(this:${anonName}, name:string):Dynamic =');
+			sb.addNewLine(Inc);
 			if (an.fields.length > 0) {
-				sb.add(',');
+				sb.add("case name");
 				sb.addNewLine(Same);
 				for (i in 0...an.fields.length) {
 					var fld = an.fields[i];
-					var res = '${fld.name}:addr this.${fld.name}';
-					sb.add(res);
-					if (i + 1 < an.fields.length)
-						sb.add(", ");
-
+					sb.add('of "${fld.name}": return this.${fld.name}');
 					sb.addNewLine(Same);
 				}
 			}
-			sb.addNewLine(Dec);
-			sb.add(')');
+
+			sb.addBreak();
+
+			sb.add('proc setFieldByNameInternal(this:${anonName}, name:string, value:Dynamic):void =');
+			sb.addNewLine(Inc);
+			if (an.fields.length > 0) {
+				sb.add("case name");
+				sb.addNewLine(Same);
+				for (i in 0...an.fields.length) {
+					var fld = an.fields[i];
+					sb.add('of "${fld.name}": this.${fld.name} = value');
+					sb.addNewLine(Same);
+				}
+			}
+
+			sb.addBreak();			
+
+			sb.add('proc makeDynamic(this:${anonName}):Dynamic {.inline.} =');
+			sb.addNewLine(Inc);
+
+			sb.add("this.getFields = proc():HaxeArray[string] = getFields(this)");
+			sb.addNewLine(Same);
+			sb.add("this.getFieldByName = proc(name:string):Dynamic = getFieldByNameInternal(this, name)");
+			sb.addNewLine(Same);			
+			sb.add("this.setFieldByName = proc(name:string, value:Dynamic):void = setFieldByNameInternal(this, name, value)");
+			sb.addNewLine(Same);
+			sb.add("return this");
 			sb.addBreak();
 		}
 
 		sb.addNewLine();
-	}
-
-	/**
-	 * Build toDynamic converters
-	 */
-	function buildDynamicConverters(sb:IndentStringBuilder) {
-		var types = typeContext.allDynamicConverters();
-		for (name in types) {
-			var obj = typeContext.getObjectTypeByName(name);
-			if (obj != null) {
-				sb.add('proc toDynamic(this:${obj.name}):Dynamic =');
-				sb.addNewLine(Inc);
-				sb.add('result = newDynamicObject()');
-				sb.addNewLine(Same);
-				for (fld in obj.fields) {
-					sb.add('result.setField("${fld.name}", this.${fld.name})');
-					sb.addNewLine(Same);
-				}
-
-				sb.addBreak();
-
-				sb.add('template toDynamic(this:${obj.name}Anon):Dynamic =');
-				sb.addNewLine(Inc);
-				sb.add('toDynamic(cast[${obj.name}](this.obj))');
-
-				sb.addBreak();
-			}
-		}
 	}
 
 	/**
@@ -441,13 +427,19 @@ class NimGenerator extends BaseGenerator {
 		var clsName = cls.classType.name;
 		var params = typeResolver.resolveParameters(cls.params);
 
+		var baseTypeName = if (typeContext.isDynamicSupported(clsName)) {
+			"DynamicHaxeObject";
+		} else {
+			"HaxeObject";
+		}
+
 		var superName = if (cls.classType.superClass != null) {
 			var superType = cls.classType.superClass.t.get();
 			var spname = superType.name;
 			var spParams = typeResolver.resolveParameters(cls.classType.superClass.params);
 			'${spname}${spParams}';
 		} else {
-			"HaxeObject";
+			baseTypeName;
 		}
 
 		var line = '${clsName}${params} = ref object of ${superName}';
@@ -512,7 +504,7 @@ class NimGenerator extends BaseGenerator {
 
 		if (hasStaticMethod) {
 			sb.add('let ${clsName}StaticInst = ${clsName}Static()');
-			sb.addNewLine();
+			sb.addBreak();
 		}
 	}
 
@@ -551,6 +543,31 @@ class NimGenerator extends BaseGenerator {
 			case TFun(args, _):
 				var constrExp = constructor.expr();
 				var params = typeResolver.resolveParameters(cls.params);
+
+				// Generate procedures for dynamic support
+				if (typeContext.isDynamicSupported(className)) {
+					var fields = cls.classType.fields.get();
+					sb.add('proc getFieldByNameInternal${params}(this:${className}${params}, name:string):Dynamic =');
+					sb.addNewLine(Inc);
+					if (fields.length > 0) {
+						sb.add("case name");
+						sb.addNewLine(Same);
+						for (i in 0...fields.length) {
+							var fld = fields[i];
+							sb.add('of "${fld.name}": return this.${fld.name}');
+							sb.addNewLine(Same);
+						}
+					} else {
+						sb.add("discard");
+					}
+					sb.addBreak();
+
+					sb.add('converter fromDynamic${params}(this:Dynamic):${className}${params} =');
+					sb.addNewLine(Inc);
+					sb.add('cast[${className}${params}](this.fclass)');
+					sb.addBreak();
+				}
+
 				// Generate init proc for haxe "super(params)"
 				sb.add('proc init${className}${params}(this:${className}${params}');
 				if (args.length > 0) {
@@ -573,14 +590,23 @@ class NimGenerator extends BaseGenerator {
 				generateFuncArguments(sb, args);
 				sb.add(') : ${className}${params} {.inline.} =');
 				sb.addNewLine(Inc);
-				sb.add('result = ${className}${params}()');
+				sb.add('var this = ${className}${params}()');
 				sb.addNewLine(Same);
-				sb.add('init${className}(result');
+				sb.add('init${className}(this');
 				if (args.length > 0) {
 					sb.add(", ");
 					sb.add(args.map(x -> x.name).join(", "));
 				}
 				sb.add(')');
+
+				if (typeContext.isDynamicSupported(className)) {
+					sb.addNewLine(Same);
+					sb.add("this.getFieldByName = proc(name:string):Dynamic = getFieldByNameInternal(this, name)");
+				}
+
+				sb.addNewLine(Same);
+				sb.add("return this");
+
 				sb.addBreak();
 			case v:
 				throw 'Unsupported paramter ${v}';
@@ -671,14 +697,36 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Build classes code
 	 */
-	function buildClassesAndStructures(sb:IndentStringBuilder) {
+	function buildClasses(sb:IndentStringBuilder) {
 		var classes = types.classes;
-		var structures = types.structures;
 
-		if (classes.length > 0) {
-			sb.add("type ");
-			sb.addNewLine(Inc);
+		if (classes.length < 1)
+			return;
+
+		var constrBuilder = new IndentStringBuilder();
+		var methBuilder = new IndentStringBuilder();
+		// Generate class methods
+		for (c in classes) {
+			if (c.classType.isExtern == false) {
+				if (!c.classType.isInterface) {
+					generateClassMethods(methBuilder, c);
+				}
+			}
 		}
+
+		// Generate class constructors
+		for (c in classes) {
+			if (c.classType.isExtern == false) {
+				if (!c.classType.isInterface) {
+					generateClassConstructor(constrBuilder, c);
+				}
+			}
+		}
+
+		sb.add("### Classes and structures");
+		sb.addNewLine();
+		sb.add("type ");
+		sb.addNewLine(Inc);
 
 		for (c in classes) {
 			if (c.classType.isExtern == false) {
@@ -695,11 +743,7 @@ class NimGenerator extends BaseGenerator {
 			}
 		}
 
-		for (c in structures) {
-			generateStructureInfo(sb, c);
-		}
-
-		sb.addNewLine(None, true);
+		sb.addNewLine();
 
 		// Init static classes
 		for (c in classes) {
@@ -716,15 +760,9 @@ class NimGenerator extends BaseGenerator {
 			}
 		}
 
+		sb.add(constrBuilder.toString());
+		sb.add(methBuilder.toString());
 		sb.addNewLine(None, true);
-		for (c in classes) {
-			if (c.classType.isExtern == false) {
-				if (!c.classType.isInterface) {
-					generateClassConstructor(sb, c);
-					generateClassMethods(sb, c);
-				}
-			}
-		}
 	}
 
 	/**
@@ -757,15 +795,14 @@ class NimGenerator extends BaseGenerator {
 		FileSystem.createDirectory(outPath);
 
 		var codeSb = new IndentStringBuilder();
-		buildClassesAndStructures(codeSb);
+		buildClasses(codeSb);
 
 		var headerSb = new IndentStringBuilder();
 
 		addCodeHelpers(headerSb);
 		buildEnums(headerSb);
 		buildTypedefs(headerSb);
-		buildAnonConverters(headerSb);
-		buildDynamicConverters(headerSb);
+		buildAnonMakeDynamic(headerSb);
 		buildInterfaces(headerSb);
 
 		if (types.entryPoint != null) {

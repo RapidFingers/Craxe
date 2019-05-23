@@ -7,6 +7,7 @@ import haxe.macro.Type.TypedExpr;
 import haxe.ds.StringMap;
 import craxe.common.ast.*;
 import craxe.common.ast.type.*;
+import craxe.common.ContextMacro;
 
 /**
  * Context with all types
@@ -64,7 +65,7 @@ class TypeContext {
 		fields.sort((x1, x2) -> {
 			var a = x1.name;
 			var b = x2.name;
-			return if ( a < b ) -1 else if ( a > b ) 1 else 0;
+			return if (a < b) -1 else if (a > b) 1 else 0;
 		});
 		var str = fields.map(x -> x.name).join("");
 		return Std.string(Math.abs(Crc32.make(Bytes.ofString(str))));
@@ -134,7 +135,7 @@ class TypeContext {
 		}
 
 		return res;
-	}	
+	}
 
 	/**
 	 * Return interface by name
@@ -186,7 +187,18 @@ class TypeContext {
 	 * Set dynamic support for type
 	 */
 	public function addDynamicSupport(name:String) {
-		dynamicAllowed.set(name, true);
+		ContextMacro.ckeckDynamicSupport();
+		var cls = getClassByName(name);
+		if (cls != null) {
+			var root = cls.getRootClassType();
+			if (root == null) {
+				dynamicAllowed.set(name, true);
+			} else {
+				dynamicAllowed.set(root.name, true);
+			}
+		} else {
+			dynamicAllowed.set(name, true);
+		}
 	}
 
 	/**
@@ -194,5 +206,12 @@ class TypeContext {
 	 */
 	public function allDynamicConverters():Array<String> {
 		return [for (key => _ in dynamicAllowed) key];
+	}
+
+	/**
+	 * Check if type has dynamic support
+	 */
+	public function isDynamicSupported(name:String):Bool {
+		return dynamicAllowed.exists(name);
 	}
 }

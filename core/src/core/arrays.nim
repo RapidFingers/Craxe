@@ -10,6 +10,9 @@ type
 proc newHaxeArray*[T]() : HaxeArray[T] =
     result = HaxeArray[T]()
 
+proc newHaxeArray*[T](data:seq[T]) : HaxeArray[T] =
+    result = HaxeArray[T](data: data)
+
 proc `[]`*[T](this:HaxeArray[T], pos:int):T =
     this.data[pos]
 

@@ -32,4 +32,24 @@ class ClassInfo extends ObjectType {
 		this.staticFields = staticFields;
 		this.staticMethods = staticMethods;
 	}
+
+	/**
+	 * Get root class
+	 * Return null if no base class
+	 */
+	public function getRootClassType():ClassType {
+		if (classType.superClass == null)
+			return null;
+
+		var base = classType.superClass.t.get();
+
+		while (true) {
+			if (base.superClass == null)
+				break;
+
+			base = base.superClass.t.get();
+		}
+
+		return base;
+	}
 }

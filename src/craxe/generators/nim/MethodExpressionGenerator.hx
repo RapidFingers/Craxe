@@ -525,8 +525,7 @@ class MethodExpressionGenerator {
 			}));
 		}
 
-		var name = '${object.name}Anon';
-		sb.add('to${name}(');
+		sb.add('makeDynamic(');
 		sb.add('${object.name}(');
 		for (i in 0...fields.length) {
 			var field = fields[i];
@@ -571,7 +570,6 @@ class MethodExpressionGenerator {
 
 		switch toExpr.t {
 			case TDynamic(_):
-				ContextMacro.ckeckDynamicSupport();
 				var name = switch fromExpr.t {
 					case TAnonymous(a):
 						context.getObjectTypeByFields(a.get().fields).name;
@@ -581,9 +579,7 @@ class MethodExpressionGenerator {
 
 				if (name != null) {
 					context.addDynamicSupport(name);
-					sb.add("toDynamic(");
 					generateInnerExpr();
-					sb.add(")");
 				} else {
 					generateInnerExpr();
 				}
@@ -896,30 +892,50 @@ class MethodExpressionGenerator {
 	 * Generate field of object
 	 */
 	function generateTField(sb:IndentStringBuilder, expression:TypedExpr, access:FieldAccess) {
-		switch (expression.expr) {
-			case TTypeExpr(_):
-			case TConst(c):
-				generateTConst(sb, c);
-			case TLocal(v):
-				generateTLocal(sb, v);
-			case TField(e, fa):
-				generateTField(sb, e, fa);
-			case v:
-				throw 'Unsupported ${v}';
+		function genAccess() {
+			switch (access) {
+				case FInstance(c, params, cf):
+					generateTFieldFInstance(sb, c.get(), params, cf.get());
+				case FStatic(c, cf):
+					generateTFieldFStatic(sb, c.get(), cf.get());
+				case FEnum(e, ef):
+					var name = typeResolver.getFixedTypeName(e.get().name);
+					sb.add('new${name}${ef.name}()');
+				case FAnon(cf):
+					var name = cf.get().name;
+					sb.add('.getField("${name}")');
+				case FDynamic(s):
+					sb.add('.getField("${s}")');
+				case v:
+					throw 'Unsupported ${v}';
+			}
 		}
 
-		switch (access) {
-			case FInstance(c, params, cf):
-				generateTFieldFInstance(sb, c.get(), params, cf.get());
-			case FStatic(c, cf):
-				generateTFieldFStatic(sb, c.get(), cf.get());
-			case FEnum(e, ef):
-				var name = typeResolver.getFixedTypeName(e.get().name);
-				sb.add('new${name}${ef.name}()');
-			case FAnon(cf):
-				sb.add('.${cf.get().name}[]');
-			case FDynamic(s):
-				sb.add('.getFieldValue("${s}")');
+		switch (expression.expr) {
+			case TTypeExpr(_):
+				genAccess();
+			case TConst(c):				
+				generateTConst(sb, c);
+				genAccess();
+			case TLocal(v):
+				switch access {
+					case FInstance(c, params, cf):
+						if (c.get().isInterface) {
+							var tp = typeResolver.resolve(cf.get().type);
+							sb.add('cast[${tp}](');
+							generateTLocal(sb, v);
+							generateTFieldFInstance(sb, c.get(), params, cf.get());
+							sb.add(")");
+						} else {
+							generateTLocal(sb, v);
+							generateTFieldFInstance(sb, c.get(), params, cf.get());
+						}
+					case _:
+						generateTLocal(sb, v);
+				}
+			case TField(e, fa):				
+				generateTField(sb, e, fa);
+				genAccess();
 			case v:
 				throw 'Unsupported ${v}';
 		}
@@ -1045,18 +1061,9 @@ class MethodExpressionGenerator {
 						switch v.t {
 							case TInst(t, params):
 								switch farg.t {
-									case TType(t, _):
+									case TType(_, _) | TAnonymous(_) | TDynamic(_):
 										var name = t.get().name;
-										sb.add('to${name}Anon(');
-										wasConverter = true;
-									case TAnonymous(a):
-										var an = a.get();
-										var obj = context.getObjectTypeByFields(an.fields.map(x -> {
-											name: x.name,
-											type: x.type
-										}));
-										sb.add('to${obj.name}Anon(');
-										wasConverter = true;
+										context.addDynamicSupport(name);
 									case _:
 								}
 							case _:

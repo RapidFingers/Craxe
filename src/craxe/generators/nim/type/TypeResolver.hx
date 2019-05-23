@@ -112,7 +112,7 @@ class TypeResolver {
 	 * Generate TType
 	 */
 	function generateTType(sb:StringBuf, t:DefType, params:Array<Type>) {
-		sb.add('${t.name}Anon');
+		sb.add('Dynamic');
 	}
 
 	/**
@@ -128,14 +128,8 @@ class TypeResolver {
 	/**
 	 * Generate TAnonymous
 	 */
-	function generateTAnonymous(sb:StringBuf, anon:AnonType) {
-		var an = context.getObjectTypeByFields(anon.fields.map(x-> {
-			return {
-				name: x.name,
-				type: x.type
-			}
-		}));
-		sb.add('${an.name}Anon');
+	function generateTAnonymous(sb:StringBuf, anon:AnonType) {		
+		sb.add('Dynamic');
 	}
 
 	/**
