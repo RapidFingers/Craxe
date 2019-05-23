@@ -46,6 +46,7 @@ Because.
 * Closures
 * Externs
 * Basic file reading by File.getContent
+* haxe.Json
 * Stdin output by trace
 
 ## How to use it
@@ -93,12 +94,15 @@ https://github.com/RapidFingers/CraxeExamples
 - [x] Extern for CraxeCore's http server
 - [x] Benchmark of async http server
 - [x] Possibility to add raw nim code
-- [ ] Async/Await
-- [ ] Auto import nimble libs
-- [ ] Craxe console util for setup, create project, etc
+- [x] Dynamic type
+- [x] haxe.Json
+- [ ] Mysql database driver
+- [ ] Craxe http server benchmark with json and mysql
 - [ ] Dynamic method
-- [ ] Dynamic type
 - [ ] Try/Catch
 - [ ] Reflection
+- [ ] Auto import nimble libs
+- [ ] Craxe console util for setup, create project, etc
 - [ ] Type checking (operator is)
+- [ ] Async/Await
 - [ ] Some kind of std lib
