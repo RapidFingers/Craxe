@@ -3,30 +3,25 @@ package craxe.nim.db;
 /**
  * Connection to Sqlite
  */
-class SqliteConnection implements IConnection {
+extern class SqliteConnection implements IConnection {
     /**
-     * Constructor
-     */
-    public function new() {}
+	 * Constructor
+	 */
+	@:native("newSqliteConnection")
+	public function new();
 
     /**
      * Open connection
      */
-    public function open(connectionSettings:ConnectionSettings):Void {
-        
-    }
+    public function open(connectionSettings:ConnectionSettings):Void;
 
     /**
      * Executue SQL without result     
      */
-    public function exec(sql:String):Void {
-
-    }
+    public function exec(sql:String):Void;
 
     /**
      * Execute SQL with result
      */
-    public function query(sql:String):Void {
-
-    }
+    public function query(sql:String):Void;
 }
