@@ -13,9 +13,11 @@ class Database {
             case Sqlite:
                 new SqliteConnection();
             case Mysql:
-                new MysqlConnection();
+                null;
+                //new MysqlConnection();
             case Postgress:
-                new PostgresqlConnection();
+                //new PostgresqlConnection();
+                null;
             case _:
                 throw "Unknown database driver type";
         }        

@@ -1,27 +1,32 @@
 package craxe.nim.db;
 
+import craxe.nim.db.native.SqliteNative;
+
 /**
  * Connection to Sqlite
  */
-extern class SqliteConnection implements IConnection {
-    /**
+class SqliteConnection implements IConnection {
+	/**
+	 * Native connection
+	 */
+	var nativeConn:SqliteConnectionNative;
+
+	/**
 	 * Constructor
 	 */
-	@:native("newSqliteConnection")
-	public function new();
+	public function new() {}
 
-    /**
-     * Open connection
-     */
-    public function open(connectionSettings:ConnectionSettings):Void;
+	/**
+	 * Open connection
+	 */
+	public function open(connectionSettings:ConnectionSettings):Void {
+        nativeConn = SqliteNative.open(connectionSettings.database, "" , "", "");
+    }
 
-    /**
-     * Executue SQL without result     
-     */
-    public function exec(sql:String):Void;
-
-    /**
-     * Execute SQL with result
-     */
-    public function query(sql:String):Void;
+	/**
+	 * Executue SQL without result
+	 */
+	public function exec(sql:String):Void {
+        nativeConn.exec(sql);
+    }
 }

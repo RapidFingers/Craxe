@@ -166,6 +166,8 @@ class MethodExpressionGenerator {
 				sb.addNewLine(Inc);
 
 				switch (cs.expr.expr) {
+					case TConst(c):
+						generateTConst(sb, c);
 					case TCall(e, el):
 						generateBlockTCall(sb, e, el);
 					case TReturn(e):
@@ -174,6 +176,8 @@ class MethodExpressionGenerator {
 						generateTBlock(sb, el);
 					case TMeta(m, e1):
 						generateTMeta(sb, m, e1);
+					case TNew(c, params, el):
+						generateTNew(sb, c.get(), params, el);
 					case v:
 						throw 'Unsupported ${v}';
 				}
@@ -384,6 +388,10 @@ class MethodExpressionGenerator {
 					generateTBinop(sb, op, e1, e2);
 				case TNew(c, params, el):
 					generateTNew(sb, c.get(), params, el);
+				case TField(e, fa):
+					generateTField(sb, e, fa);
+				case TCast(e, m):
+					generateTCast(sb, expr, e, m);
 				case v:
 					throw 'Unsupported ${v}';
 			}
