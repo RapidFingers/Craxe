@@ -70,7 +70,7 @@ class MethodExpressionGenerator {
 			case TIf(econd, eif, eelse):
 				generateTIf(sb, econd, eif, eelse);
 			case TBlock(el):
-				generateTBlock(sb, el);
+				generateTBlockScoped(sb, el);
 			case v:
 				throw 'Unsupported ${v}';
 		}
@@ -1288,7 +1288,33 @@ class MethodExpressionGenerator {
 	}
 
 	/**
-	 * Generate inline block like
+	 * Generate TBlock like:
+	 * (proc() : auto =
+	 *  	body
+	 *  )()
+	 */
+	function generateTBlockScoped(sb:IndentStringBuilder, expressions:Array<TypedExpr>) {
+		sb.add("scopedBlock:");
+		sb.addNewLine(Inc);
+		if (expressions.length > 0) {
+			for (i in 0...expressions.length) {
+				var expr = expressions[i];
+				switch (expr.expr) {
+					case TVar(v, expr):
+						generateTVar(sb, v, expr);
+					case TSwitch(e, cases, edef):
+						generateTSwitch(sb, e, cases, edef);
+					case v:
+						throw 'Unsupported ${v}';
+				}
+			}
+		}
+
+		sb.addNewLine(Dec);
+	}
+
+	/**
+	 * Generate inline block like. Relevant?
 	 * (block:
 	 * 		expressions
 	 * )
