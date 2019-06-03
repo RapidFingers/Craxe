@@ -1,5 +1,6 @@
 package craxe.nim.db;
 
+import craxe.nim.db.native.SqlQuery;
 import craxe.nim.db.native.SqliteNative;
 
 /**
@@ -27,6 +28,6 @@ class SqliteConnection implements IConnection {
 	 * Executue SQL without result
 	 */
 	public function exec(sql:String):Void {
-        nativeConn.exec(sql);
+        nativeConn.exec(new SqlQuery(sql));
     }
 }

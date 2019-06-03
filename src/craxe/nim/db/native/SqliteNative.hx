@@ -17,5 +17,5 @@ extern class SqliteConnectionNative {
     /**
      * Executue SQL without result     
      */
-    public function exec(sql:String):Void;
+    public function exec(sql:SqlQuery):Void;
 }

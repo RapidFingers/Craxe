@@ -7,7 +7,7 @@ class Database {
     /**
      * Create connection and opens it
      */
-    public static function open(connection:String):IConnection {
+    public static function openDatabase(connection:String):IConnection {
         var connectionString = ConnectionSettings.parse(connection);
         var connection = switch connectionString.driver {
             case Sqlite:
