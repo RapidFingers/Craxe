@@ -20,7 +20,7 @@ class Database {
                 null;
             case _:
                 throw "Unknown database driver type";
-        }        
+        }       
 
         connection.open(connectionString);
         return connection;

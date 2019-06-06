@@ -82,7 +82,7 @@ proc `==`*[T](v1:Null[T], v2:Null[T]):bool =
     return false
 
 # Scoped block
-template scopedBlock*(body : typed) : auto = 
+template valueBlock*(body : untyped) : untyped = 
     (proc() : auto = 
         body
     )()
