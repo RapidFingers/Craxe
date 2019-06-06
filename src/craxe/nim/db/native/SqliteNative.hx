@@ -12,10 +12,26 @@ extern class SqliteNative {
     public static function open(connection:String, user:String, password:String, database: String):SqliteConnectionNative;    
 }
 
+/**
+ * Row with data
+ */
+@:native("Row")
+extern class DataRow {
+    
+}
+
+/**
+ * Sqlite native connection
+ */
 @:native("DbConn")
 extern class SqliteConnectionNative {
     /**
      * Executue SQL without result     
      */
     public function exec(sql:SqlQuery):Void;
+
+    /**
+     * Execute SQL and return iterator of rows
+     */
+    public function fastRows(sql:SqlQuery):NimIterator<DataRow>;
 }

@@ -30,4 +30,11 @@ class SqliteConnection implements IConnection {
 	public function exec(sql:String):Void {
         nativeConn.exec(new SqlQuery(sql));
     }
+
+	/**
+     * Exequte SQL and return rows with data     
+     */
+    public function query(sql:String):ResultSet {
+		return null;
+	}
 }

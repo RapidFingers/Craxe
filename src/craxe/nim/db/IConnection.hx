@@ -13,4 +13,10 @@ interface IConnection {
      * Execute SQL without result     
      */
     public function exec(sql:String):Void;
+
+
+    /**
+     * Exequte SQL and return rows with data     
+     */
+    public function query(sql:String):ResultSet;
 }
