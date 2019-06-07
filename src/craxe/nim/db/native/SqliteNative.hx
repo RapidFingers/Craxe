@@ -17,7 +17,6 @@ extern class SqliteNative {
  */
 @:native("Row")
 extern class DataRow {
-    
 }
 
 /**

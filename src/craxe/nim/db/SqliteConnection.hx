@@ -35,6 +35,8 @@ class SqliteConnection implements IConnection {
      * Exequte SQL and return rows with data     
      */
     public function query(sql:String):ResultSet {
-		return null;
+		var iter = nativeConn.fastRows(new SqlQuery(sql));		
+		var res = new ResultSet(iter);
+		return res;
 	}
 }

@@ -1247,6 +1247,15 @@ class MethodExpressionGenerator {
 	}
 
 	/**
+	 * Generate TFor expression
+	 */
+	function generateTFor(sb:IndentStringBuilder, v:TVar, e1:TypedExpr, e2:TypedExpr) {
+		trace(v);
+		trace(e1);
+		trace(e2);
+	}
+
+	/**
 	 * Generate single expression from TBlock
 	 */
 	function generateTBlockSingleExpression(sb:IndentStringBuilder, expr:TypedExpr) {
@@ -1274,6 +1283,8 @@ class MethodExpressionGenerator {
 				generateTUnop(sb, op, postFix, e);
 			case TSwitch(e, cases, edef):
 				generateTSwitch(sb, e, cases, edef);
+			case TFor(v, e1, e2):
+				generateTFor(sb, v, e1, e2);
 			case TCast(e, m):
 				generateTCast(sb, expr, e, m);
 			case v:
