@@ -9,19 +9,19 @@ class ResultSet {
     /**
      * Native iterator of rows
      */
-    final nativeIter:NimIterator<DataRow>;
+    final dataIterator:Iterator<DataRow>;
 
     /**
      * Constructor      
      */
-    public function new(nativeIter:NimIterator<DataRow>) {
-        this.nativeIter = nativeIter;
+    public function new(dataIterator:Iterator<DataRow>) {
+        this.dataIterator = dataIterator;
     }
 
     /**
      * Return iterator of rows
      */
-    public inline function iterator():Iterator<DataRow> {
-        return null;
+    public inline function iterator():Iterator<DataRow> {        
+        return dataIterator;
     }
 }

@@ -31,6 +31,6 @@ extern class SqliteConnectionNative {
 
     /**
      * Execute SQL and return iterator of rows
-     */
-    public function fastRows(sql:SqlQuery):NimIterator<DataRow>;
+     */    
+    public function fastRows(sql:SqlQuery):NimIterator<{db:SqliteConnectionNative, sql:String}, DataRow>;
 }
