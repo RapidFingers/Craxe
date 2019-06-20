@@ -51,12 +51,12 @@ Because.
 
 ## How to use it
 
-* Install nim from http://nim-lang.org/
-* Install craxe by "haxelib git craxe https://github.com/RapidFingers/Craxe"
-* Go to the directory where craxe was installed. Then go to "core" directory and execute "nimble develop"
-It will install nim core types for craxe.
-I know it's annoying. And i am going to make some script to automate that process
-* Create project with "src" folder and Main.hx in it
+* Install lix packet manager https://github.com/lix-pm/lix.client
+* Install nim compiler with https://github.com/dom96/choosenim
+* Install craxecore library by "nimble install https://github.com/RapidFingers/Craxe?subdir=core"
+* Create lix project
+* Select haxe 4.0.0-rc3 compiler
+* Add craxe library with lix from github https://github.com/RapidFingers/Craxe
 * Add build.hxml with following strings:\
 -cp src\
 --macro craxe.Generator.generate()\
@@ -96,6 +96,7 @@ https://github.com/RapidFingers/CraxeExamples
 - [x] Possibility to add raw nim code
 - [x] Dynamic type
 - [x] haxe.Json
+- [ ] Extern for native nim iterators
 - [ ] Mysql database driver
 - [ ] Craxe http server benchmark with json and mysql
 - [ ] Dynamic method
