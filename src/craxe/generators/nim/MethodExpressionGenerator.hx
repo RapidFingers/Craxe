@@ -70,7 +70,7 @@ class MethodExpressionGenerator {
 			case TIf(econd, eif, eelse):
 				generateTIf(sb, econd, eif, eelse);
 			case TBlock(el):
-				generateTBlock(sb, el);
+				generateTBlockReturnValue(sb, el);
 			case v:
 				throw 'Unsupported ${v}';
 		}
@@ -135,7 +135,7 @@ class MethodExpressionGenerator {
 	/**
 	 * Generate code for TSwitch
 	 */
-	function generateTSwitch(sb:IndentStringBuilder, expression:TypedExpr, cases:Array<{values:Array<TypedExpr>, expr:TypedExpr}>, edef:TypedExpr) {
+	function generateTSwitch(sb:IndentStringBuilder, expression:TypedExpr, cases:Array<{values:Array<TypedExpr>, expr:TypedExpr}>, edef:TypedExpr, isReturnValue = false) {
 		var ifname = "if ";
 		for (cs in cases) {
 			for (val in cs.values) {
@@ -165,7 +165,13 @@ class MethodExpressionGenerator {
 				sb.add(":");
 				sb.addNewLine(Inc);
 
+				if (isReturnValue) {
+					sb.add("return ");
+				}
+
 				switch (cs.expr.expr) {
+					case TConst(c):
+						generateTConst(sb, c);
 					case TCall(e, el):
 						generateBlockTCall(sb, e, el);
 					case TReturn(e):
@@ -174,6 +180,8 @@ class MethodExpressionGenerator {
 						generateTBlock(sb, el);
 					case TMeta(m, e1):
 						generateTMeta(sb, m, e1);
+					case TNew(c, params, el):
+						generateTNew(sb, c.get(), params, el);
 					case v:
 						throw 'Unsupported ${v}';
 				}
@@ -355,6 +363,7 @@ class MethodExpressionGenerator {
 		} else {
 			sb.add(':${typeResolver.resolve(vr.t)}');
 		}
+		sb.addNewLine(Same);
 	}
 
 	/**
@@ -384,6 +393,10 @@ class MethodExpressionGenerator {
 					generateTBinop(sb, op, e1, e2);
 				case TNew(c, params, el):
 					generateTNew(sb, c.get(), params, el);
+				case TField(e, fa):
+					generateTField(sb, e, fa);
+				case TCast(e, m):
+					generateTCast(sb, expr, e, m);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -764,6 +777,8 @@ class MethodExpressionGenerator {
 					generateTNew(sb, c.get(), params, el);
 				case TBlock(el):
 					generateTBlockInline(sb, el);
+				case TCast(e, m):
+					generateTCast(sb, e2, e, m);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -1160,9 +1175,11 @@ class MethodExpressionGenerator {
 		sb.add(":");
 		sb.addNewLine(Inc);
 
-		switch (eif.expr) {
-			case TConst(c):
+		switch (eif.expr) {			
+			case TConst(c):			
 				generateTConst(sb, c);
+			case TNew(c, params, el):
+				generateTNew(sb, c.get(), params, el);
 			case TReturn(e):
 				generateTReturn(sb, e);
 			case TBinop(op, e1, e2):
@@ -1237,6 +1254,15 @@ class MethodExpressionGenerator {
 	}
 
 	/**
+	 * Generate TFor expression
+	 */
+	function generateTFor(sb:IndentStringBuilder, v:TVar, e1:TypedExpr, e2:TypedExpr) {
+		trace(v);
+		trace(e1);
+		trace(e2);
+	}
+
+	/**
 	 * Generate single expression from TBlock
 	 */
 	function generateTBlockSingleExpression(sb:IndentStringBuilder, expr:TypedExpr) {
@@ -1264,6 +1290,8 @@ class MethodExpressionGenerator {
 				generateTUnop(sb, op, postFix, e);
 			case TSwitch(e, cases, edef):
 				generateTSwitch(sb, e, cases, edef);
+			case TFor(v, e1, e2):
+				generateTFor(sb, v, e1, e2);
 			case TCast(e, m):
 				generateTCast(sb, expr, e, m);
 			case v:
@@ -1287,7 +1315,33 @@ class MethodExpressionGenerator {
 	}
 
 	/**
-	 * Generate inline block like
+	 * Generate TBlock like:
+	 * (proc() : auto =
+	 *  	body
+	 *  )()
+	 */
+	function generateTBlockReturnValue(sb:IndentStringBuilder, expressions:Array<TypedExpr>) {
+		sb.add("valueBlock:");
+		sb.addNewLine(Inc);
+		if (expressions.length > 0) {
+			for (i in 0...expressions.length) {
+				var expr = expressions[i];
+				switch (expr.expr) {
+					case TVar(v, expr):
+						generateTVar(sb, v, expr);
+					case TSwitch(e, cases, edef):
+						generateTSwitch(sb, e, cases, edef, true);
+					case v:
+						throw 'Unsupported ${v}';
+				}
+			}
+		}
+
+		sb.addNewLine(Dec);
+	}
+
+	/**
+	 * Generate inline block like. Relevant?
 	 * (block:
 	 * 		expressions
 	 * )
@@ -1302,8 +1356,10 @@ class MethodExpressionGenerator {
 					generateTBlockSingleExpression(sb, expr);
 				} else {
 					switch (expr.expr) {
+						case TNew(c, params, el):
+							generateTNew(sb, c.get(), params, el);
 						case TCall(e, el):
-							generateBlockTCall(sb, e, el, false);
+							generateBlockTCall(sb, e, el, false);						
 						case TLocal(v):
 							generateTLocal(sb, v);
 						case v:

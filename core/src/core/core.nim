@@ -80,3 +80,9 @@ proc `==`*[T](v1:Null[T], v2:Null[T]):bool =
     if v1.has and v2.has:
         return v1.value == v2.value    
     return false
+
+# Scoped block
+template valueBlock*(body : untyped) : untyped = 
+    (proc() : auto = 
+        body
+    )()
