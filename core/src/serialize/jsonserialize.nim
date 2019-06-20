@@ -1,6 +1,7 @@
 import json
 import tables
-import core/[core, dynamic]
+import sequtils
+import core/[core, arrays, dynamic]
 
 type    
     JsonParser* = object
@@ -10,15 +11,19 @@ type
 
 let JsonPrinterStaticInst* = JsonPrinterStatic()
 
-proc printObject(fields:Table[string, Dynamic]):string =
-    if fields.len < 1:
+proc printObject(obj:Dynamic):string =
+    let fields = obj.getFieldNames()
+    if fields.isNil or fields.length < 1:    
         return "{}"
     
     result = "{"
-    for key, val in pairs(fields):
+    for i in 0..<fields.length:
         if result.len > 1: result.add(", ")
-        result.addQuoted(key)
+
+        let fieldName = fields[i]
+        result.addQuoted(fieldName)
         result.add(": ")
+        let val = obj.getField(fieldName)
         case val.kind
         of TString:
             result.add("\"" & $val & "\"")
@@ -30,9 +35,13 @@ proc printObject(fields:Table[string, Dynamic]):string =
 proc parseNode(node:JsonNode):Dynamic =
     case node.kind
     of JObject:
-        result = newDynamicObject()
+        var keys = toSeq(node.fields.keys)        
+        var res = newAnonObject(keys)
+        var i = 0        
         for key, val in node.fields.pairs():
-            result.setField(key, parseNode(val))
+            res.setField(i, parseNode(val))
+            inc(i)
+        return res
     of JString:
         return node.getStr()
     of JInt:
@@ -51,7 +60,7 @@ proc doParse*(this:JsonParser):Dynamic =
 
 proc print*(this:JsonPrinterStatic, value:Dynamic, replacer:pointer = nil, space:pointer = nil):string =    
     case value.kind
-    of TObject:    
-        return printObject(value.getFields())
+    of TAnonObject, TClass:
+        return printObject(value)
     else:
         raise newException(ValueError, "Unsupported Dynamic type")

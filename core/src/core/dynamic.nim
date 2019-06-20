@@ -1,19 +1,84 @@
-import tables
 import core
+import arrays
 
 type
+    AnonField* = ref object
+        name*:string
+        value*:Dynamic    
+
+    # Haxe anonimous object
+    AnonObject* = seq[AnonField]
+
+    # Dynamic object with access to fields by name
+    DynamicHaxeObject* = object of HaxeObject
+        getFields*: proc():HaxeArray[string]
+        getFieldByName*: proc(name:string):Dynamic
+        setFieldByName*: proc(name:string, value:Dynamic):void
+
+    DynamicHaxeObjectRef* = ref DynamicHaxeObject
+
+    # Dynamic proxy for real object
+    DynamicHaxeObjectProxy*[T] = object of DynamicHaxeObject
+        obj*:T
+
+    DynamicHaxeObjectProxyRef*[T] = ref object of DynamicHaxeObjectProxy[T]
+
     # Dynamic
     DynamicType* = enum
-        TString, TInt, TFloat, TObject, TPointer
+        TString, TInt, TFloat, TAnonObject, TClass, TPointer
 
     Dynamic* = ref object
         case kind*: DynamicType
-        of TString: fstring:string
-        of TInt: fint:int
-        of TFloat: ffloat:float
-        of TObject:
-            fields*: Table[string, Dynamic]
-        of TPointer: fpointer: pointer
+        of TString: 
+            fstring*:string
+        of TInt: 
+            fint*:int
+        of TFloat: 
+            ffloat*:float
+        of TAnonObject: 
+            fanon*: AnonObject
+        of TClass: 
+            fclass*: DynamicHaxeObjectRef
+        of TPointer:
+            fpointer*: pointer
+
+# AnonObject
+proc newAnonObject*(names: seq[string]) : AnonObject {.inline.}  =
+    result = newSeqOfCap[AnonField](names.len)    
+    for i in 0..<names.len:
+        result.add(AnonField(name: names[i]))
+
+template newAnonObject*(fields: seq[AnonField]) : AnonObject =
+    fields
+
+proc newAnonField*(name:string, value:Dynamic) : AnonField {.inline.} =
+    AnonField(name : name, value : value)
+
+proc setField*[T](this:AnonObject, pos:int, value:T) {.inline.} =
+    this[pos].value = value
+
+proc setField*[T](this:AnonObject, name:string, value:T) {.inline.} =
+    for fld in this:
+        if fld.name == name:
+            fld.value = value
+
+template getField*(this:AnonObject, pos:int):Dynamic =
+    this[pos].value
+
+proc getField*(this:AnonObject, name:string):Dynamic =
+    if this.len < 1:
+        return nil
+
+    for fld in this:
+        if fld.name == name:
+            return fld.value
+
+    return nil
+
+proc getFields*(this:AnonObject):HaxeArray[string] =
+    result = newHaxeArray[string]()
+    for f in this:
+        discard result.push(f.name)
 
 # Dynamic 
 proc `$`*(this:Dynamic):string =
@@ -24,73 +89,62 @@ proc `$`*(this:Dynamic):string =
         return $this.fint
     of TFloat:
         return $this.ffloat
-    of TObject:
-        return $this.fields
+    of TAnonObject:
+        return $this[]
+    else:
+        return "Dynamic unknown"
+
+template newDynamic*(value:string):Dynamic =
+    Dynamic(kind:TString, fstring: value)
+
+template newDynamic*(value:int):Dynamic =
+    Dynamic(kind:TInt, fint: value)
+
+template newDynamic*(value:float):Dynamic =
+    Dynamic(kind:TFloat, ffloat: value)
+
+template newDynamic*(value:AnonObject):Dynamic =
+    Dynamic(kind:TAnonObject, fanon: value)
+
+template newDynamic*(value:DynamicHaxeObjectRef):Dynamic =
+    Dynamic(kind:TClass, fclass: value)
+
+proc newDynamic*(value:pointer):Dynamic =
+    Dynamic(kind:TPointer, fpointer: value)
+
+proc getField*(this:Dynamic, name:string):Dynamic =    
+    case this.kind
+    of TAnonObject:
+        return getField(this.fanon, name)
+    of TClass:
+        return this.fclass.getFieldByName(name)
+    else:
+        return nil
+
+proc getFieldNames*(this:Dynamic):HaxeArray[string] =
+    case this.kind
+    of TAnonObject:
+        return this.fanon.getFields()
+    of TClass:
+        return this.fclass.getFields()
+    else:
+        return nil
+
+template call*[T](this:Dynamic, tp:typedesc[T], args:varargs[untyped]):untyped =    
+    case this.kind
     of TPointer:
-        return "Pointer"
-
-proc newDynamic*(value:string):Dynamic =    
-    return Dynamic(kind:TString, fstring: value)
-
-proc newDynamic*(value:int):Dynamic =    
-    return Dynamic(kind:TInt, fint: value)
-
-proc newDynamic*(value:float):Dynamic =    
-    return Dynamic(kind:TFloat, ffloat: value)
-
-proc newDynamicObject*():Dynamic =    
-    var res = Dynamic(kind:TObject)
-    res.fields = initTable[string, Dynamic]()
-    return res
-
-proc newDynamic*(value:pointer):Dynamic =    
-    return Dynamic(kind:TPointer, fpointer: value)
-
-proc getFields*(this:Dynamic):Table[string, Dynamic] =
-    case this.kind
-    of TObject:
-        return this.fields
+        var pr:T = cast[tp](this.fpointer)
+        pr(args)
     else:
         raise newException(ValueError, "Dynamic wrong type")
 
-proc setField*(this:Dynamic, name:string, value:string) =
-    this.fields[name] = Dynamic(kind: TString, fstring: value)
-
-proc setField*(this:Dynamic, name:string, value:int) =
-    this.fields[name] = Dynamic(kind: TInt, fint: value)
-
-proc setField*(this:Dynamic, name:string, value:float) =
-    this.fields[name] = Dynamic(kind: TFloat, ffloat: value)
-
-proc setField*(this:Dynamic, name:string, value:Dynamic) =
-    this.fields[name] = value
-
-proc setField*(this:Dynamic, name:string, value:pointer) =
-    this.fields[name] = Dynamic(kind: TPointer, fpointer: value)
-
-proc getFieldValue*(this:Dynamic, name:string):Dynamic =
-    case this.kind
-    of TObject:
-        return this.fields[name]
+template call*[T](this:Dynamic, name:string, tp:typedesc[T], args:varargs[untyped]):untyped =    
+    case this.kind:
+    of TAnonObject, TClass:
+        this.getField(name).call(tp, args)
     else:
         raise newException(ValueError, "Dynamic wrong type")
-
-proc getIntField*(this:Dynamic, name:string):int =
-    let fld = this.fields[name]
-    return fld.fint
-
-proc getStringField*(this:Dynamic, name:string):string =
-    let fld = this.fields[name]
-    return fld.fstring
-
-proc getClassField*[T](this:Dynamic, name:string, tp:typedesc[T]):T =
-    let fld = this.fields[name]
-    return cast[T](fld.fref)
-
-proc getPointerField*[T](this:Dynamic, name:string, tp:typedesc[T]):T =
-    let fld = this.fields[name]
-    return cast[T](fld.fpointer)
-
+    
 converter toInt*(this:Dynamic):int =
     case this.kind
     of TInt:
@@ -112,14 +166,5 @@ converter toString*(this:Dynamic):string =
     else:
         raise newException(ValueError, "Dynamic wrong type")
 
-converter fromString*(value:string):Dynamic =
-    newDynamic(value)
-
-converter fromInt*(value:int):Dynamic =
-    newDynamic(value)
-
-converter fromFloat*(value:float):Dynamic =
-    newDynamic(value)
-
-proc call*(this:Dynamic, name:string, args:varargs[Dynamic]): Dynamic =
-    nil
+converter toDynamic*[T](this: T):Dynamic =    
+    newDynamic(this)

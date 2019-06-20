@@ -32,7 +32,7 @@ proc newHttpServer*(port = 8080, address = ""):HttpServer =
 # Run server
 proc run*(this:HttpServer, handler:RequestHandler) {.async.} =
     await this.server.serve(this.port, 
-        proc(req:Request) {.async.} =
+        proc(req:Request) {.async.} =            
             await handler(
                 HttpRequest(
                     request: req,
