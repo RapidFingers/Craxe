@@ -28,8 +28,6 @@ proc `$`*(this:Dynamic):string =
         return $this.fields
     of TPointer:
         return "Pointer"
-    else:
-        return "Dynamic unknown"
 
 proc newDynamic*(value:string):Dynamic =    
     return Dynamic(kind:TString, fstring: value)
