@@ -86,6 +86,7 @@ class MethodExpressionGenerator {
 			case v:
 				throw 'Unsupported ${v}';
 		}
+		sb.add(".index");
 	}
 
 	/**
@@ -135,25 +136,45 @@ class MethodExpressionGenerator {
 	/**
 	 * Generate code for TSwitch
 	 */
-	function generateTSwitch(sb:IndentStringBuilder, expression:TypedExpr, cases:Array<{values:Array<TypedExpr>, expr:TypedExpr}>, edef:TypedExpr, isReturnValue = false) {
-		var ifname = "if ";
-		for (cs in cases) {
-			for (val in cs.values) {
-				sb.add(ifname);
-				switch (expression.expr) {
-					case TParenthesis(e):
-						switch (e.expr) {
-							case TLocal(v):
-								generateTLocal(sb, v);
-							case TMeta(m, e1):
-								generateTMeta(sb, m, e1);
-							case v:
-								throw 'Unsupported ${v}';
-						}
+	function generateTSwitch(sb:IndentStringBuilder, expression:TypedExpr, cases:Array<{values:Array<TypedExpr>, expr:TypedExpr}>, edef:TypedExpr) {
+		function generateCommonTSwitchExpression(sexpression:TypedExprDef) {
+			switch (sexpression) {
+				case TConst(c):
+					generateTConst(sb, c);
+				case TCall(e, el):
+					generateBlockTCall(sb, e, el);
+				case TReturn(e):
+					generateTReturn(sb, e);
+				case TBlock(el):
+					generateTBlock(sb, el);
+				case TMeta(m, e1):
+					generateTMeta(sb, m, e1);
+				case TNew(c, params, el):
+					generateTNew(sb, c.get(), params, el);
+				case v:
+					throw 'Unsupported ${v}';
+			}
+		}
+
+		sb.add("case ");
+		switch (expression.expr) {
+			case TParenthesis(e):
+				switch (e.expr) {
+					case TLocal(v):
+						generateTLocal(sb, v);
+					case TMeta(m, e1):
+						generateTMeta(sb, m, e1);
 					case v:
 						throw 'Unsupported ${v}';
 				}
-				sb.add(" == ");
+			case v:
+				throw 'Unsupported ${v}';
+		}
+
+		for (cs in cases) {
+			for (val in cs.values) {
+				sb.addNewLine(Same);
+				sb.add("of ");
 
 				switch (val.expr) {
 					case TConst(c):
@@ -165,31 +186,21 @@ class MethodExpressionGenerator {
 				sb.add(":");
 				sb.addNewLine(Inc);
 
-				if (isReturnValue) {
-					sb.add("return ");
-				}
-
-				switch (cs.expr.expr) {
-					case TConst(c):
-						generateTConst(sb, c);
-					case TCall(e, el):
-						generateBlockTCall(sb, e, el);
-					case TReturn(e):
-						generateTReturn(sb, e);
-					case TBlock(el):
-						generateTBlock(sb, el);
-					case TMeta(m, e1):
-						generateTMeta(sb, m, e1);
-					case TNew(c, params, el):
-						generateTNew(sb, c.get(), params, el);
-					case v:
-						throw 'Unsupported ${v}';
-				}
+				generateCommonTSwitchExpression(cs.expr.expr);
 
 				sb.addNewLine(Dec);
 			}
-			ifname = "elif ";
 		}
+
+		sb.add('else:');
+		sb.addNewLine(Inc);
+		if (edef == null) {
+			sb.add('raise newException(Exception, "Invalid case")');
+		} else {
+			generateCommonTSwitchExpression(edef.expr);
+		}
+
+		sb.addNewLine(Dec);
 	}
 
 	/**
@@ -476,7 +487,7 @@ class MethodExpressionGenerator {
 	 * An array declaration `[el]`
 	 */
 	function generateTArrayDecl(sb:IndentStringBuilder, elements:Array<TypedExpr>) {
-		sb.add("@[");
+		sb.add("newHaxeArray(@[");
 		for (i in 0...elements.length) {
 			var expr = elements[i];
 
@@ -485,6 +496,10 @@ class MethodExpressionGenerator {
 					generateTConst(sb, c);
 				case TNew(c, params, el):
 					generateTNew(sb, c.get(), params, el);
+				case TCall(e, el):
+					generateCommonTCall(sb, e, el);
+				case TField(e, fa):
+					generateTField(sb, e, fa);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -492,7 +507,7 @@ class MethodExpressionGenerator {
 			if (i + 1 < elements.length)
 				sb.add(", ");
 		}
-		sb.add("]");
+		sb.add("])");
 	}
 
 	/**
@@ -929,7 +944,7 @@ class MethodExpressionGenerator {
 		switch (expression.expr) {
 			case TTypeExpr(_):
 				genAccess();
-			case TConst(c):				
+			case TConst(c):
 				generateTConst(sb, c);
 				genAccess();
 			case TLocal(v):
@@ -948,7 +963,7 @@ class MethodExpressionGenerator {
 					case _:
 						generateTLocal(sb, v);
 				}
-			case TField(e, fa):				
+			case TField(e, fa):
 				generateTField(sb, e, fa);
 				genAccess();
 			case v:
@@ -1099,6 +1114,8 @@ class MethodExpressionGenerator {
 					generateTCast(sb, expr, e, m);
 				case TBlock(el):
 					generateTBlock(sb, el);
+				case TArrayDecl(el):
+					generateTArrayDecl(sb, el);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -1175,8 +1192,8 @@ class MethodExpressionGenerator {
 		sb.add(":");
 		sb.addNewLine(Inc);
 
-		switch (eif.expr) {			
-			case TConst(c):			
+		switch (eif.expr) {
+			case TConst(c):
 				generateTConst(sb, c);
 			case TNew(c, params, el):
 				generateTNew(sb, c.get(), params, el);
@@ -1330,7 +1347,7 @@ class MethodExpressionGenerator {
 					case TVar(v, expr):
 						generateTVar(sb, v, expr);
 					case TSwitch(e, cases, edef):
-						generateTSwitch(sb, e, cases, edef, true);
+						generateTSwitch(sb, e, cases, edef);
 					case v:
 						throw 'Unsupported ${v}';
 				}
@@ -1359,7 +1376,7 @@ class MethodExpressionGenerator {
 						case TNew(c, params, el):
 							generateTNew(sb, c.get(), params, el);
 						case TCall(e, el):
-							generateBlockTCall(sb, e, el, false);						
+							generateBlockTCall(sb, e, el, false);
 						case TLocal(v):
 							generateTLocal(sb, v);
 						case v:

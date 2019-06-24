@@ -11,7 +11,7 @@ type
 
 let JsonPrinterStaticInst* = JsonPrinterStatic()
 
-proc printObject(obj:Dynamic):string =
+proc printObject(obj:Dynamic):string =    
     let fields = obj.getFieldNames()
     if fields.isNil or fields.length < 1:    
         return "{}"

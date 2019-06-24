@@ -4,7 +4,7 @@ import arrays
 type
     AnonField* = ref object
         name*:string
-        value*:Dynamic    
+        value*:Dynamic
 
     # Haxe anonimous object
     AnonObject* = seq[AnonField]
@@ -112,23 +112,23 @@ template newDynamic*(value:DynamicHaxeObjectRef):Dynamic =
 proc newDynamic*(value:pointer):Dynamic =
     Dynamic(kind:TPointer, fpointer: value)
 
-proc getField*(this:Dynamic, name:string):Dynamic =    
+proc getField*(this:Dynamic, name:string):Dynamic {.gcsafe.} =    
     case this.kind
     of TAnonObject:
-        return getField(this.fanon, name)
+        getField(this.fanon, name)
     of TClass:
-        return this.fclass.getFieldByName(name)
+        this.fclass.getFieldByName(name)
     else:
-        return nil
+        nil
 
-proc getFieldNames*(this:Dynamic):HaxeArray[string] =
+proc getFieldNames*(this:Dynamic):HaxeArray[string] {.gcsafe.} =
     case this.kind
     of TAnonObject:
-        return this.fanon.getFields()
+        this.fanon.getFields()
     of TClass:
-        return this.fclass.getFields()
+        this.fclass.getFields()
     else:
-        return nil
+        nil
 
 template call*[T](this:Dynamic, tp:typedesc[T], args:varargs[untyped]):untyped =    
     case this.kind

@@ -83,6 +83,6 @@ proc `==`*[T](v1:Null[T], v2:Null[T]):bool =
 
 # Scoped block
 template valueBlock*(body : untyped) : untyped = 
-    (proc() : auto = 
+    (proc() : auto {.gcsafe.} = 
         body
     )()
