@@ -46,6 +46,11 @@ class MethodExpressionGenerator {
 	var classContext:ClassInfo;
 
 	/**
+	 * Method return type
+	 */
+	var returnType:Type;
+
+	/**
 	 * Fix local var name
 	 */
 	inline function fixLocalVarName(name:String):String {
@@ -650,6 +655,29 @@ class MethodExpressionGenerator {
 	 * Generate code for TReturn
 	 */
 	function generateTReturn(sb:IndentStringBuilder, expression:TypedExpr) {
+		var isDynamicReturn = false;
+		if (returnType != null) {
+			switch returnType {
+				case TDynamic(_):
+					isDynamicReturn = true;
+				case _:
+			}
+		}
+
+		function addReturn() {
+			if (isDynamicReturn) {
+				sb.add("return toDynamic(");
+			} else {
+				sb.add("return ");
+			}
+		}
+
+		function addClose() {
+			if (isDynamicReturn) {
+				sb.add(")");
+			}
+		}
+
 		if (expression == null || expression.expr == null) {
 			sb.add("return");
 		} else {
@@ -659,38 +687,49 @@ class MethodExpressionGenerator {
 				case TReturn(e):
 					generateTReturn(sb, e);
 				case TCall(e, el):
-					sb.add("return ");
+					addReturn();
 					generateCommonTCall(sb, e, el);
+					addClose();
 				case TNew(c, params, el):
-					sb.add("return ");
+					addReturn();
 					generateTNew(sb, c.get(), params, el);
+					addClose();
 				case TConst(c):
-					sb.add("return ");
+					addReturn();
 					generateTConst(sb, c);
+					addClose();
 				case TFunction(tfunc):
-					sb.add("return ");
+					addReturn();
 					generateTFunction(sb, tfunc);
+					addClose();
 				case TBinop(op, e1, e2):
-					sb.add("return ");
+					addReturn();
 					generateTBinop(sb, op, e1, e2);
+					addClose();
 				case TUnop(op, postFix, e):
-					sb.add("return ");
+					addReturn();
 					generateTUnop(sb, op, postFix, e);
+					addClose();
 				case TArray(e1, e2):
-					sb.add("return ");
+					addReturn();
 					generateTArray(sb, e1, e2);
+					addClose();
 				case TLocal(v):
-					sb.add("return ");
+					addReturn();
 					generateTLocal(sb, v);
+					addClose();
 				case TObjectDecl(fields):
-					sb.add("return ");
+					addReturn();
 					generateTObjectDecl(sb, fields);
+					addClose();
 				case TCast(e, m):
-					sb.add("return ");
+					addReturn();
 					generateTCast(sb, expression, e, m);
+					addClose();
 				case TField(e, fa):
-					sb.add("return ");
+					addReturn();
 					generateTField(sb, e, fa);
+					addClose();
 				case TMeta(m, e1):
 					generateTMeta(sb, m, e1);
 				case v:
@@ -1086,19 +1125,20 @@ class MethodExpressionGenerator {
 						generateTObjectDecl(sb, e);
 				case TFunction(tfunc):
 					generateTFunction(sb, tfunc);
-				case TLocal(v):
+				case TLocal(v):					
 					if (farg != null) {
 						switch v.t {
-							case TInst(t, params):
+							case TInst(t, _):
 								switch farg.t {
 									case TType(_, _) | TAnonymous(_) | TDynamic(_):
 										var name = t.get().name;
-										context.addDynamicSupport(name);
-									case _:
+										context.addDynamicSupport(name);																														
+									case _:										
 								}
-							case _:
-						}
+							case _:								
+						}						
 					}
+
 					generateTLocal(sb, v);
 				case TNew(c, params, el):
 					generateTNew(sb, c.get(), params, el);
@@ -1332,6 +1372,33 @@ class MethodExpressionGenerator {
 	}
 
 	/**
+	 * Generate root block of method
+	 */
+	function generateTBlockRoot(sb:IndentStringBuilder, expressions:Array<TypedExpr>) {
+		if (expressions.length > 0) {
+			for (i in 0...expressions.length) {
+				var expr = expressions[i];
+				if (i >= expressions.length - 1) {
+					if (returnType != null) {
+						switch returnType {
+							case TDynamic(_):
+								sb.add("toDynamic(");
+								generateTBlockSingleExpression(sb, expr);
+								sb.add(")");
+							case _:
+								generateTBlockSingleExpression(sb, expr);
+						}
+					}
+				} else {
+					generateTBlockSingleExpression(sb, expr);
+				}
+			}
+		} else {
+			sb.add("discard");
+		}
+	}
+
+	/**
 	 * Generate TBlock like:
 	 * (proc() : auto =
 	 *  	body
@@ -1399,17 +1466,13 @@ class MethodExpressionGenerator {
 	}
 
 	/**
-	 * Set class context
-	 */
-	public function setClassContext(classContext:ClassInfo) {
-		this.classContext = classContext;
-	}
-
-	/**
 	 * Generate method body
 	 */
-	public function generateMethodBody(sb:IndentStringBuilder, expression:TypedExpr) {
-		switch (expression.expr) {
+	public function generateMethodBody(sb:IndentStringBuilder, classContext:ClassInfo, methodExpression:TypedExpr, returnType:Type = null) {
+		this.classContext = classContext;
+		this.returnType = returnType;
+
+		switch (methodExpression.expr) {
 			case TFunction(tfunc):
 				switch (tfunc.expr.expr) {
 					case TBlock(el):

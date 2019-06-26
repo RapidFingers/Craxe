@@ -39,7 +39,7 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Code generator for expressions
 	 */
-	final expressionGenerator:MethodExpressionGenerator;
+	final methodBodyGenerator:MethodExpressionGenerator;
 
 	/**
 	 * Add code helpers to header
@@ -511,8 +511,8 @@ class NimGenerator extends BaseGenerator {
 	/**
 	 * Generate method body
 	 */
-	function generateMethodBody(sb:IndentStringBuilder, expression:TypedExpr) {
-		expressionGenerator.generateMethodBody(sb, expression);
+	function generateMethodBody(sb:IndentStringBuilder, classContext:ClassInfo, expression:TypedExpr, returnType:Type = null) {
+		methodBodyGenerator.generateMethodBody(sb, classContext, expression, returnType);
 
 		sb.addNewLine();
 		sb.addNewLine(None, true);
@@ -524,8 +524,6 @@ class NimGenerator extends BaseGenerator {
 	function generateClassConstructor(sb:IndentStringBuilder, cls:ClassInfo) {
 		if (cls.classType.constructor == null)
 			return;
-
-		expressionGenerator.setClassContext(cls);
 
 		var constructor = cls.classType.constructor.get();
 		var className = cls.classType.name;
@@ -582,7 +580,7 @@ class NimGenerator extends BaseGenerator {
 					sb.addNewLine(Same);
 				}
 
-				generateMethodBody(sb, constrExp);
+				generateMethodBody(sb, cls, constrExp);
 				sb.addNewLine(Dec);
 
 				// Generate constructor
@@ -630,7 +628,7 @@ class NimGenerator extends BaseGenerator {
 				sb.add(" =");
 				sb.addNewLine(Inc);
 
-				generateMethodBody(sb, method.expr());
+				generateMethodBody(sb, cls, method.expr(), ret);
 			case v:
 				throw 'Unsupported paramter ${v}';
 		}
@@ -655,7 +653,7 @@ class NimGenerator extends BaseGenerator {
 				sb.add(" =");
 				sb.addNewLine(Inc);
 
-				generateMethodBody(sb, method.expr());
+				generateMethodBody(sb, cls, method.expr(), ret);
 			case v:
 				throw 'Unsupported paramter ${v}';
 		}
@@ -779,7 +777,7 @@ class NimGenerator extends BaseGenerator {
 		super(processed);
 		typeContext = new TypeContext(processed);
 		typeResolver = new TypeResolver(typeContext);
-		expressionGenerator = new MethodExpressionGenerator(typeContext, typeResolver);
+		methodBodyGenerator = new MethodExpressionGenerator(typeContext, typeResolver);
 	}
 
 	/**
