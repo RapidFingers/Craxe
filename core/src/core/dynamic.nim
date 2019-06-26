@@ -145,29 +145,16 @@ template call*[T](this:Dynamic, name:string, tp:typedesc[T], args:varargs[untype
     else:
         raise newException(ValueError, "Dynamic wrong type")
 
-template toDynamic*(v:untyped):untyped =
-    newDynamic(v)
+template toDynamic*(this:untyped):untyped =
+    newDynamic(this)
 
-# converter toInt*(this:Dynamic):int =
-#     case this.kind
-#     of TInt:
-#         return this.fint
-#     else:
-#         raise newException(ValueError, "Dynamic wrong type")
-
-# converter toFloat*(this:Dynamic):float =
-#     case this.kind
-#     of TFloat:
-#         return this.ffloat
-#     else:
-#         raise newException(ValueError, "Dynamic wrong type")
-    
-# converter toString*(this:Dynamic):string =
-#     case this.kind
-#     of TString:
-#         return this.fstring
-#     else:
-#         raise newException(ValueError, "Dynamic wrong type")
-
-# converter toDynamic*[T](this: T):Dynamic =    
-#     newDynamic(this)
+proc fromDynamic*[T](this:Dynamic, t:typedesc[T]) : T =
+    case this.kind
+        of TInt:
+            cast[T](this.fint)
+        of TString:
+            cast[T](this.fstring)
+        of TFloat:
+            cast[T](this.ffloat)
+        else:
+            raise newException(ValueError, "Dynamic wrong type")

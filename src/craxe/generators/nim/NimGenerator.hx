@@ -358,7 +358,7 @@ class NimGenerator extends BaseGenerator {
 				sb.addNewLine(Same);
 				for (i in 0...an.fields.length) {
 					var fld = an.fields[i];
-					sb.add('of "${fld.name}": return this.${fld.name}');
+					sb.add('of "${fld.name}": return toDynamic(this.${fld.name})');
 					sb.addNewLine(Same);
 				}
 			}
@@ -372,7 +372,7 @@ class NimGenerator extends BaseGenerator {
 				sb.addNewLine(Same);
 				for (i in 0...an.fields.length) {
 					var fld = an.fields[i];
-					sb.add('of "${fld.name}": this.${fld.name} = value');
+					sb.add('of "${fld.name}": this.${fld.name} = fromDynamic(value, typeof(this.${fld.name}))');
 					sb.addNewLine(Same);
 				}
 			}
@@ -388,7 +388,7 @@ class NimGenerator extends BaseGenerator {
 			sb.addNewLine(Same);			
 			sb.add("this.setFieldByName = proc(name:string, value:Dynamic):void = setFieldByNameInternal(this, name, value)");
 			sb.addNewLine(Same);
-			sb.add("return this");
+			sb.add("return toDynamic(this)");
 			sb.addBreak();
 		}
 
