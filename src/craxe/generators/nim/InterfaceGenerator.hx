@@ -61,7 +61,7 @@ class InterfaceGenerator {
 	public function generateInterfaceConverter(sb:IndentStringBuilder, classInfo:ClassInfo, interfaceInfo:InterfaceInfo, typeResolver:TypeResolver) {
 		var iname = interfaceInfo.classType.name;
 		var cname = classInfo.classType.name;
-		sb.add('converter to${iname}(this:${cname}) : ${iname} = ');
+		sb.add('proc to${iname}(this:${cname}) : ${iname} = ');
 		sb.addNewLine(Inc);
 		sb.add("return (");
 		sb.addNewLine(Inc);

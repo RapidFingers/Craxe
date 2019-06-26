@@ -41,13 +41,13 @@ proc parseNode(node:JsonNode):Dynamic =
         for key, val in node.fields.pairs():
             res.setField(i, parseNode(val))
             inc(i)
-        return res
+        return toDynamic(res)
     of JString:
-        return node.getStr()
+        return toDynamic(node.getStr())
     of JInt:
-        return node.getInt()
+        return toDynamic(node.getInt())
     of JFloat:
-        return node.getFloat()
+        return toDynamic(node.getFloat())
     else:
         discard
 

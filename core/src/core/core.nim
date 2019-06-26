@@ -41,7 +41,7 @@ template `+`*(i:untyped, s:string): string =
 template `+`*(s1:string, s2:string): string =
     s1 & s2
 
-template toString*(this:untyped):untyped =
+template toString*(this:untyped):string =
     $this
 
 # String
@@ -57,10 +57,10 @@ proc `==`*(v1:Null[ValueType], v2:ValueType):bool =
         return v1.value == v2
     return false
 
-converter toValue*[ValueType](value:Null[ValueType]):ValueType =
-    if value.has:
-        return value.value
-    raise newException(NilAccessError, "Null pointer exception")
+# converter toValue*[ValueType](value:Null[ValueType]):ValueType =
+#     if value.has:
+#         return value.value
+#     raise newException(NilAccessError, "Null pointer exception")
 
 proc `$`*(this:Null[ValueType]):string =
     if this.has:

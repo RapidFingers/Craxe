@@ -562,7 +562,7 @@ class NimGenerator extends BaseGenerator {
 					}
 					sb.addBreak();
 
-					sb.add('converter fromDynamic${params}(this:Dynamic):${className}${params} =');
+					sb.add('proc fromDynamic${params}(this:Dynamic):${className}${params} =');
 					sb.addNewLine(Inc);
 					sb.add('cast[${className}${params}](this.fclass)');
 					sb.addBreak();
