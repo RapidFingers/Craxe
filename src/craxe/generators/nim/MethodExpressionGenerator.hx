@@ -335,13 +335,29 @@ class MethodExpressionGenerator {
 	/**
 	 * Generate code for TVar
 	 */
-	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {
+	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {		
 		sb.add("var ");
 		var name = typeResolver.getFixedTypeName(vr.name);
 		name = fixLocalVarName(name);
 		sb.add(name);
+		var vartype = '${typeResolver.resolve(vr.t)}';
+
 		if (expr != null) {
 			sb.add(" = ");
+			
+			var isConvertFromDynamic = false;
+			// Convert from Dynamic to real type		
+			switch expr.t {
+				case TDynamic(_):
+					switch vr.t {
+						case TMono(_):
+							// Ignore
+						case _:
+							isConvertFromDynamic = true;
+							sb.add("fromDynamic(");
+					}
+				case _:
+			}
 
 			switch expr.expr {
 				case TUnop(op, postFix, e):
@@ -376,8 +392,13 @@ class MethodExpressionGenerator {
 				case v:
 					throw 'Unsupported ${v}';
 			}
+
+			if (isConvertFromDynamic) {
+				sb.add(', ${vartype})');
+			}
+
 		} else {
-			sb.add(':${typeResolver.resolve(vr.t)}');
+			sb.add(':${vartype}');
 		}
 		sb.addNewLine(Same);
 	}
@@ -426,7 +447,7 @@ class MethodExpressionGenerator {
 	/**
 	 * Generate code for TLocal
 	 */
-	function generateTLocal(sb:IndentStringBuilder, vr:TVar) {
+	function generateTLocal(sb:IndentStringBuilder, vr:TVar) {		
 		var name = fixLocalVarName(vr.name);
 		sb.add(name);
 	}
@@ -654,12 +675,17 @@ class MethodExpressionGenerator {
 	/**
 	 * Generate code for TReturn
 	 */
-	function generateTReturn(sb:IndentStringBuilder, expression:TypedExpr) {
+	function generateTReturn(sb:IndentStringBuilder, expression:TypedExpr) {		
 		var isDynamicReturn = false;
 		if (returnType != null) {
 			switch returnType {
 				case TDynamic(_):
-					isDynamicReturn = true;
+					switch expression.t {
+						case TDynamic(_):
+						case TAnonymous(_):
+						case _:
+							isDynamicReturn = true;
+					}					
 				case _:
 			}
 		}

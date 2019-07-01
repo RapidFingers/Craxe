@@ -140,6 +140,13 @@ class TypeResolver {
 	}
 
 	/**
+	 * 	 Generate TMono
+	 */
+	function generateTMono(sb:StringBuf, dyn:Type) {
+		sb.add("Dynamic");
+	}
+
+	/**
 	 * Constructor
 	 */
 	public function new(context:TypeContext) {
@@ -212,7 +219,9 @@ class TypeResolver {
 				generateTAnonymous(sb, a.get());
 			case TDynamic(t):
 				generateTDynamic(sb, t);
-			case v:
+			case TMono(t):
+				generateTMono(sb, t.get());
+			case v:			
 				throw 'Unsupported type ${v}';
 		}
 
