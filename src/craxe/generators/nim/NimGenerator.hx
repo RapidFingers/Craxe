@@ -552,7 +552,7 @@ class NimGenerator extends BaseGenerator {
 						sb.addNewLine(Same);
 						for (i in 0...fields.length) {
 							var fld = fields[i];
-							sb.add('of "${fld.name}": return this.${fld.name}');
+							sb.add('of "${fld.name}": return toDynamic(this.${fld.name})');
 							sb.addNewLine(Same);
 						}
 					} else {
