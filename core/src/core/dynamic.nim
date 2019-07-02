@@ -91,6 +91,12 @@ proc `$`*(this:Dynamic):string =
         return $this.ffloat
     of TAnonObject:
         return $this[]
+    of TClass:
+        let fields = this.fclass.getFields()
+        var data = newSeq[string]()
+        for fld in fields.data:
+            data.add(fld & ": " & $this.fclass.getFieldByName(fld))
+        return $data
     else:
         return "Dynamic unknown"
 
@@ -156,5 +162,7 @@ proc fromDynamic*[T](this:Dynamic, t:typedesc[T]) : T =
             cast[T](this.fstring)
         of TFloat:
             cast[T](this.ffloat)
+        of TClass:
+            cast[T](this.fclass)
         else:
             raise newException(ValueError, "Dynamic wrong type")

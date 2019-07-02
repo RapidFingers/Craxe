@@ -335,7 +335,7 @@ class MethodExpressionGenerator {
 	/**
 	 * Generate code for TVar
 	 */
-	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {		
+	function generateTVar(sb:IndentStringBuilder, vr:TVar, expr:TypedExpr) {
 		sb.add("var ");
 		var name = typeResolver.getFixedTypeName(vr.name);
 		name = fixLocalVarName(name);
@@ -344,14 +344,14 @@ class MethodExpressionGenerator {
 
 		if (expr != null) {
 			sb.add(" = ");
-			
+
 			var isConvertFromDynamic = false;
-			// Convert from Dynamic to real type		
+			// Convert from Dynamic to real type
 			switch expr.t {
 				case TDynamic(_):
 					switch vr.t {
 						case TMono(_):
-							// Ignore
+						// Ignore
 						case _:
 							isConvertFromDynamic = true;
 							sb.add("fromDynamic(");
@@ -396,7 +396,6 @@ class MethodExpressionGenerator {
 			if (isConvertFromDynamic) {
 				sb.add(', ${vartype})');
 			}
-
 		} else {
 			sb.add(':${vartype}');
 		}
@@ -447,7 +446,7 @@ class MethodExpressionGenerator {
 	/**
 	 * Generate code for TLocal
 	 */
-	function generateTLocal(sb:IndentStringBuilder, vr:TVar) {		
+	function generateTLocal(sb:IndentStringBuilder, vr:TVar) {
 		var name = fixLocalVarName(vr.name);
 		sb.add(name);
 	}
@@ -675,7 +674,7 @@ class MethodExpressionGenerator {
 	/**
 	 * Generate code for TReturn
 	 */
-	function generateTReturn(sb:IndentStringBuilder, expression:TypedExpr) {		
+	function generateTReturn(sb:IndentStringBuilder, expression:TypedExpr) {
 		var isDynamicReturn = false;
 		if (returnType != null) {
 			switch returnType {
@@ -685,7 +684,7 @@ class MethodExpressionGenerator {
 						case TAnonymous(_):
 						case _:
 							isDynamicReturn = true;
-					}					
+					}
 				case _:
 			}
 		}
@@ -1142,10 +1141,26 @@ class MethodExpressionGenerator {
 			} else null;
 
 			switch farg.t {
-				case TInst(t, params):
+				case TInst(t, _):
 					var tp = t.get();
 					if (tp.isInterface) {
 						sb.add('to${tp.name}(');
+						wasConverter = true;
+					}
+				case TDynamic(_):					
+					var needConvert = switch (expr.expr) {
+						case TField(_, _):
+							if (isTraceCall) {
+								false;
+							} else {
+								true;
+							}
+						case _:
+							true;
+					}
+
+					if (needConvert) {
+						sb.add('toDynamic(');
 						wasConverter = true;
 					}
 				case _:
@@ -1161,18 +1176,18 @@ class MethodExpressionGenerator {
 						generateTObjectDecl(sb, e);
 				case TFunction(tfunc):
 					generateTFunction(sb, tfunc);
-				case TLocal(v):					
+				case TLocal(v):
 					if (farg != null) {
 						switch v.t {
 							case TInst(t, _):
 								switch farg.t {
 									case TType(_, _) | TAnonymous(_) | TDynamic(_):
 										var name = t.get().name;
-										context.addDynamicSupport(name);																														
-									case _:										
+										context.addDynamicSupport(name);
+									case _:
 								}
-							case _:								
-						}						
+							case _:
+						}
 					}
 
 					generateTLocal(sb, v);

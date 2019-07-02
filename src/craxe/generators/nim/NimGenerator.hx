@@ -346,7 +346,7 @@ class NimGenerator extends BaseGenerator {
 
 			sb.add('proc getFields(this:${anonName}):HaxeArray[string] {.inline.} =');
 			sb.addNewLine(Inc);
-			var fldNames = an.fields.map(x-> '"${x.name}"').join(", ");
+			var fldNames = an.fields.map(x -> '"${x.name}"').join(", ");
 			sb.add('return newHaxeArray[string](@[${fldNames}])');
 
 			sb.addBreak();
@@ -377,7 +377,7 @@ class NimGenerator extends BaseGenerator {
 				}
 			}
 
-			sb.addBreak();			
+			sb.addBreak();
 
 			sb.add('proc makeDynamic(this:${anonName}):Dynamic {.inline.} =');
 			sb.addNewLine(Inc);
@@ -385,7 +385,7 @@ class NimGenerator extends BaseGenerator {
 			sb.add("this.getFields = proc():HaxeArray[string] = getFields(this)");
 			sb.addNewLine(Same);
 			sb.add("this.getFieldByName = proc(name:string):Dynamic = getFieldByNameInternal(this, name)");
-			sb.addNewLine(Same);			
+			sb.addNewLine(Same);
 			sb.add("this.setFieldByName = proc(name:string, value:Dynamic):void = setFieldByNameInternal(this, name, value)");
 			sb.addNewLine(Same);
 			sb.add("return toDynamic(this)");
@@ -545,6 +545,14 @@ class NimGenerator extends BaseGenerator {
 				// Generate procedures for dynamic support
 				if (typeContext.isDynamicSupported(className)) {
 					var fields = cls.classType.fields.get();
+
+					sb.add('proc getFields(this:${className}):HaxeArray[string] {.inline.} =');
+					sb.addNewLine(Inc);
+					var fldNames = fields.map(x -> '"${x.name}"').join(", ");
+					sb.add('return newHaxeArray[string](@[${fldNames}])');
+
+					sb.addBreak();
+					
 					sb.add('proc getFieldByNameInternal${params}(this:${className}${params}, name:string):Dynamic =');
 					sb.addNewLine(Inc);
 					if (fields.length > 0) {
@@ -598,6 +606,8 @@ class NimGenerator extends BaseGenerator {
 				sb.add(')');
 
 				if (typeContext.isDynamicSupported(className)) {
+					sb.addNewLine(Same);
+					sb.add("this.getFields = proc():HaxeArray[string] = getFields(this)");
 					sb.addNewLine(Same);
 					sb.add("this.getFieldByName = proc(name:string):Dynamic = getFieldByNameInternal(this, name)");
 				}

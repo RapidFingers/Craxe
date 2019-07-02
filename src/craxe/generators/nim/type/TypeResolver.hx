@@ -129,7 +129,7 @@ class TypeResolver {
 	 * Generate TAnonymous
 	 */
 	function generateTAnonymous(sb:StringBuf, anon:AnonType) {		
-		sb.add('Dynamic');
+		sb.add("Dynamic");
 	}
 
 	/**
