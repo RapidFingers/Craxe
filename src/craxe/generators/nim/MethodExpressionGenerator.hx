@@ -1140,7 +1140,7 @@ class MethodExpressionGenerator {
 			var farg = if (funArgs != null) {
 				funArgs[i];
 			} else null;
-			
+
 			switch farg.t {
 				case TInst(t, _):
 					var tp = t.get();
@@ -1149,18 +1149,7 @@ class MethodExpressionGenerator {
 						wasConverter = true;
 					}
 				case TDynamic(_) | TType(_, _):
-					var needConvert = switch (expr.expr) {
-						case TField(_, _):
-							if (isTraceCall) {
-								false;
-							} else {
-								true;
-							}
-						case _:
-							true;
-					}
-
-					if (needConvert) {
+					if (!isTraceCall) {
 						sb.add('toDynamic(');
 						wasConverter = true;
 					}
