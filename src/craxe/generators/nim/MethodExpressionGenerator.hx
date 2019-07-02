@@ -1140,7 +1140,7 @@ class MethodExpressionGenerator {
 			var farg = if (funArgs != null) {
 				funArgs[i];
 			} else null;
-			
+
 			if (farg != null) {
 				switch farg.t {
 					case TInst(t, _):
@@ -1151,8 +1151,12 @@ class MethodExpressionGenerator {
 						}
 					case TDynamic(_) | TType(_, _):
 						if (!isTraceCall) {
-							sb.add('toDynamic(');
-							wasConverter = true;
+							switch expr.t {
+								case TDynamic(_) | TType(_) | TAnonymous(_):
+								case _:
+									sb.add('toDynamic(');
+									wasConverter = true;
+							}
 						}
 					case _:
 				}
