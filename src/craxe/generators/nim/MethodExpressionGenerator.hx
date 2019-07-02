@@ -1141,6 +1141,16 @@ class MethodExpressionGenerator {
 				funArgs[i];
 			} else null;
 
+			switch farg.t {
+				case TInst(t, params):
+					var tp = t.get();
+					if (tp.isInterface) {
+						sb.add('to${tp.name}(');
+						wasConverter = true;
+					}
+				case _:
+			}
+
 			switch (expr.expr) {
 				case TConst(c):
 					generateTConst(sb, c);
