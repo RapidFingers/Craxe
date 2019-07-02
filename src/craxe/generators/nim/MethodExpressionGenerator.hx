@@ -1140,20 +1140,22 @@ class MethodExpressionGenerator {
 			var farg = if (funArgs != null) {
 				funArgs[i];
 			} else null;
-
-			switch farg.t {
-				case TInst(t, _):
-					var tp = t.get();
-					if (tp.isInterface) {
-						sb.add('to${tp.name}(');
-						wasConverter = true;
-					}
-				case TDynamic(_) | TType(_, _):
-					if (!isTraceCall) {
-						sb.add('toDynamic(');
-						wasConverter = true;
-					}
-				case _:
+			
+			if (farg != null) {
+				switch farg.t {
+					case TInst(t, _):
+						var tp = t.get();
+						if (tp.isInterface) {
+							sb.add('to${tp.name}(');
+							wasConverter = true;
+						}
+					case TDynamic(_) | TType(_, _):
+						if (!isTraceCall) {
+							sb.add('toDynamic(');
+							wasConverter = true;
+						}
+					case _:
+				}
 			}
 
 			switch (expr.expr) {
