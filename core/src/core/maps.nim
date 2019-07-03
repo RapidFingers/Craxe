@@ -1,7 +1,7 @@
 import tables
 import core
 
-const TABLE_INIT_SIZE = 33554432
+const TABLE_INIT_SIZE = 64
 
 type   
     # Base map
