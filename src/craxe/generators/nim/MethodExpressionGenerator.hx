@@ -82,6 +82,14 @@ class MethodExpressionGenerator {
 	}
 
 	/**
+	 * Generate code for TThrow
+	 */
+	function generateTThrow(sb:IndentStringBuilder, e:TypedExpr) {
+		// TODO: normal error throw
+		sb.add('newException(Exception, "Error")');
+	}
+
+	/**
 	 * Generate code for TMeta
 	 */
 	function generateTEnumIndex(sb:IndentStringBuilder, expression:TypedExpr) {
@@ -156,6 +164,8 @@ class MethodExpressionGenerator {
 					generateTMeta(sb, m, e1);
 				case TNew(c, params, el):
 					generateTNew(sb, c.get(), params, el);
+				case TThrow(e):
+					generateTThrow(sb, e);					
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -434,6 +444,8 @@ class MethodExpressionGenerator {
 					generateTField(sb, e, fa);
 				case TCast(e, m):
 					generateTCast(sb, expr, e, m);
+				case TCall(e, el):
+					generateCommonTCall(sb, e, el);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -1361,9 +1373,9 @@ class MethodExpressionGenerator {
 	 * Generate TFor expression
 	 */
 	function generateTFor(sb:IndentStringBuilder, v:TVar, e1:TypedExpr, e2:TypedExpr) {
-		trace(v);
-		trace(e1);
-		trace(e2);
+		// trace(v);
+		// trace(e1);
+		// trace(e2);
 	}
 
 	/**
