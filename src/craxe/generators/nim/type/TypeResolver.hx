@@ -169,6 +169,18 @@ class TypeResolver {
 	}
 
 	/**
+	 * Return fixed field name that can be a keyword in nim
+	 */
+	public function getFixedFieldName(name:String) {
+		switch name {
+			case "iterator":
+				return "fixedIterator";
+		}
+
+		return name;
+	}
+
+	/**
 	 * Return type parameters as string
 	 */
 	public function resolveParameters(params:Array<Type>):String {

@@ -16,6 +16,10 @@ proc newHaxeArray*[T](data:seq[T]) : HaxeArray[T] =
 proc `[]`*[T](this:HaxeArray[T], pos:int):T =
     this.data[pos]
 
+# TODO: rewrite
+proc `iterator`*[T](this:HaxeArray[T]):int =
+    return 1
+
 template push*[T](this:HaxeArray[T], value:T):int =
     this.data.add(value)
     len(this.data)

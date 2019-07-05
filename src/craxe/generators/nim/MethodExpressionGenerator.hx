@@ -446,6 +446,8 @@ class MethodExpressionGenerator {
 					generateTCast(sb, expr, e, m);
 				case TCall(e, el):
 					generateCommonTCall(sb, e, el);
+				case TArrayDecl(el):
+					generateTArrayDecl(sb, el);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -1372,10 +1374,31 @@ class MethodExpressionGenerator {
 	/**
 	 * Generate TFor expression
 	 */
-	function generateTFor(sb:IndentStringBuilder, v:TVar, e1:TypedExpr, e2:TypedExpr) {
-		// trace(v);
-		// trace(e1);
-		// trace(e2);
+	function generateTFor(sb:IndentStringBuilder, v:TVar, e1:TypedExpr, e2:TypedExpr) {						
+		sb.add("while ");
+		var nsb = new IndentStringBuilder();
+		switch e1.expr {
+			case TField(e, fa):
+				generateTField(nsb, e, fa);
+			case v:
+
+		}
+
+		var cfield = nsb.toString();
+
+		sb.add('${cfield}.hasNext():');
+
+		sb.addNewLine(Inc);
+		sb.add('var ${v.name} = ${cfield}.next()');
+		sb.addNewLine(Same);
+		switch e2.expr {
+			case TCall(e, el):
+				generateCommonTCall(sb, e, el);
+			case v:
+				throw 'Unsupported ${v}';
+		}
+
+		sb.addNewLine(Dec);
 	}
 
 	/**
