@@ -1,7 +1,7 @@
 import json
 import tables
 import sequtils
-import core/[core, arrays, dynamic]
+import core/[core]
 
 type    
     JsonParser* = object

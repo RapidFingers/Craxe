@@ -448,6 +448,8 @@ class MethodExpressionGenerator {
 					generateCommonTCall(sb, e, el);
 				case TArrayDecl(el):
 					generateTArrayDecl(sb, el);
+				case TObjectDecl(fields):
+					generateTObjectDecl(sb, fields);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -605,6 +607,8 @@ class MethodExpressionGenerator {
 					generateTLocal(sb, v);
 				case TBinop(op, e1, e2):
 					generateTBinop(sb, op, e1, e2);
+				case TFunction(tfunc):
+					generateTFunction(sb, tfunc);
 				case v:
 					throw 'Unsupported ${v}';
 			}
