@@ -103,6 +103,27 @@ type
     HaxeEnum* = ref object of HaxeObject
         index*:int
 
+template toDynamic*(this:untyped):untyped =
+    newDynamic(this)
+
+template newDynamic*(value:string):Dynamic =
+    Dynamic(kind:TString, fstring: value)
+
+template newDynamic*(value:int):Dynamic =
+    Dynamic(kind:TInt, fint: value)
+
+template newDynamic*(value:float):Dynamic =
+    Dynamic(kind:TFloat, ffloat: value)
+
+template newDynamic*(value:AnonObject):Dynamic =
+    Dynamic(kind:TAnonObject, fanon: value)
+
+template newDynamic*(value:DynamicHaxeObjectRef):Dynamic =
+    Dynamic(kind:TClass, fclass: value)
+
+proc newDynamic*(value:pointer):Dynamic =
+    Dynamic(kind:TPointer, fpointer: value)
+
 # Core procedures
 # a++
 proc apOperator*[T](val:var T):T {.discardable, inline.} =        
@@ -202,6 +223,13 @@ proc newHaxeArrayIterator*[T](arr:HaxeArray[T]) : HaxeArrayIterator[T] =
     res.next = proc():T =
         result = res.arr[res.currentPos]
         inc(res.currentPos)
+
+    res.getFields = proc():HaxeArray[string] = newHaxeArray[string](@["hasNext", "next"])
+    res.getFieldByName = proc(name:string):Dynamic =
+            case name
+            of "hasNext": return toDynamic(rawProc(res.hasNext))
+            of "next": return toDynamic(rawProc(res.next))
+    #res.setFieldByName = proc(name:string, value:Dynamic):void = setFieldByNameInternal(res, name, value)
 
     return res
 
@@ -304,25 +332,7 @@ proc `$`*(this:Dynamic):string =
     else:
         return "Dynamic unknown"
 
-template newDynamic*(value:string):Dynamic =
-    Dynamic(kind:TString, fstring: value)
-
-template newDynamic*(value:int):Dynamic =
-    Dynamic(kind:TInt, fint: value)
-
-template newDynamic*(value:float):Dynamic =
-    Dynamic(kind:TFloat, ffloat: value)
-
-template newDynamic*(value:AnonObject):Dynamic =
-    Dynamic(kind:TAnonObject, fanon: value)
-
-template newDynamic*(value:DynamicHaxeObjectRef):Dynamic =
-    Dynamic(kind:TClass, fclass: value)
-
-proc newDynamic*(value:pointer):Dynamic =
-    Dynamic(kind:TPointer, fpointer: value)
-
-proc getField*(this:Dynamic, name:string):Dynamic {.gcsafe.} =    
+proc getField*(this:Dynamic, name:string):Dynamic {.gcsafe.} =
     case this.kind
     of TAnonObject:
         getField(this.fanon, name)
@@ -331,7 +341,7 @@ proc getField*(this:Dynamic, name:string):Dynamic {.gcsafe.} =
     else:
         nil
 
-proc getFieldNames*(this:Dynamic):HaxeArray[string] {.gcsafe.} =
+proc getFieldNames*(this:Dynamic):HaxeArray[string] {.gcsafe.} =    
     case this.kind
     of TAnonObject:
         this.fanon.getFields()
@@ -340,7 +350,7 @@ proc getFieldNames*(this:Dynamic):HaxeArray[string] {.gcsafe.} =
     else:
         nil
 
-template call*[T](this:Dynamic, tp:typedesc[T], args:varargs[untyped]):untyped =    
+template call*[T](this:Dynamic, tp:typedesc[T], args:varargs[untyped]):untyped =
     case this.kind
     of TPointer:
         var pr:T = cast[tp](this.fpointer)
@@ -354,9 +364,6 @@ template call*[T](this:Dynamic, name:string, tp:typedesc[T], args:varargs[untype
         this.getField(name).call(tp, args)
     else:
         raise newException(ValueError, "Dynamic wrong type")
-
-template toDynamic*(this:untyped):untyped =
-    newDynamic(this)
 
 proc fromDynamic*[T](this:Dynamic, t:typedesc[T]) : T =
     case this.kind
