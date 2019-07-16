@@ -12,7 +12,7 @@ type
 let JsonPrinterStaticInst* = JsonPrinterStatic()
 
 proc printObject(obj:Dynamic):string =    
-    let fields = obj.getFieldNames()
+    let fields = obj.getFields()
     if fields.isNil or fields.length < 1:    
         return "{}"
     
@@ -20,10 +20,10 @@ proc printObject(obj:Dynamic):string =
     for i in 0..<fields.length:
         if result.len > 1: result.add(", ")
 
-        let fieldName = fields[i]
-        result.addQuoted(fieldName)
+        let field = fields[i]
+        result.addQuoted(field.name)
         result.add(": ")
-        let val = obj.getField(fieldName)
+        let val = obj.getField(field.name)
         case val.kind
         of TString:
             result.add("\"" & $val & "\"")
@@ -35,12 +35,9 @@ proc printObject(obj:Dynamic):string =
 proc parseNode(node:JsonNode):Dynamic =
     case node.kind
     of JObject:
-        var keys = toSeq(node.fields.keys)        
-        var res = newAnonObject(keys)
-        var i = 0        
+        var res = newDynamicObject()        
         for key, val in node.fields.pairs():
-            res.setField(i, parseNode(val))
-            inc(i)
+            res.setField(key, parseNode(val))
         return toDynamic(res)
     of JString:
         return toDynamic(node.getStr())
@@ -60,7 +57,7 @@ proc doParse*(this:JsonParser):Dynamic =
 
 proc print*(this:JsonPrinterStatic, value:Dynamic, replacer:pointer = nil, space:pointer = nil):string =    
     case value.kind
-    of TAnonObject, TClass:
+    of TClass:
         return printObject(value)
     else:
         raise newException(ValueError, "Unsupported Dynamic type")

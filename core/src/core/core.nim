@@ -13,6 +13,10 @@ type
     # Main object for all haxe referrence objects
     HaxeObjectRef* = ref HaxeObject
 
+    # Interface object
+    HaxeInterfaceObject* = ref object of HaxeObject
+        obj*: HaxeObjectRef
+
     # Value object
     Struct* = object of HaxeObject
 
@@ -27,7 +31,7 @@ type
 
     # --- Haxe Iterator ---
 
-    HaxeIterator*[T] = ref object of DynamicHaxeObject
+    HaxeIterator*[T] = ref object of HaxeInterfaceObject
         hasNext*:proc():bool
         next*:proc():T
 
@@ -56,19 +60,15 @@ type
     HaxeObjectMap*[K, V] = HaxeMap[K, V]
 
     # --- Dynamic ---
-
-    AnonField* = ref object
+    
+    # Field of dynamic object
+    DynamicField* = ref object
         name*:string
         value*:Dynamic
 
-    # Haxe anonimous object
-    AnonObject* = seq[AnonField]
-
     # Dynamic object with access to fields by name
     DynamicHaxeObject* = object of HaxeObject
-        getFields*: proc():HaxeArray[string]
-        getFieldByName*: proc(name:string):Dynamic
-        setFieldByName*: proc(name:string, value:Dynamic):void
+        fields: HaxeArray[DynamicField]
 
     DynamicHaxeObjectRef* = ref DynamicHaxeObject
 
@@ -80,7 +80,7 @@ type
 
     # Dynamic
     DynamicType* = enum
-        TString, TInt, TFloat, TAnonObject, TClass, TPointer
+        TString, TInt, TFloat, TClass, TPointer
 
     Dynamic* = ref object
         case kind*: DynamicType
@@ -90,8 +90,6 @@ type
             fint*:int
         of TFloat: 
             ffloat*:float
-        of TAnonObject: 
-            fanon*: AnonObject
         of TClass: 
             fclass*: DynamicHaxeObjectRef
         of TPointer:
@@ -114,9 +112,6 @@ template newDynamic*(value:int):Dynamic =
 
 template newDynamic*(value:float):Dynamic =
     Dynamic(kind:TFloat, ffloat: value)
-
-template newDynamic*(value:AnonObject):Dynamic =
-    Dynamic(kind:TAnonObject, fanon: value)
 
 template newDynamic*(value:DynamicHaxeObjectRef):Dynamic =
     Dynamic(kind:TClass, fclass: value)
@@ -224,16 +219,8 @@ proc newHaxeArrayIterator*[T](arr:HaxeArray[T]) : HaxeArrayIterator[T] =
         result = res.arr[res.currentPos]
         inc(res.currentPos)
 
-    res.getFields = proc():HaxeArray[string] = newHaxeArray[string](@["hasNext", "next"])
-    res.getFieldByName = proc(name:string):Dynamic =
-            case name
-            of "hasNext": return toDynamic(rawProc(res.hasNext))
-            of "next": return toDynamic(rawProc(res.next))
-    #res.setFieldByName = proc(name:string, value:Dynamic):void = setFieldByNameInternal(res, name, value)
-
     return res
 
-# TODO: rewrite
 proc `iterator`*[T](this:HaxeArray[T]):HaxeIterator[T] =
     return newHaxeArrayIterator(this)
 
@@ -274,43 +261,39 @@ proc newObjectMap*[K, V]() : HaxeObjectMap[K, V] =
 
 # --- Dynamic ---
 
-# AnonObject
-proc newAnonObject*(names: seq[string]) : AnonObject {.inline.}  =
-    result = newSeqOfCap[AnonField](names.len)    
-    for i in 0..<names.len:
-        result.add(AnonField(name: names[i]))
+# DynamicHaxeObjectRef
 
-template newAnonObject*(fields: seq[AnonField]) : AnonObject =
-    fields
+proc newDynamicObject*() : DynamicHaxeObjectRef =
+    DynamicHaxeObjectRef(
+        fields: newHaxeArray[DynamicField]()
+    )
 
-proc newAnonField*(name:string, value:Dynamic) : AnonField {.inline.} =
-    AnonField(name : name, value : value)
+proc setField*(this:DynamicHaxeObjectRef, pos:int, value:Dynamic) {.inline.} =
+    this.fields[pos].value = value
 
-proc setField*[T](this:AnonObject, pos:int, value:T) {.inline.} =
-    this[pos].value = value
-
-proc setField*[T](this:AnonObject, name:string, value:T) {.inline.} =
-    for fld in this:
+proc setField*(this:DynamicHaxeObjectRef, name:string, value:Dynamic) {.inline.} =    
+    for fld in this.fields.data:        
         if fld.name == name:
             fld.value = value
+            return
+    
+    discard this.fields.push(DynamicField(name: name, value: value))
 
-template getField*(this:AnonObject, pos:int):Dynamic =
-    this[pos].value
+proc getField*(this:DynamicHaxeObjectRef, pos:int):Dynamic =
+    return this.fields[pos].value
 
-proc getField*(this:AnonObject, name:string):Dynamic =
-    if this.len < 1:
+proc getField*(this:DynamicHaxeObjectRef, name:string):Dynamic =
+    if this.fields.length < 1:
         return nil
 
-    for fld in this:
+    for fld in this.fields.data:
         if fld.name == name:
             return fld.value
 
     return nil
 
-proc getFields*(this:AnonObject):HaxeArray[string] =
-    result = newHaxeArray[string]()
-    for f in this:
-        discard result.push(f.name)
+proc getFields*(this:DynamicHaxeObjectRef):HaxeArray[DynamicField] =
+    return this.fields
 
 # Dynamic 
 proc `$`*(this:Dynamic):string =
@@ -321,30 +304,24 @@ proc `$`*(this:Dynamic):string =
         return $this.fint
     of TFloat:
         return $this.ffloat
-    of TAnonObject:
-        return $this[]
     of TClass:
         let fields = this.fclass.getFields()
         var data = newSeq[string]()
         for fld in fields.data:
-            data.add(fld & ": " & $this.fclass.getFieldByName(fld))
+            data.add(fld.name & ": " & $this.fclass.getField(fld.name))
         return $data
     else:
         return "Dynamic unknown"
 
 proc getField*(this:Dynamic, name:string):Dynamic {.gcsafe.} =
-    case this.kind
-    of TAnonObject:
-        getField(this.fanon, name)
+    case this.kind    
     of TClass:
-        this.fclass.getFieldByName(name)
+        this.fclass.getField(name)
     else:
         nil
 
-proc getFieldNames*(this:Dynamic):HaxeArray[string] {.gcsafe.} =    
+proc getFields*(this:Dynamic):HaxeArray[DynamicField] {.gcsafe.} =    
     case this.kind
-    of TAnonObject:
-        this.fanon.getFields()
     of TClass:
         this.fclass.getFields()
     else:
