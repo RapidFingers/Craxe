@@ -64,7 +64,12 @@ type
     # Field of dynamic object
     DynamicField* = ref object
         name*:string
-        value*:Dynamic
+        case isLink:bool
+        of true:
+            getProc*:proc():Dynamic
+            setProc*:proc(v:Dynamic):void
+        else:
+            value*:Dynamic
 
     # Dynamic object with access to fields by name
     DynamicHaxeObject* = object of HaxeObject
@@ -72,15 +77,9 @@ type
 
     DynamicHaxeObjectRef* = ref DynamicHaxeObject
 
-    # Dynamic proxy for real object
-    DynamicHaxeObjectProxy*[T] = object of DynamicHaxeObject
-        obj*:T
-
-    DynamicHaxeObjectProxyRef*[T] = ref object of DynamicHaxeObjectProxy[T]
-
     # Dynamic
     DynamicType* = enum
-        TString, TInt, TFloat, TClass, TPointer
+        TString, TInt, TFloat, TObject, TPointer
 
     Dynamic* = ref object
         case kind*: DynamicType
@@ -90,8 +89,8 @@ type
             fint*:int
         of TFloat: 
             ffloat*:float
-        of TClass: 
-            fclass*: DynamicHaxeObjectRef
+        of TObject: 
+            fobject*: DynamicHaxeObjectRef
         of TPointer:
             fpointer*: pointer
 
@@ -114,7 +113,7 @@ template newDynamic*(value:float):Dynamic =
     Dynamic(kind:TFloat, ffloat: value)
 
 template newDynamic*(value:DynamicHaxeObjectRef):Dynamic =
-    Dynamic(kind:TClass, fclass: value)
+    Dynamic(kind:TObject, fobject: value)
 
 proc newDynamic*(value:pointer):Dynamic =
     Dynamic(kind:TPointer, fpointer: value)
@@ -269,7 +268,11 @@ proc newDynamicObject*() : DynamicHaxeObjectRef =
     )
 
 proc setField*(this:DynamicHaxeObjectRef, pos:int, value:Dynamic) {.inline.} =
-    this.fields[pos].value = value
+    var fld = this.fields[pos]
+    if fld.isLink:   
+        fld.setProc(value)
+    else:
+        fld.value = value
 
 proc setField*(this:DynamicHaxeObjectRef, name:string, value:Dynamic) {.inline.} =    
     for fld in this.fields.data:        
@@ -277,7 +280,7 @@ proc setField*(this:DynamicHaxeObjectRef, name:string, value:Dynamic) {.inline.}
             fld.value = value
             return
     
-    discard this.fields.push(DynamicField(name: name, value: value))
+    discard this.fields.push(DynamicField(name: name, isLink:false, value: value))
 
 proc getField*(this:DynamicHaxeObjectRef, pos:int):Dynamic =
     return this.fields[pos].value
@@ -304,26 +307,26 @@ proc `$`*(this:Dynamic):string =
         return $this.fint
     of TFloat:
         return $this.ffloat
-    of TClass:
-        let fields = this.fclass.getFields()
+    of TObject:
+        let fields = this.fobject.getFields()
         var data = newSeq[string]()
         for fld in fields.data:
-            data.add(fld.name & ": " & $this.fclass.getField(fld.name))
+            data.add(fld.name & ": " & $this.fobject.getField(fld.name))
         return $data
     else:
         return "Dynamic unknown"
 
 proc getField*(this:Dynamic, name:string):Dynamic {.gcsafe.} =
     case this.kind    
-    of TClass:
-        this.fclass.getField(name)
+    of TObject:
+        this.fobject.getField(name)
     else:
         nil
 
 proc getFields*(this:Dynamic):HaxeArray[DynamicField] {.gcsafe.} =    
     case this.kind
-    of TClass:
-        this.fclass.getFields()
+    of TObject:
+        this.fobject.getFields()
     else:
         nil
 
@@ -337,7 +340,7 @@ template call*[T](this:Dynamic, tp:typedesc[T], args:varargs[untyped]):untyped =
 
 template call*[T](this:Dynamic, name:string, tp:typedesc[T], args:varargs[untyped]):untyped =    
     case this.kind:
-    of TAnonObject, TClass:
+    of TAnonObject, TObject:
         this.getField(name).call(tp, args)
     else:
         raise newException(ValueError, "Dynamic wrong type")
@@ -350,8 +353,8 @@ proc fromDynamic*[T](this:Dynamic, t:typedesc[T]) : T =
             cast[T](this.fstring)
         of TFloat:
             cast[T](this.ffloat)
-        of TClass:
-            cast[T](this.fclass)
+        of TObject:
+            cast[T](this.fobject)
         else:
             raise newException(ValueError, "Dynamic wrong type")
 

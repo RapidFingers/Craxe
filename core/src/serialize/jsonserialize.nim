@@ -11,7 +11,7 @@ type
 
 let JsonPrinterStaticInst* = JsonPrinterStatic()
 
-proc printObject(obj:Dynamic):string =    
+proc printObject(obj:Dynamic):string = 
     let fields = obj.getFields()
     if fields.isNil or fields.length < 1:    
         return "{}"
@@ -57,7 +57,7 @@ proc doParse*(this:JsonParser):Dynamic =
 
 proc print*(this:JsonPrinterStatic, value:Dynamic, replacer:pointer = nil, space:pointer = nil):string =    
     case value.kind
-    of TClass:
+    of TObject:
         return printObject(value)
     else:
         raise newException(ValueError, "Unsupported Dynamic type")
