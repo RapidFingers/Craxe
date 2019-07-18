@@ -14,7 +14,7 @@ type
     HaxeObjectRef* = ref HaxeObject
 
     # Interface object
-    HaxeInterfaceObject* = ref object of HaxeObject
+    InterfaceHaxeObject* = ref object of HaxeObject
         obj*: HaxeObjectRef
 
     # Value object
@@ -31,7 +31,7 @@ type
 
     # --- Haxe Iterator ---
 
-    HaxeIterator*[T] = ref object of HaxeInterfaceObject
+    HaxeIterator*[T] = ref object of InterfaceHaxeObject
         hasNext*:proc():bool
         next*:proc():T
 
@@ -72,16 +72,16 @@ type
             value*:Dynamic
 
     # Dynamic object with access to fields by name
-    DynamicHaxeObject* = object of HaxeObject
+    ReflectiveHaxeObject* = object of HaxeObject
         fields: HaxeArray[DynamicField]
 
-    DynamicHaxeObjectRef* = ref DynamicHaxeObject
+    ReflectiveHaxeObjectRef* = ref ReflectiveHaxeObject
 
     # Dynamic
     DynamicType* = enum
         TString, TInt, TFloat, TObject, TPointer
 
-    Dynamic* = ref object
+    Dynamic* = ref object of HaxeObject
         case kind*: DynamicType
         of TString: 
             fstring*:string
@@ -89,8 +89,8 @@ type
             fint*:int
         of TFloat: 
             ffloat*:float
-        of TObject: 
-            fobject*: DynamicHaxeObjectRef
+        of TObject:
+            fobject*: ReflectiveHaxeObjectRef
         of TPointer:
             fpointer*: pointer
 
@@ -112,7 +112,7 @@ template newDynamic*(value:int):Dynamic =
 template newDynamic*(value:float):Dynamic =
     Dynamic(kind:TFloat, ffloat: value)
 
-template newDynamic*(value:DynamicHaxeObjectRef):Dynamic =
+template newDynamic*(value:ReflectiveHaxeObjectRef):Dynamic =
     Dynamic(kind:TObject, fobject: value)
 
 proc newDynamic*(value:pointer):Dynamic =
@@ -260,21 +260,21 @@ proc newObjectMap*[K, V]() : HaxeObjectMap[K, V] =
 
 # --- Dynamic ---
 
-# DynamicHaxeObjectRef
+# ReflectiveHaxeObjectRef
 
-proc newDynamicObject*() : DynamicHaxeObjectRef =
-    DynamicHaxeObjectRef(
+proc newDynamicObject*() : ReflectiveHaxeObjectRef =
+    ReflectiveHaxeObjectRef(
         fields: newHaxeArray[DynamicField]()
     )
 
-proc setField*(this:DynamicHaxeObjectRef, pos:int, value:Dynamic) {.inline.} =
+proc setField*(this:ReflectiveHaxeObjectRef, pos:int, value:Dynamic) {.inline.} =
     var fld = this.fields[pos]
     if fld.isLink:   
         fld.setProc(value)
     else:
         fld.value = value
 
-proc setField*(this:DynamicHaxeObjectRef, name:string, value:Dynamic) {.inline.} =    
+proc setField*(this:ReflectiveHaxeObjectRef, name:string, value:Dynamic) {.inline.} =    
     for fld in this.fields.data:        
         if fld.name == name:
             fld.value = value
@@ -282,10 +282,10 @@ proc setField*(this:DynamicHaxeObjectRef, name:string, value:Dynamic) {.inline.}
     
     discard this.fields.push(DynamicField(name: name, isLink:false, value: value))
 
-proc getField*(this:DynamicHaxeObjectRef, pos:int):Dynamic =
+proc getField*(this:ReflectiveHaxeObjectRef, pos:int):Dynamic =
     return this.fields[pos].value
 
-proc getField*(this:DynamicHaxeObjectRef, name:string):Dynamic =
+proc getField*(this:ReflectiveHaxeObjectRef, name:string):Dynamic =
     if this.fields.length < 1:
         return nil
 
@@ -295,7 +295,7 @@ proc getField*(this:DynamicHaxeObjectRef, name:string):Dynamic =
 
     return nil
 
-proc getFields*(this:DynamicHaxeObjectRef):HaxeArray[DynamicField] =
+proc getFields*(this:ReflectiveHaxeObjectRef):HaxeArray[DynamicField] =
     return this.fields
 
 # Dynamic 
