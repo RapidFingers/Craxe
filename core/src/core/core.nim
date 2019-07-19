@@ -79,7 +79,7 @@ type
 
     # Dynamic
     DynamicType* = enum
-        TString, TInt, TFloat, TObject, TPointer
+        TString, TInt, TFloat, TObject, TProc
 
     Dynamic* = ref object of HaxeObject
         case kind*: DynamicType
@@ -91,8 +91,8 @@ type
             ffloat*:float
         of TObject:
             fobject*: ReflectiveHaxeObjectRef
-        of TPointer:
-            fpointer*: pointer
+        of TProc:
+            fproc*: pointer
 
     # --- Haxe Enum ---
 
@@ -115,8 +115,8 @@ template newDynamic*(value:float):Dynamic =
 template newDynamic*(value:ReflectiveHaxeObjectRef):Dynamic =
     Dynamic(kind:TObject, fobject: value)
 
-proc newDynamic*(value:pointer):Dynamic =
-    Dynamic(kind:TPointer, fpointer: value)
+proc newDynamic*(value:proc):Dynamic =
+    Dynamic(kind:TProc, fproc: cast[pointer](value))
 
 # Core procedures
 # a++
@@ -262,36 +262,43 @@ proc newObjectMap*[K, V]() : HaxeObjectMap[K, V] =
 
 # ReflectiveHaxeObjectRef
 
-proc newDynamicObject*() : ReflectiveHaxeObjectRef =
-    ReflectiveHaxeObjectRef(
-        fields: newHaxeArray[DynamicField]()
-    )
+proc initReflectiveObject*(this:ReflectiveHaxeObjectRef) =    
+    this.fields = newHaxeArray[DynamicField]()    
 
-proc setField*(this:ReflectiveHaxeObjectRef, pos:int, value:Dynamic) {.inline.} =
-    var fld = this.fields[pos]
-    if fld.isLink:   
-        fld.setProc(value)
-    else:
-        fld.value = value
+proc newReflectiveObject*() : ReflectiveHaxeObjectRef =
+    var res = ReflectiveHaxeObjectRef()
+    initReflectiveObject(res)
+    return res
 
-proc setField*(this:ReflectiveHaxeObjectRef, name:string, value:Dynamic) {.inline.} =    
-    for fld in this.fields.data:        
+proc addFieldLink*(this:ReflectiveHaxeObjectRef, name:string, getProc:proc():Dynamic, setProc:proc(v:Dynamic):void):void =
+    discard this.fields.push(DynamicField(
+        name: name,
+        isLink: true,
+        getProc: getProc,
+        setProc: setProc
+    ))
+
+proc setFieldByName*(this:ReflectiveHaxeObjectRef, name:string, value:Dynamic) {.inline.} =    
+    for fld in this.fields.data:
         if fld.name == name:
-            fld.value = value
+            if fld.isLink:
+                fld.setProc(value)                
+            else:
+                fld.value = value
             return
     
     discard this.fields.push(DynamicField(name: name, isLink:false, value: value))
 
-proc getField*(this:ReflectiveHaxeObjectRef, pos:int):Dynamic =
-    return this.fields[pos].value
-
-proc getField*(this:ReflectiveHaxeObjectRef, name:string):Dynamic =
+proc getFieldByName*(this:ReflectiveHaxeObjectRef, name:string):Dynamic =
     if this.fields.length < 1:
         return nil
 
     for fld in this.fields.data:
         if fld.name == name:
-            return fld.value
+            if fld.isLink:
+                return fld.getProc()
+            else:
+                return fld.value
 
     return nil
 
@@ -299,6 +306,7 @@ proc getFields*(this:ReflectiveHaxeObjectRef):HaxeArray[DynamicField] =
     return this.fields
 
 # Dynamic 
+
 proc `$`*(this:Dynamic):string =
     case this.kind
     of TString:
@@ -311,15 +319,21 @@ proc `$`*(this:Dynamic):string =
         let fields = this.fobject.getFields()
         var data = newSeq[string]()
         for fld in fields.data:
-            data.add(fld.name & ": " & $this.fobject.getField(fld.name))
+            data.add(fld.name & ": " & $this.fobject.getFieldByName(fld.name))
         return $data
+    of TProc:
+        return "Proc"
+
+proc `$`*(this:DynamicField):string =
+    if this.isLink:
+        return $this.getProc()
     else:
-        return "Dynamic unknown"
+        return $this.value
 
 proc getField*(this:Dynamic, name:string):Dynamic {.gcsafe.} =
     case this.kind    
     of TObject:
-        this.fobject.getField(name)
+        this.fobject.getFieldByName(name)
     else:
         nil
 
@@ -330,15 +344,23 @@ proc getFields*(this:Dynamic):HaxeArray[DynamicField] {.gcsafe.} =
     else:
         nil
 
-template call*[T](this:Dynamic, tp:typedesc[T], args:varargs[untyped]):untyped =
+template call*[T](this:Dynamic, tp:typedesc[T]):untyped =
     case this.kind
-    of TPointer:
-        var pr:T = cast[tp](this.fpointer)
+    of TProc:
+        var pr:T = cast[tp](this.fproc)
+        pr()
+    else:
+        raise newException(ValueError, "Dynamic wrong type")
+
+template call*[T](this:Dynamic, tp:typedesc[T], args:untyped):untyped =
+    case this.kind
+    of TProc:
+        var pr:T = cast[tp](this.fproc)
         pr(args)
     else:
         raise newException(ValueError, "Dynamic wrong type")
 
-template call*[T](this:Dynamic, name:string, tp:typedesc[T], args:varargs[untyped]):untyped =    
+template call*[T](this:Dynamic, name:string, tp:typedesc[T], args:untyped):untyped =    
     case this.kind:
     of TAnonObject, TObject:
         this.getField(name).call(tp, args)
@@ -355,8 +377,8 @@ proc fromDynamic*[T](this:Dynamic, t:typedesc[T]) : T =
             cast[T](this.ffloat)
         of TObject:
             cast[T](this.fobject)
-        else:
-            raise newException(ValueError, "Dynamic wrong type")
+        of TProc:
+            cast[T](this.fproc)
 
 # --- Haxe Enum ---
 
