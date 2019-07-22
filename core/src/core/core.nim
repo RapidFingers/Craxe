@@ -8,14 +8,40 @@ type
        x.hash is proc():int
 
     # Main object for all haxe objects
+    # All classes without reflection
     HaxeObject* = RootObj
 
-    # Main object for all haxe referrence objects
+    # Reference to HaxeObject
     HaxeObjectRef* = ref HaxeObject
 
     # Interface object
-    InterfaceHaxeObject* = ref object of HaxeObject
+    # Container for HaxeObject with links for it fields
+    InterfaceHaxeObject* = object of HaxeObject
         obj*: HaxeObjectRef
+
+    # Reference to InterfaceHaxeObject
+    InterfaceHaxeObjectRef* = ref InterfaceHaxeObject
+
+    # Object with introspection but no possibility to add/remove fields
+    # Classes with reflection, or using as dynamic
+    IntrospectiveHaxeObject* = object of HaxeObject
+        # Return names of object fields
+        getFields*:proc():HaxeArray[string]
+        # Return field value as Dynamic by name
+        getFieldByName*:proc(name:string):Dynamic
+        # Set field value by name
+        setFieldByName*:proc(name:string, value:Dynamic):void
+
+    # Reference to IntrospectiveHaxeObject    
+    IntrospectiveHaxeObjectRef* = object of IntrospectiveHaxeObject
+
+    # Mutable object with all reflection possibility
+    # Anonimous object (typedef)
+    ReflectiveHaxeObject* = object of IntrospectiveHaxeObject
+        # Fields for add/delete by reflection
+        fields: HaxeArray[DynamicField]
+
+    ReflectiveHaxeObjectRef* = ref ReflectiveHaxeObject
 
     # Value object
     Struct* = object of HaxeObject
@@ -69,13 +95,7 @@ type
             getProc*:proc():Dynamic
             setProc*:proc(v:Dynamic):void
         else:
-            value*:Dynamic
-
-    # Dynamic object with access to fields by name
-    ReflectiveHaxeObject* = object of HaxeObject
-        fields: HaxeArray[DynamicField]
-
-    ReflectiveHaxeObjectRef* = ref ReflectiveHaxeObject
+            value*:Dynamic    
 
     # Dynamic
     DynamicType* = enum
@@ -90,7 +110,7 @@ type
         of TFloat: 
             ffloat*:float
         of TObject:
-            fobject*: ReflectiveHaxeObjectRef
+            fobject*: IntrospectiveHaxeObjectRef
         of TProc:
             fproc*: pointer
 
