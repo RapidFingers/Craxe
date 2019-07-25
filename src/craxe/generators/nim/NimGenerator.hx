@@ -312,14 +312,14 @@ class NimGenerator extends BaseGenerator {
 					var tpname = typeResolver.resolve(td.typedefInfo.type);
 					sb.add('${td.typedefInfo.name} = ${tpname}');
 					sb.addNewLine(Same);
-				case TAnonymous(a):
+				case TAnonymous(_):
 				case v:
 					throw 'Unsupported ${v}';
 			}
 		}
 
 		for (an in anons) {
-			sb.add('${an.name} = ref object of DynamicHaxeObject');
+			sb.add('${an.name} = ref object of ReflectiveHaxeObject');
 			sb.addNewLine(Inc);
 			for (fld in an.fields) {
 				var ftp = typeResolver.resolve(fld.type);
@@ -428,7 +428,7 @@ class NimGenerator extends BaseGenerator {
 		var params = typeResolver.resolveParameters(cls.params);
 
 		var baseTypeName = if (typeContext.isDynamicSupported(clsName)) {
-			"DynamicHaxeObject";
+			"IntrospectiveHaxeObject";
 		} else {
 			"HaxeObject";
 		}

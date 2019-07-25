@@ -26,11 +26,11 @@ type
     # Classes with reflection, or using as dynamic
     IntrospectiveHaxeObject* = object of HaxeObject
         # Return names of object fields
-        getFields*:proc():HaxeArray[string]
+        getFields*:proc():HaxeArray[string] {.gcsafe.}
         # Return field value as Dynamic by name
-        getFieldByName*:proc(name:string):Dynamic
+        getFieldByName*:proc(name:string):Dynamic {.gcsafe.}
         # Set field value by name
-        setFieldByName*:proc(name:string, value:Dynamic):void
+        setFieldByName*:proc(name:string, value:Dynamic):void {.gcsafe.}
 
     # Reference to IntrospectiveHaxeObject    
     IntrospectiveHaxeObjectRef* = object of IntrospectiveHaxeObject
@@ -87,15 +87,10 @@ type
 
     # --- Dynamic ---
     
-    # Field of dynamic object
+    # Field of object that can be added or deleted
     DynamicField* = ref object
-        name*:string
-        case isLink:bool
-        of true:
-            getProc*:proc():Dynamic
-            setProc*:proc(v:Dynamic):void
-        else:
-            value*:Dynamic    
+        name*:string        
+        value*:Dynamic    
 
     # Dynamic
     DynamicType* = enum
@@ -120,9 +115,6 @@ type
     HaxeEnum* = ref object of HaxeObject
         index*:int
 
-template toDynamic*(this:untyped):untyped =
-    newDynamic(this)
-
 template newDynamic*(value:string):Dynamic =
     Dynamic(kind:TString, fstring: value)
 
@@ -132,11 +124,17 @@ template newDynamic*(value:int):Dynamic =
 template newDynamic*(value:float):Dynamic =
     Dynamic(kind:TFloat, ffloat: value)
 
+template newDynamic*(value:IntrospectiveHaxeObjectRef):Dynamic =
+    Dynamic(kind:TObject, fobject: value)
+
 template newDynamic*(value:ReflectiveHaxeObjectRef):Dynamic =
     Dynamic(kind:TObject, fobject: value)
 
 proc newDynamic*(value:proc):Dynamic =
     Dynamic(kind:TProc, fproc: cast[pointer](value))
+
+template toDynamic*(this:untyped):untyped =
+    newDynamic(this)
 
 # Core procedures
 # a++
@@ -224,6 +222,12 @@ template pop*[T](this:HaxeArray[T]): T =
 template get*[T](this:HaxeArray[T], pos:int): T =
     this.data[pos]
 
+# Removes the first occurrence of v in this Array 
+template remove*[T](this:HaxeArray[T], v:T) : bool =
+    let id = this.data.find(v)
+    if id > -1:
+        this.data.del(id)
+
 template length*[T](this:HaxeArray[T]): int =    
     this.data.len
 
@@ -289,38 +293,37 @@ proc newReflectiveObject*() : ReflectiveHaxeObjectRef =
     var res = ReflectiveHaxeObjectRef()
     initReflectiveObject(res)
     return res
-
-proc addFieldLink*(this:ReflectiveHaxeObjectRef, name:string, getProc:proc():Dynamic, setProc:proc(v:Dynamic):void):void =
-    discard this.fields.push(DynamicField(
-        name: name,
-        isLink: true,
-        getProc: getProc,
-        setProc: setProc
-    ))
-
-proc setFieldByName*(this:ReflectiveHaxeObjectRef, name:string, value:Dynamic) {.inline.} =    
+    
+proc setAnonFieldByName*(this:ReflectiveHaxeObjectRef, name:string, value:Dynamic) {.inline.} =    
     for fld in this.fields.data:
         if fld.name == name:
-            if fld.isLink:
-                fld.setProc(value)                
-            else:
-                fld.value = value
+            fld.value = value
             return
     
-    discard this.fields.push(DynamicField(name: name, isLink:false, value: value))
+    discard this.fields.push(DynamicField(name: name, value: value))
 
-proc getFieldByName*(this:ReflectiveHaxeObjectRef, name:string):Dynamic =
-    if this.fields.length < 1:
-        return nil
-
+proc getAnonFieldByName*(this:ReflectiveHaxeObjectRef, name:string):Dynamic {.inline.} =
     for fld in this.fields.data:
         if fld.name == name:
-            if fld.isLink:
-                return fld.getProc()
-            else:
-                return fld.value
-
+            return fld.value
+        
     return nil
+
+proc deleteField*(this:ReflectiveHaxeObjectRef, name:string):void {.inline.} =
+    var i = -1
+    for fld in this.fields.data:
+        if fld.name == name:
+            i += 1
+            break
+        else:
+            i += 1
+
+    if i != -1:
+        this.fields.data.del(i)
+    
+    
+    
+
 
 proc getFields*(this:ReflectiveHaxeObjectRef):HaxeArray[DynamicField] =
     return this.fields
@@ -328,6 +331,8 @@ proc getFields*(this:ReflectiveHaxeObjectRef):HaxeArray[DynamicField] =
 # Dynamic 
 
 proc `$`*(this:Dynamic):string =
+    if this.isNil:
+        return "null"
     case this.kind
     of TString:
         return this.fstring
@@ -339,16 +344,13 @@ proc `$`*(this:Dynamic):string =
         let fields = this.fobject.getFields()
         var data = newSeq[string]()
         for fld in fields.data:
-            data.add(fld.name & ": " & $this.fobject.getFieldByName(fld.name))
+            data.add(fld & ": " & $this.fobject.getFieldByName(fld))
         return $data
     of TProc:
         return "Proc"
 
 proc `$`*(this:DynamicField):string =
-    if this.isLink:
-        return $this.getProc()
-    else:
-        return $this.value
+    return $this.value
 
 proc getField*(this:Dynamic, name:string):Dynamic {.gcsafe.} =
     case this.kind    
@@ -357,7 +359,7 @@ proc getField*(this:Dynamic, name:string):Dynamic {.gcsafe.} =
     else:
         nil
 
-proc getFields*(this:Dynamic):HaxeArray[DynamicField] {.gcsafe.} =    
+proc getFields*(this:Dynamic):HaxeArray[string] {.gcsafe.} =    
     case this.kind
     of TObject:
         this.fobject.getFields()
@@ -389,16 +391,16 @@ template call*[T](this:Dynamic, name:string, tp:typedesc[T], args:untyped):untyp
 
 proc fromDynamic*[T](this:Dynamic, t:typedesc[T]) : T =
     case this.kind
-        of TInt:
-            cast[T](this.fint)
-        of TString:
-            cast[T](this.fstring)
-        of TFloat:
-            cast[T](this.ffloat)
-        of TObject:
-            cast[T](this.fobject)
-        of TProc:
-            cast[T](this.fproc)
+    of TInt:
+        cast[T](this.fint)
+    of TString:
+        cast[T](this.fstring)
+    of TFloat:
+        cast[T](this.ffloat)
+    of TObject:
+        cast[T](this.fobject)
+    of TProc:
+        cast[T](this.fproc)
 
 # --- Haxe Enum ---
 
