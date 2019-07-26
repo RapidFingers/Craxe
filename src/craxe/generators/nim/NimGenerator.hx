@@ -286,6 +286,134 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
+	 * Generate anon converters to dynamic
+	 */
+	function buildAnonConstructors(sb:IndentStringBuilder) {
+		var anons = typeContext.allAnonymous();
+		if (anons.length < 1)
+			return;
+
+		for (an in anons) {
+			var anonName = an.name;
+
+			sb.add('proc new${anonName}(');
+			var resolved = typeResolver.resolveArguments(an.fields.map(x -> {
+				name: x.name,
+				opt: false,
+				t: x.type
+			}));
+			if (resolved.length > 0) {
+				var sargs = resolved.map(x -> {
+					return '${x.name}:${x.t}';
+				}).join(", ");
+				sb.add(sargs);
+			}
+
+			sb.add('):${anonName} =');
+			sb.addNewLine(Inc);
+			sb.add('var this = ${anonName}(');
+			sb.addNewLine(Inc);
+			for (i in 0...an.fields.length) {
+				var fld = an.fields[i];
+				sb.add('${fld.name}:${fld.name},');
+				sb.addNewLine(Same);
+			}
+			sb.addNewLine(Dec);
+			sb.add(')');
+			sb.addNewLine(Same);
+			
+			sb.add('this.getFields = proc():HaxeArray =');
+			sb.addNewLine(Inc);
+			sb.add('return newHaxeArray(@[');
+			sb.add(an.fields.map(x->'"${x.name}"').join(','));
+			sb.add('])');
+			sb.addNewLine(Dec);
+
+			sb.add('this.getFieldByName = proc(name:string):Dynamic =');
+			sb.addNewLine(Inc);
+			sb.add('case name');
+			sb.addNewLine(Same);
+			for (i in 0...an.fields.length) {
+				var fld = an.fields[i];
+				sb.add('of "${fld.name}":');
+				sb.addNewLine(Inc);
+				sb.add('return toDynamic(this.${fld.name})');
+				sb.addNewLine(Dec);
+			}
+			sb.add('return this.getAnonFieldByName(name)');
+			sb.addNewLine(Dec);
+
+			sb.add('this.setFieldByName = proc(name:string, value:Dynamic):void =');
+			sb.addNewLine(Inc);
+			sb.add('case name');
+			sb.addNewLine(Same);
+			for (i in 0...an.fields.length) {
+				var fld = an.fields[i];
+				sb.add('of "${fld.name}":');
+				sb.addNewLine(Inc);
+				sb.add('this.${fld.name} = value');
+				sb.addNewLine(Same);
+				sb.add('return');
+				sb.addNewLine(Dec);
+			}
+
+			sb.add('this.setAnonFieldByName(name, value)');
+			sb.addNewLine(Dec);
+			sb.add('return this');
+			// sb.add('proc getFields(this:${anonName}):HaxeArray[string] {.inline.} =');
+			// sb.addNewLine(Inc);
+			// var fldNames = an.fields.map(x -> '"${x.name}"').join(", ");
+			// sb.add('return newHaxeArray[string](@[${fldNames}])');
+
+			// sb.addBreak();
+
+			// sb.add('proc getFieldByNameInternal(this:${anonName}, name:string):Dynamic =');
+			// sb.addNewLine(Inc);
+			// if (an.fields.length > 0) {
+			// 	sb.add("case name");
+			// 	sb.addNewLine(Same);
+			// 	for (i in 0...an.fields.length) {
+			// 		var fld = an.fields[i];
+			// 		sb.add('of "${fld.name}": return toDynamic(this.${fld.name})');
+			// 		sb.addNewLine(Same);
+			// 	}
+			// }
+
+			// sb.addBreak();
+
+			// sb.add('proc setFieldByNameInternal(this:${anonName}, name:string, value:Dynamic):void =');
+			// sb.addNewLine(Inc);
+			// if (an.fields.length > 0) {
+			// 	sb.add("case name");
+			// 	sb.addNewLine(Same);
+			// 	for (i in 0...an.fields.length) {
+			// 		var fld = an.fields[i];
+			// 		sb.add('of "${fld.name}": this.${fld.name} = fromDynamic(value, typeof(this.${fld.name}))');
+			// 		sb.addNewLine(Same);
+			// 	}
+			// }
+
+			// sb.addBreak();
+
+			// sb.add('proc makeDynamic(this:${anonName}):Dynamic {.inline.} =');
+			// sb.addNewLine(Inc);
+
+			// sb.add("this.getFields = proc():HaxeArray[string] = getFields(this)");
+			// sb.addNewLine(Same);
+			// sb.add("this.getFieldByName = proc(name:string):Dynamic = getFieldByNameInternal(this, name)");
+			// sb.addNewLine(Same);
+			// sb.add("this.setFieldByName = proc(name:string, value:Dynamic):void = setFieldByNameInternal(this, name, value)");
+			// sb.addNewLine(Same);
+			// sb.add("return toDynamic(this)");
+			// sb.addBreak();
+
+			sb.addBreak();
+		}
+
+		sb.addNewLine();
+	}
+
+	/**
 	 * Build typedefs
 	 */
 	function buildTypedefs(sb:IndentStringBuilder) {
@@ -331,68 +459,8 @@ class NimGenerator extends BaseGenerator {
 		}
 
 		sb.addNewLine();
-	}
 
-	/**
-	 * Generate anon converters to dynamic
-	 */
-	function buildAnonMakeDynamic(sb:IndentStringBuilder) {
-		var anons = typeContext.allAnonymous();
-		if (anons.length < 1)
-			return;
-
-		for (an in anons) {
-			var anonName = an.name;
-
-			sb.add('proc getFields(this:${anonName}):HaxeArray[string] {.inline.} =');
-			sb.addNewLine(Inc);
-			var fldNames = an.fields.map(x -> '"${x.name}"').join(", ");
-			sb.add('return newHaxeArray[string](@[${fldNames}])');
-
-			sb.addBreak();
-
-			sb.add('proc getFieldByNameInternal(this:${anonName}, name:string):Dynamic =');
-			sb.addNewLine(Inc);
-			if (an.fields.length > 0) {
-				sb.add("case name");
-				sb.addNewLine(Same);
-				for (i in 0...an.fields.length) {
-					var fld = an.fields[i];
-					sb.add('of "${fld.name}": return toDynamic(this.${fld.name})');
-					sb.addNewLine(Same);
-				}
-			}
-
-			sb.addBreak();
-
-			sb.add('proc setFieldByNameInternal(this:${anonName}, name:string, value:Dynamic):void =');
-			sb.addNewLine(Inc);
-			if (an.fields.length > 0) {
-				sb.add("case name");
-				sb.addNewLine(Same);
-				for (i in 0...an.fields.length) {
-					var fld = an.fields[i];
-					sb.add('of "${fld.name}": this.${fld.name} = fromDynamic(value, typeof(this.${fld.name}))');
-					sb.addNewLine(Same);
-				}
-			}
-
-			sb.addBreak();
-
-			sb.add('proc makeDynamic(this:${anonName}):Dynamic {.inline.} =');
-			sb.addNewLine(Inc);
-
-			sb.add("this.getFields = proc():HaxeArray[string] = getFields(this)");
-			sb.addNewLine(Same);
-			sb.add("this.getFieldByName = proc(name:string):Dynamic = getFieldByNameInternal(this, name)");
-			sb.addNewLine(Same);
-			sb.add("this.setFieldByName = proc(name:string, value:Dynamic):void = setFieldByNameInternal(this, name, value)");
-			sb.addNewLine(Same);
-			sb.add("return toDynamic(this)");
-			sb.addBreak();
-		}
-
-		sb.addNewLine();
+		buildAnonConstructors(sb);
 	}
 
 	/**
@@ -552,7 +620,7 @@ class NimGenerator extends BaseGenerator {
 					sb.add('return newHaxeArray[string](@[${fldNames}])');
 
 					sb.addBreak();
-					
+
 					sb.add('proc getFieldByNameInternal${params}(this:${className}${params}, name:string):Dynamic =');
 					sb.addNewLine(Inc);
 					if (fields.length > 0) {
@@ -810,7 +878,6 @@ class NimGenerator extends BaseGenerator {
 		addCodeHelpers(headerSb);
 		buildEnums(headerSb);
 		buildTypedefs(headerSb);
-		buildAnonMakeDynamic(headerSb);
 		buildInterfaces(headerSb);
 
 		if (types.entryPoint != null) {

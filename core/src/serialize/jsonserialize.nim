@@ -21,9 +21,9 @@ proc printObject(obj:Dynamic):string =
         if result.len > 1: result.add(", ")
 
         let field = fields[i]
-        result.addQuoted(field.name)
+        result.addQuoted(field)
         result.add(": ")
-        let val = obj.getField(field.name)
+        let val = obj.getField(field)
         case val.kind
         of TString:
             result.add("\"" & $val & "\"")
@@ -57,7 +57,7 @@ proc doParse*(this:JsonParser):Dynamic =
 
 proc print*(this:JsonPrinterStatic, value:Dynamic, replacer:pointer = nil, space:pointer = nil):string =    
     case value.kind
-    of TObject:
+    of TIntrospectiveObject,TReflectiveObject:
         return printObject(value)
     else:
         raise newException(ValueError, "Unsupported Dynamic type")

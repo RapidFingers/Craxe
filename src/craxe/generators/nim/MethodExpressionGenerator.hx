@@ -362,6 +362,7 @@ class MethodExpressionGenerator {
 					switch vr.t {
 						case TMono(_):
 						case TDynamic(_):
+						case TAnonymous(_):
 						// Ignore
 						case _:
 							isConvertFromDynamic = true;
@@ -595,11 +596,11 @@ class MethodExpressionGenerator {
 			}));
 		}
 
-		sb.add('makeDynamic(');
-		sb.add('${object.name}(');
+		sb.add('toDynamic(');
+		sb.add('new${object.name}(');
 		for (i in 0...fields.length) {
 			var field = fields[i];
-			sb.add('${field.name}: ');
+			sb.add('${field.name}=');
 			switch field.expr.expr {
 				case TConst(c):
 					generateTConst(sb, c);

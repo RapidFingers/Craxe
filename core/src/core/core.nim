@@ -94,7 +94,7 @@ type
 
     # Dynamic
     DynamicType* = enum
-        TString, TInt, TFloat, TObject, TProc
+        TString, TInt, TFloat, TIntrospectiveObject, TReflectiveObject, TProc
 
     Dynamic* = ref object of HaxeObject
         case kind*: DynamicType
@@ -104,8 +104,10 @@ type
             fint*:int
         of TFloat: 
             ffloat*:float
-        of TObject:
-            fobject*: IntrospectiveHaxeObjectRef
+        of TIntrospectiveObject:
+            fobjectIntro*: IntrospectiveHaxeObjectRef
+        of TReflectiveObject:
+            fobjectRefl*: ReflectiveHaxeObjectRef
         of TProc:
             fproc*: pointer
 
@@ -125,10 +127,10 @@ template newDynamic*(value:float):Dynamic =
     Dynamic(kind:TFloat, ffloat: value)
 
 template newDynamic*(value:IntrospectiveHaxeObjectRef):Dynamic =
-    Dynamic(kind:TObject, fobject: value)
+    Dynamic(kind:TIntrospectiveObject, fobjectIntro: value)
 
 template newDynamic*(value:ReflectiveHaxeObjectRef):Dynamic =
-    Dynamic(kind:TObject, fobject: value)
+    Dynamic(kind:TReflectiveObject, fobjectRefl: value)
 
 proc newDynamic*(value:proc):Dynamic =
     Dynamic(kind:TProc, fproc: cast[pointer](value))
@@ -340,11 +342,17 @@ proc `$`*(this:Dynamic):string =
         return $this.fint
     of TFloat:
         return $this.ffloat
-    of TObject:
-        let fields = this.fobject.getFields()
+    of TIntrospectiveObject:
+        let fields = this.fobjectIntro.getFields()
         var data = newSeq[string]()
         for fld in fields.data:
-            data.add(fld & ": " & $this.fobject.getFieldByName(fld))
+            data.add(fld & ": " & $this.fobjectIntro.getFieldByName(fld))
+        return $data
+    of TReflectiveObject:
+        let fields = this.fobjectIntro.getFields()
+        var data = newSeq[string]()
+        for fld in fields.data:
+            data.add(fld & ": " & $this.fobjectIntro.getFieldByName(fld))
         return $data
     of TProc:
         return "Proc"
@@ -354,15 +362,19 @@ proc `$`*(this:DynamicField):string =
 
 proc getField*(this:Dynamic, name:string):Dynamic {.gcsafe.} =
     case this.kind    
-    of TObject:
-        this.fobject.getFieldByName(name)
+    of TIntrospectiveObject:
+        this.fobjectIntro.getFieldByName(name)
+    of TReflectiveObject:
+        this.fobjectRefl.getFieldByName(name)
     else:
         nil
 
 proc getFields*(this:Dynamic):HaxeArray[string] {.gcsafe.} =    
     case this.kind
-    of TObject:
-        this.fobject.getFields()
+    of TIntrospectiveObject:
+        this.fobjectIntro.getFields()
+    of TReflectiveObject:
+        this.fobjectRefl.getFields()
     else:
         nil
 
@@ -388,19 +400,6 @@ template call*[T](this:Dynamic, name:string, tp:typedesc[T], args:untyped):untyp
         this.getField(name).call(tp, args)
     else:
         raise newException(ValueError, "Dynamic wrong type")
-
-proc fromDynamic*[T](this:Dynamic, t:typedesc[T]) : T =
-    case this.kind
-    of TInt:
-        cast[T](this.fint)
-    of TString:
-        cast[T](this.fstring)
-    of TFloat:
-        cast[T](this.ffloat)
-    of TObject:
-        cast[T](this.fobject)
-    of TProc:
-        cast[T](this.fproc)
 
 # --- Haxe Enum ---
 
