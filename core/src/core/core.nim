@@ -39,7 +39,7 @@ type
     # Anonimous object (typedef)
     ReflectiveHaxeObject* = object of IntrospectiveHaxeObject
         # Fields for add/delete by reflection
-        fields: HaxeArray[DynamicField]
+        fields: HaxeStringMap[Dynamic]
 
     ReflectiveHaxeObjectRef* = ref ReflectiveHaxeObject
 
@@ -286,49 +286,36 @@ proc newObjectMap*[K, V]() : HaxeObjectMap[K, V] =
 
 # --- Dynamic ---
 
-# ReflectiveHaxeObjectRef
+# ReflectiveHaxeObjectRef  
 
-proc initReflectiveObject*(this:ReflectiveHaxeObjectRef) =    
-    this.fields = newHaxeArray[DynamicField]()    
+# Create new reflective object only with anonimous fields
+proc newAnonReflectiveObject*() : ReflectiveHaxeObjectRef =
+    var this = ReflectiveHaxeObjectRef()
+    this.fields = newStringMap[Dynamic]()
+    this.getFieldByName = proc(name:string):Dynamic =
+        getAnonFieldByName(this, name)
 
-proc newReflectiveObject*() : ReflectiveHaxeObjectRef =
-    var res = ReflectiveHaxeObjectRef()
-    initReflectiveObject(res)
-    return res
+    this.setFieldByName = proc(name:string, value:Dynamic):void =
+        setAnonFieldByName(this, name, value)
+    
+    this.getFields = proc():HaxeArray[string] =
+        var fields = newSeq[string]()
+        for it in this.fields.data.keys():
+            fields.add(it)
+
+        return newHaxeArray[string](fields)
+
+    return this
     
 proc setAnonFieldByName*(this:ReflectiveHaxeObjectRef, name:string, value:Dynamic) {.inline.} =    
-    for fld in this.fields.data:
-        if fld.name == name:
-            fld.value = value
-            return
-    
-    discard this.fields.push(DynamicField(name: name, value: value))
+    this.fields.set(name, value)
 
 proc getAnonFieldByName*(this:ReflectiveHaxeObjectRef, name:string):Dynamic {.inline.} =
-    for fld in this.fields.data:
-        if fld.name == name:
-            return fld.value
-        
-    return nil
+    return this.fields.get(name)
 
-proc deleteField*(this:ReflectiveHaxeObjectRef, name:string):void {.inline.} =
-    var i = -1
-    for fld in this.fields.data:
-        if fld.name == name:
-            i += 1
-            break
-        else:
-            i += 1
-
-    if i != -1:
-        this.fields.data.del(i)
-    
-    
-    
-
-
-proc getFields*(this:ReflectiveHaxeObjectRef):HaxeArray[DynamicField] =
-    return this.fields
+proc deleteField*(this:ReflectiveHaxeObjectRef, name:string):void {.inline.} =    
+    #this.fields.delete(name)
+    discard
 
 # Dynamic 
 
@@ -346,13 +333,17 @@ proc `$`*(this:Dynamic):string =
         let fields = this.fobjectIntro.getFields()
         var data = newSeq[string]()
         for fld in fields.data:
-            data.add(fld & ": " & $this.fobjectIntro.getFieldByName(fld))
+            var val = this.fobjectIntro.getFieldByName(fld)
+            if not val.isNil:
+                data.add(fld & ": " & $val)
         return $data
     of TReflectiveObject:
-        let fields = this.fobjectIntro.getFields()
+        let fields = this.fobjectRefl.getFields()
         var data = newSeq[string]()
         for fld in fields.data:
-            data.add(fld & ": " & $this.fobjectIntro.getFieldByName(fld))
+            var val = this.fobjectRefl.getFieldByName(fld)
+            if not val.isNil:
+                data.add(fld & ": " & $val)
         return $data
     of TProc:
         return "Proc"

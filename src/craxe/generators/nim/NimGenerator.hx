@@ -351,7 +351,8 @@ class NimGenerator extends BaseGenerator {
 				var fld = an.fields[i];
 				sb.add('of "${fld.name}":');
 				sb.addNewLine(Inc);
-				sb.add('this.${fld.name} = value');
+				var convert = typeResolver.convertDynamicToType("value", fld.type);
+				sb.add('this.${fld.name} = ${convert}');
 				sb.addNewLine(Same);
 				sb.add('return');
 				sb.addNewLine(Dec);

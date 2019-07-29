@@ -87,7 +87,7 @@ class TypeResolver {
 			case "Async":
 				name = 'Future${parstr} {.async.}';
 			default:
-				name = '${name}Abstr${parstr}';	
+				name = '${name}Abstr${parstr}';
 		}
 
 		sb.add('${name}');
@@ -103,7 +103,7 @@ class TypeResolver {
 		var nativeName = t.meta.getMetaValue(":native");
 		var typeName = nativeName != null ? nativeName : getFixedTypeName(t.name);
 		sb.add(typeName);
-		if (params != null && params.length > 0) {						
+		if (params != null && params.length > 0) {
 			sb.add(resolveParameters(params));
 		}
 	}
@@ -128,7 +128,7 @@ class TypeResolver {
 	/**
 	 * Generate TAnonymous
 	 */
-	function generateTAnonymous(sb:StringBuf, anon:AnonType) {		
+	function generateTAnonymous(sb:StringBuf, anon:AnonType) {
 		sb.add("Dynamic");
 	}
 
@@ -154,8 +154,32 @@ class TypeResolver {
 	}
 
 	/**
+	 * Convert Dynamic with `name` to `knownType`
+	 * Return nim code as string to convert Dynamic to type
+	 */
+	public function convertDynamicToType(name:String, knownType:Type):String {
+		switch knownType {
+			case TAbstract(t, _):
+				switch t.get().name {
+					case "Int":
+						return '${name}.fint';
+					case "Float":
+						return '${name}.ffloat';
+				}
+			case TInst(t, _):
+				switch t.get().name {
+					case "String":
+						return '${name}.fstring';
+					case _:
+				}
+			case v:
+		}
+
+		throw 'Cant convert Dynamic to ${knownType.getName()}';
+	}
+
+	/**
 	 * Return fixed type name
-	 * @param name
 	 */
 	public function getFixedTypeName(name:String) {
 		switch name {
@@ -188,8 +212,8 @@ class TypeResolver {
 			var sb = new StringBuf();
 
 			sb.add("[");
-			var parStr = params.map(x->resolve(x)).join(", ");
-			sb.add(parStr);			
+			var parStr = params.map(x -> resolve(x)).join(", ");
+			sb.add(parStr);
 			sb.add("]");
 
 			return sb.toString();
@@ -233,7 +257,7 @@ class TypeResolver {
 				generateTDynamic(sb, t);
 			case TMono(t):
 				generateTMono(sb, t.get());
-			case v:			
+			case v:
 				throw 'Unsupported type ${v}';
 		}
 

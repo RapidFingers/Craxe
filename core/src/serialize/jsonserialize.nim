@@ -35,9 +35,9 @@ proc printObject(obj:Dynamic):string =
 proc parseNode(node:JsonNode):Dynamic =
     case node.kind
     of JObject:
-        var res = newReflectiveObject()
-        for key, val in node.fields.pairs():
-            res.setFieldByName(key, parseNode(val))
+        var res = newAnonReflectiveObject()
+        for key, val in node.fields.pairs():            
+            res.setFieldByName(key, parseNode(val))            
         return toDynamic(res)
     of JString:
         return toDynamic(node.getStr())
