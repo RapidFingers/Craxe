@@ -360,53 +360,7 @@ class NimGenerator extends BaseGenerator {
 
 			sb.add('this.setAnonFieldByName(name, value)');
 			sb.addNewLine(Dec);
-			sb.add('return this');
-			// sb.add('proc getFields(this:${anonName}):HaxeArray[string] {.inline.} =');
-			// sb.addNewLine(Inc);
-			// var fldNames = an.fields.map(x -> '"${x.name}"').join(", ");
-			// sb.add('return newHaxeArray[string](@[${fldNames}])');
-
-			// sb.addBreak();
-
-			// sb.add('proc getFieldByNameInternal(this:${anonName}, name:string):Dynamic =');
-			// sb.addNewLine(Inc);
-			// if (an.fields.length > 0) {
-			// 	sb.add("case name");
-			// 	sb.addNewLine(Same);
-			// 	for (i in 0...an.fields.length) {
-			// 		var fld = an.fields[i];
-			// 		sb.add('of "${fld.name}": return toDynamic(this.${fld.name})');
-			// 		sb.addNewLine(Same);
-			// 	}
-			// }
-
-			// sb.addBreak();
-
-			// sb.add('proc setFieldByNameInternal(this:${anonName}, name:string, value:Dynamic):void =');
-			// sb.addNewLine(Inc);
-			// if (an.fields.length > 0) {
-			// 	sb.add("case name");
-			// 	sb.addNewLine(Same);
-			// 	for (i in 0...an.fields.length) {
-			// 		var fld = an.fields[i];
-			// 		sb.add('of "${fld.name}": this.${fld.name} = fromDynamic(value, typeof(this.${fld.name}))');
-			// 		sb.addNewLine(Same);
-			// 	}
-			// }
-
-			// sb.addBreak();
-
-			// sb.add('proc makeDynamic(this:${anonName}):Dynamic {.inline.} =');
-			// sb.addNewLine(Inc);
-
-			// sb.add("this.getFields = proc():HaxeArray[string] = getFields(this)");
-			// sb.addNewLine(Same);
-			// sb.add("this.getFieldByName = proc(name:string):Dynamic = getFieldByNameInternal(this, name)");
-			// sb.addNewLine(Same);
-			// sb.add("this.setFieldByName = proc(name:string, value:Dynamic):void = setFieldByNameInternal(this, name, value)");
-			// sb.addNewLine(Same);
-			// sb.add("return toDynamic(this)");
-			// sb.addBreak();
+			sb.add('return this');			
 
 			sb.addBreak();
 		}
@@ -635,11 +589,6 @@ class NimGenerator extends BaseGenerator {
 					} else {
 						sb.add("discard");
 					}
-					sb.addBreak();
-
-					sb.add('proc fromDynamic${params}(this:Dynamic):${className}${params} =');
-					sb.addNewLine(Inc);
-					sb.add('cast[${className}${params}](this.fobject)');
 					sb.addBreak();
 				}
 

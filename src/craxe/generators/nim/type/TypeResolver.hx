@@ -128,8 +128,8 @@ class TypeResolver {
 	/**
 	 * Generate TAnonymous
 	 */
-	function generateTAnonymous(sb:StringBuf, anon:AnonType) {
-		sb.add("Dynamic");
+	function generateTAnonymous(sb:StringBuf, anon:AnonType) {		
+		sb.add('Dynamic');
 	}
 
 	/**
@@ -166,13 +166,15 @@ class TypeResolver {
 					case "Float":
 						return '${name}.ffloat';
 				}
-			case TInst(t, _):
+			case TInst(t, _):				
 				switch t.get().name {
 					case "String":
 						return '${name}.fstring';
 					case _:
+						var resolvedType = resolve(knownType);
+						return 'cast[${resolvedType}](${name}.getObject)';
 				}
-			case v:
+			case _:
 		}
 
 		throw 'Cant convert Dynamic to ${knownType.getName()}';

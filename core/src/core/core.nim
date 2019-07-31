@@ -33,7 +33,7 @@ type
         setFieldByName*:proc(name:string, value:Dynamic):void {.gcsafe.}
 
     # Reference to IntrospectiveHaxeObject    
-    IntrospectiveHaxeObjectRef* = object of IntrospectiveHaxeObject
+    IntrospectiveHaxeObjectRef* = ref IntrospectiveHaxeObject
 
     # Mutable object with all reflection possibility
     # Anonimous object (typedef)
@@ -366,6 +366,15 @@ proc getFields*(this:Dynamic):HaxeArray[string] {.gcsafe.} =
         this.fobjectIntro.getFields()
     of TReflectiveObject:
         this.fobjectRefl.getFields()
+    else:
+        nil
+
+proc getObject*(this:Dynamic):HaxeObjectRef =
+    case this.kind
+    of TIntrospectiveObject:
+        this.fobjectIntro
+    of TReflectiveObject:
+        this.fobjectRefl
     else:
         nil
 

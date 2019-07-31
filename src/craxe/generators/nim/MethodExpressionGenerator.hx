@@ -365,49 +365,56 @@ class MethodExpressionGenerator {
 						case TAnonymous(_):
 						// Ignore
 						case _:
-							isConvertFromDynamic = true;
-							sb.add("fromDynamic(");
+							isConvertFromDynamic = true;							
 					}
 				case _:
 			}
 
+			var outSb = if (isConvertFromDynamic) {
+				new IndentStringBuilder();
+			} else {
+				sb;
+			}
+
 			switch expr.expr {
 				case TUnop(op, postFix, e):
-					generateTUnop(sb, op, postFix, e);
+					generateTUnop(outSb, op, postFix, e);
 				case TNew(c, params, el):
-					generateTNew(sb, c.get(), params, el);
+					generateTNew(outSb, c.get(), params, el);
 				case TConst(c):
-					generateTConst(sb, c);
+					generateTConst(outSb, c);
 				case TCall(e, el):
-					generateCommonTCall(sb, e, el);
+					generateCommonTCall(outSb, e, el);
 				case TLocal(v):
-					generateTLocal(sb, v);
+					generateTLocal(outSb, v);
 				case TArray(e1, e2):
-					generateTArray(sb, e1, e2);
+					generateTArray(outSb, e1, e2);
 				case TArrayDecl(el):
-					generateTArrayDecl(sb, el);
+					generateTArrayDecl(outSb, el);
 				case TObjectDecl(fields):
-					generateTObjectDecl(sb, fields, vr.t);
+					generateTObjectDecl(outSb, fields, vr.t);
 				case TField(e, fa):
-					generateTField(sb, e, fa);
+					generateTField(outSb, e, fa);
 				case TEnumParameter(e1, ef, index):
-					if (!generateCustomEnumParameterCall(sb, e1, ef, index))
-						generateTEnumParameter(sb, e1, ef, index);
+					if (!generateCustomEnumParameterCall(outSb, e1, ef, index))
+						generateTEnumParameter(outSb, e1, ef, index);
 				case TMeta(m, e1):
-					generateTMeta(sb, m, e1);
+					generateTMeta(outSb, m, e1);
 				case TCast(e, m):
-					generateTCast(sb, expr, e, m);
+					generateTCast(outSb, expr, e, m);
 				case TBinop(op, e1, e2):
-					generateTBinop(sb, op, e1, e2);
+					generateTBinop(outSb, op, e1, e2);
 				case TBlock(el):
-					generateTBlockInline(sb, el);
+					generateTBlockInline(outSb, el);
 				case v:
 					throw 'Unsupported ${v}';
 			}
 
-			if (isConvertFromDynamic) {
-				sb.add(', ${vartype})');
+			if (isConvertFromDynamic) {				
+				var convert = typeResolver.convertDynamicToType(outSb.toString(), vr.t);
+				sb.add(convert);
 			}
+		
 		} else {
 			sb.add(':${vartype}');
 		}
