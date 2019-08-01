@@ -1,7 +1,9 @@
 package craxe.nim;
 
+#if macro
 import haxe.macro.Context;
 import haxe.macro.Expr;
+#end
 
 /**
  * Core methods that will be processed by generator

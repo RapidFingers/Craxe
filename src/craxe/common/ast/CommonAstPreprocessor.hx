@@ -36,7 +36,7 @@ class CommonAstPreprocessor {
 		"Std" => true, "Array" => true, "Math" => true, "Reflect" => true, "Sys" => true, "EReg" => true, "ArrayAccess" => true, "String" => true,
 		"IntIterator" => true, "StringBuf" => true, "StringTools" => true, "Type" => true, "_EnumValue.EnumValue_Impl_" => true, "ValueType" => true,
 		"Encoding" => true, "Error" => true, "EnumValue_Impl_" => true, "File" => true, "FileInput" => true, "FileOutput" => true, "FileSeek" => true,
-		"Map" => true, "Xml" => true, "IMap" => true, "Nim" => true
+		"Map" => true, "Xml" => true, "IMap" => true, "Nim" => true, "Any_Impl_" => true
 	];
 
 	/**
@@ -52,7 +52,7 @@ class CommonAstPreprocessor {
 			if (module.indexOf(excl) >= 0)
 				return true;
 		}
-
+		
 		if (excludedTypes.exists(name))
 			return true;
 

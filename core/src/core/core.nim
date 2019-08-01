@@ -23,14 +23,14 @@ type
     InterfaceHaxeObjectRef* = ref InterfaceHaxeObject
 
     # Object with introspection but no possibility to add/remove fields
-    # Classes with reflection, or using as dynamic
+    # Classes with reflection, or using as AnyType
     IntrospectiveHaxeObject* = object of HaxeObject
         # Return names of object fields
         getFields*:proc():HaxeArray[string] {.gcsafe.}
-        # Return field value as Dynamic by name
-        getFieldByName*:proc(name:string):Dynamic {.gcsafe.}
+        # Return field value as AnyType by name
+        getFieldByName*:proc(name:string):AnyType {.gcsafe.}
         # Set field value by name
-        setFieldByName*:proc(name:string, value:Dynamic):void {.gcsafe.}
+        setFieldByName*:proc(name:string, value:AnyType):void {.gcsafe.}
 
     # Reference to IntrospectiveHaxeObject    
     IntrospectiveHaxeObjectRef* = ref IntrospectiveHaxeObject
@@ -39,7 +39,7 @@ type
     # Anonimous object (typedef)
     ReflectiveHaxeObject* = object of IntrospectiveHaxeObject
         # Fields for add/delete by reflection
-        fields: HaxeStringMap[Dynamic]
+        fields: HaxeStringMap[AnyType]
 
     ReflectiveHaxeObjectRef* = ref ReflectiveHaxeObject
 
@@ -85,19 +85,19 @@ type
     # Haxe object map
     HaxeObjectMap*[K, V] = HaxeMap[K, V]
 
-    # --- Dynamic ---
+    # --- Any ---
     
     # Field of object that can be added or deleted
-    DynamicField* = ref object
+    AnyTypeField* = ref object
         name*:string        
-        value*:Dynamic    
+        value*:AnyType    
 
-    # Dynamic
-    DynamicType* = enum
+    # AnyType types
+    AnyTypeEnum* = enum
         TString, TInt, TFloat, TIntrospectiveObject, TReflectiveObject, TProc
 
-    Dynamic* = ref object of HaxeObject
-        case kind*: DynamicType
+    AnyType* = ref object of HaxeObject
+        case kind*: AnyTypeEnum
         of TString: 
             fstring*:string
         of TInt: 
@@ -117,26 +117,26 @@ type
     HaxeEnum* = ref object of HaxeObject
         index*:int
 
-template newDynamic*(value:string):Dynamic =
-    Dynamic(kind:TString, fstring: value)
+template newAnyType*(value:string):AnyType =
+    AnyType(kind:TString, fstring: value)
 
-template newDynamic*(value:int):Dynamic =
-    Dynamic(kind:TInt, fint: value)
+template newAnyType*(value:int):AnyType =
+    AnyType(kind:TInt, fint: value)
 
-template newDynamic*(value:float):Dynamic =
-    Dynamic(kind:TFloat, ffloat: value)
+template newAnyType*(value:float):AnyType =
+    AnyType(kind:TFloat, ffloat: value)
 
-template newDynamic*(value:IntrospectiveHaxeObjectRef):Dynamic =
-    Dynamic(kind:TIntrospectiveObject, fobjectIntro: value)
+template newAnyType*(value:IntrospectiveHaxeObjectRef):AnyType =
+    AnyType(kind:TIntrospectiveObject, fobjectIntro: value)
 
-template newDynamic*(value:ReflectiveHaxeObjectRef):Dynamic =
-    Dynamic(kind:TReflectiveObject, fobjectRefl: value)
+template newAnyType*(value:ReflectiveHaxeObjectRef):AnyType =
+    AnyType(kind:TReflectiveObject, fobjectRefl: value)
 
-proc newDynamic*(value:proc):Dynamic =
-    Dynamic(kind:TProc, fproc: cast[pointer](value))
+proc newAnyType*(value:proc):AnyType =
+    AnyType(kind:TProc, fproc: cast[pointer](value))
 
-template toDynamic*(this:untyped):untyped =
-    newDynamic(this)
+template toAnyType*(this:untyped):untyped =
+    newAnyType(this)
 
 # Core procedures
 # a++
@@ -284,18 +284,18 @@ proc newObjectMap*[K, V]() : HaxeObjectMap[K, V] =
     result = HaxeObjectMap[K, V]()
     result.data = initTable[K, V](TABLE_INIT_SIZE)
 
-# --- Dynamic ---
+# --- AnyType ---
 
 # ReflectiveHaxeObjectRef  
 
 # Create new reflective object only with anonimous fields
 proc newAnonReflectiveObject*() : ReflectiveHaxeObjectRef =
     var this = ReflectiveHaxeObjectRef()
-    this.fields = newStringMap[Dynamic]()
-    this.getFieldByName = proc(name:string):Dynamic =
+    this.fields = newStringMap[AnyType]()
+    this.getFieldByName = proc(name:string):AnyType =
         getAnonFieldByName(this, name)
 
-    this.setFieldByName = proc(name:string, value:Dynamic):void =
+    this.setFieldByName = proc(name:string, value:AnyType):void =
         setAnonFieldByName(this, name, value)
     
     this.getFields = proc():HaxeArray[string] =
@@ -307,19 +307,19 @@ proc newAnonReflectiveObject*() : ReflectiveHaxeObjectRef =
 
     return this
     
-proc setAnonFieldByName*(this:ReflectiveHaxeObjectRef, name:string, value:Dynamic) {.inline.} =    
+proc setAnonFieldByName*(this:ReflectiveHaxeObjectRef, name:string, value:AnyType) {.inline.} =    
     this.fields.set(name, value)
 
-proc getAnonFieldByName*(this:ReflectiveHaxeObjectRef, name:string):Dynamic {.inline.} =
+proc getAnonFieldByName*(this:ReflectiveHaxeObjectRef, name:string):AnyType {.inline.} =
     return this.fields.get(name)
 
 proc deleteField*(this:ReflectiveHaxeObjectRef, name:string):void {.inline.} =    
     #this.fields.delete(name)
     discard
 
-# Dynamic 
+# AnyType 
 
-proc `$`*(this:Dynamic):string =
+proc `$`*(this:AnyType):string =
     if this.isNil:
         return "null"
     case this.kind
@@ -348,10 +348,10 @@ proc `$`*(this:Dynamic):string =
     of TProc:
         return "Proc"
 
-proc `$`*(this:DynamicField):string =
+proc `$`*(this:AnyTypeField):string =
     return $this.value
 
-proc getField*(this:Dynamic, name:string):Dynamic {.gcsafe.} =
+proc getField*(this:AnyType, name:string):AnyType {.gcsafe.} =
     case this.kind    
     of TIntrospectiveObject:
         this.fobjectIntro.getFieldByName(name)
@@ -360,7 +360,7 @@ proc getField*(this:Dynamic, name:string):Dynamic {.gcsafe.} =
     else:
         nil
 
-proc getFields*(this:Dynamic):HaxeArray[string] {.gcsafe.} =    
+proc getFields*(this:AnyType):HaxeArray[string] {.gcsafe.} =    
     case this.kind
     of TIntrospectiveObject:
         this.fobjectIntro.getFields()
@@ -369,7 +369,7 @@ proc getFields*(this:Dynamic):HaxeArray[string] {.gcsafe.} =
     else:
         nil
 
-proc getObject*(this:Dynamic):HaxeObjectRef =
+proc getObject*(this:AnyType):HaxeObjectRef =
     case this.kind
     of TIntrospectiveObject:
         this.fobjectIntro
@@ -378,28 +378,28 @@ proc getObject*(this:Dynamic):HaxeObjectRef =
     else:
         nil
 
-template call*[T](this:Dynamic, tp:typedesc[T]):untyped =
+template call*[T](this:AnyType, tp:typedesc[T]):untyped =
     case this.kind
     of TProc:
         var pr:T = cast[tp](this.fproc)
         pr()
     else:
-        raise newException(ValueError, "Dynamic wrong type")
+        raise newException(ValueError, "AnyType wrong type")
 
-template call*[T](this:Dynamic, tp:typedesc[T], args:untyped):untyped =
+template call*[T](this:AnyType, tp:typedesc[T], args:untyped):untyped =
     case this.kind
     of TProc:
         var pr:T = cast[tp](this.fproc)
         pr(args)
     else:
-        raise newException(ValueError, "Dynamic wrong type")
+        raise newException(ValueError, "AnyType wrong type")
 
-template call*[T](this:Dynamic, name:string, tp:typedesc[T], args:untyped):untyped =    
+template call*[T](this:AnyType, name:string, tp:typedesc[T], args:untyped):untyped =    
     case this.kind:
     of TAnonObject, TObject:
         this.getField(name).call(tp, args)
     else:
-        raise newException(ValueError, "Dynamic wrong type")
+        raise newException(ValueError, "AnyType wrong type")
 
 # --- Haxe Enum ---
 

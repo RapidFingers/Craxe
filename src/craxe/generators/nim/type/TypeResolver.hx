@@ -112,7 +112,7 @@ class TypeResolver {
 	 * Generate TType
 	 */
 	function generateTType(sb:StringBuf, t:DefType, params:Array<Type>) {
-		sb.add('Dynamic');
+		sb.add('AnyType');
 	}
 
 	/**
@@ -129,21 +129,21 @@ class TypeResolver {
 	 * Generate TAnonymous
 	 */
 	function generateTAnonymous(sb:StringBuf, anon:AnonType) {		
-		sb.add('Dynamic');
+		sb.add('AnyType');
 	}
 
 	/**
-	 * Generate TDynamic
+	 * Generate TAnyType
 	 */
-	function generateTDynamic(sb:StringBuf, dyn:Type) {
-		sb.add("Dynamic");
+	function generateTAnyType(sb:StringBuf, dyn:Type) {
+		sb.add("AnyType");
 	}
 
 	/**
 	 * 	 Generate TMono
 	 */
 	function generateTMono(sb:StringBuf, dyn:Type) {
-		sb.add("Dynamic");
+		sb.add("AnyType");
 	}
 
 	/**
@@ -154,10 +154,10 @@ class TypeResolver {
 	}
 
 	/**
-	 * Convert Dynamic with `name` to `knownType`
-	 * Return nim code as string to convert Dynamic to type
+	 * Convert AnyType with `name` to `knownType`
+	 * Return nim code as string to convert AnyType to type
 	 */
-	public function convertDynamicToType(name:String, knownType:Type):String {
+	public function convertAnyTypeToType(name:String, knownType:Type):String {
 		switch knownType {
 			case TAbstract(t, _):
 				switch t.get().name {
@@ -177,7 +177,7 @@ class TypeResolver {
 			case _:
 		}
 
-		throw 'Cant convert Dynamic to ${knownType.getName()}';
+		throw 'Cant convert AnyType to ${knownType.getName()}';
 	}
 
 	/**
@@ -255,8 +255,9 @@ class TypeResolver {
 				generateTFun(sb, args, ret);
 			case TAnonymous(a):
 				generateTAnonymous(sb, a.get());
-			case TDynamic(t):
-				generateTDynamic(sb, t);
+			case TDynamic(_):
+				throw 'Dynamic type not supported. Use Any.';
+				//generateTAnyType(sb, t);
 			case TMono(t):
 				generateTMono(sb, t.get());
 			case v:

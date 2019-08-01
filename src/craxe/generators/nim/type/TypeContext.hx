@@ -39,9 +39,9 @@ class TypeContext {
 	final anonByName = new StringMap<AnonTypedefInfo>();
 
 	/**
-	 * Types for which need generate converters toDynamic
+	 * Types for which need generate converters toAnyType
 	 */
-	final dynamicAllowed = new StringMap<Bool>();
+	final AnyTypeAllowed = new StringMap<Bool>();
 
 	/**
 	 * Has interfaces
@@ -184,34 +184,34 @@ class TypeContext {
 	}
 
 	/**
-	 * Set dynamic support for type
+	 * Set AnyType support for type
 	 */
-	public function addDynamicSupport(name:String) {
-		ContextMacro.ckeckDynamicSupport();
+	public function addAnyTypeSupport(name:String) {
+		ContextMacro.ckeckAnyTypeSupport();
 		var cls = getClassByName(name);
 		if (cls != null) {
 			var root = cls.getRootClassType();
 			if (root == null) {
-				dynamicAllowed.set(name, true);
+				AnyTypeAllowed.set(name, true);
 			} else {
-				dynamicAllowed.set(root.name, true);
+				AnyTypeAllowed.set(root.name, true);
 			}
 		} else {
-			dynamicAllowed.set(name, true);
+			AnyTypeAllowed.set(name, true);
 		}
 	}
 
 	/**
-	 * Return all types for which need build dynamic converters
+	 * Return all types for which need build AnyType converters
 	 */
-	public function allDynamicConverters():Array<String> {
-		return [for (key => _ in dynamicAllowed) key];
+	public function allAnyTypeConverters():Array<String> {
+		return [for (key => _ in AnyTypeAllowed) key];
 	}
 
 	/**
-	 * Check if type has dynamic support
+	 * Check if type has AnyType support
 	 */
-	public function isDynamicSupported(name:String):Bool {
-		return dynamicAllowed.exists(name);
+	public function isAnyTypeSupported(name:String):Bool {
+		return AnyTypeAllowed.exists(name);
 	}
 }

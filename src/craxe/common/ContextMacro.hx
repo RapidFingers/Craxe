@@ -20,15 +20,15 @@ class ContextMacro {
     }
 
     /**
-     * Check if dynamic supported and throw exception if not
+     * Check if AnyType supported and throw exception if not
      */
-    public static function ckeckDynamicSupport() {
+    public static function ckeckAnyTypeSupport() {
         #if macro
-        var supported = Context.getDefines().get("nim-dynamic") == "enable";
+        var supported = Context.getDefines().get("nim-any") == "enable";
         if (supported)
             return;
         
-        Context.fatalError("Dynamic is restricted. Please, add -D nim-dynamic=enable to your configuration, or remove all Dynamic type from the code.", Context.currentPos());
+        Context.fatalError("AnyType is restricted. Please, add -D nim-any=enable to your configuration, or remove all Any type from the code.", Context.currentPos());
         #end
         throw "Not supported";
     }

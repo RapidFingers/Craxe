@@ -286,7 +286,7 @@ class NimGenerator extends BaseGenerator {
 	}
 
 	/**
-	 * Generate anon converters to dynamic
+	 * Generate anon converters to AnyType
 	 */
 	function buildAnonConstructors(sb:IndentStringBuilder) {
 		var anons = typeContext.allAnonymous();
@@ -329,7 +329,7 @@ class NimGenerator extends BaseGenerator {
 			sb.add('])');
 			sb.addNewLine(Dec);
 
-			sb.add('this.getFieldByName = proc(name:string):Dynamic =');
+			sb.add('this.getFieldByName = proc(name:string):AnyType =');
 			sb.addNewLine(Inc);
 			sb.add('case name');
 			sb.addNewLine(Same);
@@ -337,13 +337,13 @@ class NimGenerator extends BaseGenerator {
 				var fld = an.fields[i];
 				sb.add('of "${fld.name}":');
 				sb.addNewLine(Inc);
-				sb.add('return toDynamic(this.${fld.name})');
+				sb.add('return toAnyType(this.${fld.name})');
 				sb.addNewLine(Dec);
 			}
 			sb.add('return this.getAnonFieldByName(name)');
 			sb.addNewLine(Dec);
 
-			sb.add('this.setFieldByName = proc(name:string, value:Dynamic):void =');
+			sb.add('this.setFieldByName = proc(name:string, value:AnyType):void =');
 			sb.addNewLine(Inc);
 			sb.add('case name');
 			sb.addNewLine(Same);
@@ -351,7 +351,7 @@ class NimGenerator extends BaseGenerator {
 				var fld = an.fields[i];
 				sb.add('of "${fld.name}":');
 				sb.addNewLine(Inc);
-				var convert = typeResolver.convertDynamicToType("value", fld.type);
+				var convert = typeResolver.convertAnyTypeToType("value", fld.type);
 				sb.add('this.${fld.name} = ${convert}');
 				sb.addNewLine(Same);
 				sb.add('return');
@@ -450,7 +450,7 @@ class NimGenerator extends BaseGenerator {
 		var clsName = cls.classType.name;
 		var params = typeResolver.resolveParameters(cls.params);
 
-		var baseTypeName = if (typeContext.isDynamicSupported(clsName)) {
+		var baseTypeName = if (typeContext.isAnyTypeSupported(clsName)) {
 			"IntrospectiveHaxeObject";
 		} else {
 			"HaxeObject";
@@ -565,8 +565,8 @@ class NimGenerator extends BaseGenerator {
 				var constrExp = constructor.expr();
 				var params = typeResolver.resolveParameters(cls.params);
 
-				// Generate procedures for dynamic support
-				if (typeContext.isDynamicSupported(className)) {
+				// Generate procedures for AnyType support
+				if (typeContext.isAnyTypeSupported(className)) {
 					var fields = cls.classType.fields.get();
 
 					sb.add('proc getFields(this:${className}):HaxeArray[string] {.inline.} =');
@@ -576,14 +576,14 @@ class NimGenerator extends BaseGenerator {
 
 					sb.addBreak();
 
-					sb.add('proc getFieldByNameInternal${params}(this:${className}${params}, name:string):Dynamic =');
+					sb.add('proc getFieldByNameInternal${params}(this:${className}${params}, name:string):AnyType =');
 					sb.addNewLine(Inc);
 					if (fields.length > 0) {
 						sb.add("case name");
 						sb.addNewLine(Same);
 						for (i in 0...fields.length) {
 							var fld = fields[i];
-							sb.add('of "${fld.name}": return toDynamic(this.${fld.name})');
+							sb.add('of "${fld.name}": return toAnyType(this.${fld.name})');
 							sb.addNewLine(Same);
 						}
 					} else {
@@ -623,11 +623,11 @@ class NimGenerator extends BaseGenerator {
 				}
 				sb.add(')');
 
-				if (typeContext.isDynamicSupported(className)) {
+				if (typeContext.isAnyTypeSupported(className)) {
 					sb.addNewLine(Same);
 					sb.add("this.getFields = proc():HaxeArray[string] = getFields(this)");
 					sb.addNewLine(Same);
-					sb.add("this.getFieldByName = proc(name:string):Dynamic = getFieldByNameInternal(this, name)");
+					sb.add("this.getFieldByName = proc(name:string):AnyType = getFieldByNameInternal(this, name)");
 				}
 
 				sb.addNewLine(Same);

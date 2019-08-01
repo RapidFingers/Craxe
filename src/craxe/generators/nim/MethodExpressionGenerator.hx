@@ -61,6 +61,7 @@ class MethodExpressionGenerator {
 	 * Generate code for TMeta
 	 */
 	function generateTMeta(sb:IndentStringBuilder, meta:MetadataEntry, expression:TypedExpr) {
+		trace(meta);
 		switch (expression.expr) {
 			case TConst(c):
 				generateTConst(sb, c);
@@ -355,8 +356,8 @@ class MethodExpressionGenerator {
 		if (expr != null) {
 			sb.add(" = ");
 
-			var isConvertFromDynamic = false;
-			// Convert from Dynamic to real type
+			var isConvertFromAnyType = false;
+			// Convert from AnyType to real type
 			switch expr.t {
 				case TDynamic(_):
 					switch vr.t {
@@ -365,12 +366,12 @@ class MethodExpressionGenerator {
 						case TAnonymous(_):
 						// Ignore
 						case _:
-							isConvertFromDynamic = true;							
+							isConvertFromAnyType = true;							
 					}
 				case _:
 			}
 
-			var outSb = if (isConvertFromDynamic) {
+			var outSb = if (isConvertFromAnyType) {
 				new IndentStringBuilder();
 			} else {
 				sb;
@@ -410,8 +411,8 @@ class MethodExpressionGenerator {
 					throw 'Unsupported ${v}';
 			}
 
-			if (isConvertFromDynamic) {				
-				var convert = typeResolver.convertDynamicToType(outSb.toString(), vr.t);
+			if (isConvertFromAnyType) {				
+				var convert = typeResolver.convertAnyTypeToType(outSb.toString(), vr.t);
 				sb.add(convert);
 			}
 		
@@ -603,7 +604,7 @@ class MethodExpressionGenerator {
 			}));
 		}
 
-		sb.add('toDynamic(');
+		sb.add('toAnyType(');
 		sb.add('new${object.name}(');
 		for (i in 0...fields.length) {
 			var field = fields[i];
@@ -650,19 +651,20 @@ class MethodExpressionGenerator {
 
 		switch toExpr.t {
 			case TDynamic(_):
-				var name = switch fromExpr.t {
-					case TAnonymous(a):
-						context.getObjectTypeByFields(a.get().fields).name;
-					case _:
-						null;
-				}
+				throw "Dynamic is not supported. Use Any";
+				// var name = switch fromExpr.t {
+				// 	case TAnonymous(a):
+				// 		context.getObjectTypeByFields(a.get().fields).name;
+				// 	case _:
+				// 		null;
+				// }
 
-				if (name != null) {
-					context.addDynamicSupport(name);
-					generateInnerExpr();
-				} else {
-					generateInnerExpr();
-				}
+				// if (name != null) {
+				// 	context.addAnyTypeSupport(name);
+				// 	generateInnerExpr();
+				// } else {
+				// 	generateInnerExpr();
+				// }
 			case _:
 				generateInnerExpr();
 		}
@@ -702,7 +704,7 @@ class MethodExpressionGenerator {
 	 * Generate code for TReturn
 	 */
 	function generateTReturn(sb:IndentStringBuilder, expression:TypedExpr) {
-		var isDynamicReturn = false;
+		var isAnyTypeReturn = false;
 		if (returnType != null) {
 			switch returnType {
 				case TDynamic(_):
@@ -710,22 +712,22 @@ class MethodExpressionGenerator {
 						case TDynamic(_):
 						case TAnonymous(_):
 						case _:
-							isDynamicReturn = true;
+							isAnyTypeReturn = true;
 					}
 				case _:
 			}
 		}
 
 		function addReturn() {
-			if (isDynamicReturn) {
-				sb.add("return toDynamic(");
+			if (isAnyTypeReturn) {
+				sb.add("return toAnyType(");
 			} else {
 				sb.add("return ");
 			}
 		}
 
 		function addClose() {
-			if (isDynamicReturn) {
+			if (isAnyTypeReturn) {
 				sb.add(")");
 			}
 		}
@@ -1180,7 +1182,7 @@ class MethodExpressionGenerator {
 							switch expr.t {
 								case TDynamic(_) | TType(_) | TAnonymous(_):
 								case _:
-									sb.add('toDynamic(');
+									sb.add('toAnyType(');
 									wasConverter = true;
 							}
 						}
@@ -1203,9 +1205,11 @@ class MethodExpressionGenerator {
 						switch v.t {
 							case TInst(t, _):
 								switch farg.t {
-									case TType(_, _) | TAnonymous(_) | TDynamic(_):
+									case TDynamic(_):
+										throw "Dynamic is not supported. Use Any.";
+									case TType(_, _) | TAnonymous(_):
 										var name = t.get().name;
-										context.addDynamicSupport(name);
+										context.addAnyTypeSupport(name);
 									case _:
 								}
 							case _:
@@ -1229,6 +1233,8 @@ class MethodExpressionGenerator {
 					generateTBlock(sb, el);
 				case TArrayDecl(el):
 					generateTArrayDecl(sb, el);
+				case TMeta(m, e1):
+					generateTMeta(sb, m, e1);
 				case v:
 					throw 'Unsupported ${v}';
 			}
@@ -1476,7 +1482,7 @@ class MethodExpressionGenerator {
 					if (returnType != null) {
 						switch returnType {
 							case TDynamic(_):
-								sb.add("toDynamic(");
+								sb.add("toAnyType(");
 								generateTBlockSingleExpression(sb, expr);
 								sb.add(")");
 							case _:
@@ -1509,6 +1515,8 @@ class MethodExpressionGenerator {
 						generateTVar(sb, v, expr);
 					case TSwitch(e, cases, edef):
 						generateTSwitch(sb, e, cases, edef);
+					case TCast(e, m):
+						generateTCast(sb, e, expr, m);
 					case v:
 						throw 'Unsupported ${v}';
 				}
